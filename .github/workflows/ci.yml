@@ -36,7 +36,9 @@ jobs:
       PGUSER: postgres
       PGDATABASE: epmo_ci
       PGPASSWORD: postgres_ci_only
-      DATABASE_URL: postgresql://postgres:postgres_ci_only@127.0.0.1:5432/epmo_ci
+      DATABASE_URL: postgresql://pmo_app:pmo_ci_app_password_only@127.0.0.1:5432/epmo_ci
+      DATABASE_URL_ADMIN: postgresql://postgres:postgres_ci_only@127.0.0.1:5432/epmo_ci
+      PHASE15_ACCEPT_DISPOSABLE_DB: YES_RESEED_DISPOSABLE_TEST_DATABASE
       REDIS_URL: redis://127.0.0.1:6379
     steps:
       - uses: actions/checkout@v4
@@ -56,8 +58,19 @@ jobs:
         run: |
           pnpm build
           pnpm typecheck
+      - name: Provision CI-only restricted PostgreSQL role
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq postgresql-client
+          psql -X -v ON_ERROR_STOP=1 <<'SQL'
+          CREATE ROLE pmo_app LOGIN PASSWORD 'pmo_ci_app_password_only' NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE;
+          SQL
       - name: Apply SQL migrations to disposable PostgreSQL
         run: pnpm db:migrate
+      - name: Enforce RLS policies on disposable PostgreSQL
+        run: psql -X -v ON_ERROR_STOP=1 -f packages/db/sql/rls.sql
+      - name: Seed explicitly acknowledged disposable test database
+        run: pnpm db:seed
       - name: Verify PostgreSQL row-level security
         run: pnpm verify:rls
       - name: Run offline regression suite
