@@ -3,15 +3,16 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
+import { isIP } from 'node:net';
 import { parseSimpleEnvFile } from './rc1-release-gate.mjs';
 
 function publicHttpsOrigin(value) {
   try {
     const u = new URL(value);
     return u.protocol === 'https:' && !u.username && !u.password && !u.search && !u.hash &&
-      u.pathname === '/' && u.hostname.includes('.') &&
+      u.pathname === '/' && !u.port && u.hostname.includes('.') && !isIP(u.hostname.replace(/^\[|\]$/g, '')) &&
       !['localhost', '127.0.0.1'].includes(u.hostname) &&
-      !u.hostname.endsWith('.local') && !u.hostname.endsWith('.internal');
+      !u.hostname.endsWith('.local') && !u.hostname.endsWith('.internal') && !u.hostname.endsWith('.localhost');
   } catch { return false; }
 }
 function validSecret(value) {
