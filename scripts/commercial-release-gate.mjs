@@ -29,8 +29,27 @@ export const REQUIRED_STRIPE_SCENARIOS = Object.freeze([
 ]);
 
 const SHA = /^[a-f0-9]{40}$/i;
-const HTTPS = /^https:\/\/[^\s/?#]+\/[^\s]+$/i;
+const MAX_EVIDENCE_AGE_MS = 72 * 60 * 60 * 1000;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
+
+function isSafeEvidenceUrl(value) {
+  if (typeof value !== 'string') return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && url.hostname.includes('.') &&
+      url.pathname.length > 1 && !url.username && !url.password && !url.hash &&
+      ![...url.searchParams.keys()].some(key => /^(token|secret|password|key|signature|session|code|authorization)$/i.test(key));
+  } catch { return false; }
+}
+
+function evidenceTimeIssue(value) {
+  if (typeof value !== 'string' || !ISO.test(value)) return 'invalid';
+  const ms = Date.parse(value);
+  if (!Number.isFinite(ms) || new Date(ms).toISOString().slice(0, 19) !== value.slice(0, 19)) return 'invalid';
+  if (ms > Date.now() + 300000) return 'future';
+  if (ms < Date.now() - MAX_EVIDENCE_AGE_MS) return 'stale';
+  return null;
+}
 
 export function evaluateCommercialEvidence(manifest) {
   const issues = [];
@@ -55,9 +74,11 @@ export function evaluateCommercialEvidence(manifest) {
     if (!g || typeof g !== 'object') { issues.push(id + ': no evidence record'); continue; }
     if (g.status !== 'PASS') { issues.push(id + ': not passed'); continue; }
     if (!SHA.test(g.commitSha || '') || g.commitSha !== sha) issues.push(id + ': not verified on candidate SHA');
-    if (!HTTPS.test(g.artifactUrl || '')) issues.push(id + ': missing HTTPS evidence artifact URL');
-    if (!ISO.test(g.executedAtUtc || '') || !Number.isFinite(Date.parse(g.executedAtUtc))) issues.push(id + ': invalid UTC execution timestamp');
-    else if (Date.parse(g.executedAtUtc) > Date.now() + 300000) issues.push(id + ': execution timestamp is in the future');
+    if (!isSafeEvidenceUrl(g.artifactUrl)) issues.push(id + ': missing safe HTTPS evidence artifact URL');
+    const gateTimeIssue = evidenceTimeIssue(g.executedAtUtc);
+    if (gateTimeIssue === 'invalid') issues.push(id + ': invalid UTC execution timestamp');
+    else if (gateTimeIssue === 'future') issues.push(id + ': execution timestamp is in the future');
+    else if (gateTimeIssue === 'stale') issues.push(id + ': evidence older than 72 hours');
     if (typeof g.environment !== 'string' || !g.environment.trim()) issues.push(id + ': missing environment');
     if (typeof g.reviewer !== 'string' || !g.reviewer.trim()) issues.push(id + ': missing reviewer');
     if (typeof g.testResult !== 'string' || g.testResult !== 'passed') issues.push(id + ': missing passing test result');
@@ -75,9 +96,10 @@ export function evaluateCommercialEvidence(manifest) {
             continue;
           }
           if (!SHA.test(evidence.commitSha || '') || evidence.commitSha !== sha) issues.push(prefix + ': candidate SHA mismatch');
-          if (!HTTPS.test(evidence.artifactUrl || '')) issues.push(prefix + ': missing HTTPS artifact URL');
-          if (!ISO.test(evidence.executedAtUtc || '') || !Number.isFinite(Date.parse(evidence.executedAtUtc)) ||
-              Date.parse(evidence.executedAtUtc) > Date.now() + 300000) issues.push(prefix + ': invalid execution timestamp');
+          if (!isSafeEvidenceUrl(evidence.artifactUrl)) issues.push(prefix + ': missing safe HTTPS artifact URL');
+          const scenarioTimeIssue = evidenceTimeIssue(evidence.executedAtUtc);
+          if (scenarioTimeIssue === 'invalid' || scenarioTimeIssue === 'future') issues.push(prefix + ': invalid execution timestamp');
+          else if (scenarioTimeIssue === 'stale') issues.push(prefix + ': evidence older than 72 hours');
           if (evidence.testResult !== 'passed') issues.push(prefix + ': missing passing test result');
         }
       }
