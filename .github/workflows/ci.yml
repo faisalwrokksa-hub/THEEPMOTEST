@@ -218,6 +218,11 @@ jobs:
           # lockfile refresh. Explicitly resolve a patched root peer in this
           # disposable candidate, then assert its actual installed version.
           pnpm add --workspace-root --save-dev vite@8.3.3 --lockfile-only
+          # pnpm's override resolves TS 5.9.3 even when --latest writes TS 7
+          # manifest ranges. Normalize all four workspace manifests so the
+          # uploaded candidate is directly reproducible with a frozen lockfile.
+          node -e "const fs=require('node:fs'); for (const p of ['apps/api/package.json','apps/web/package.json','packages/contracts/package.json','packages/db/package.json']) { const pkg=JSON.parse(fs.readFileSync(p,'utf8')); if (!pkg.devDependencies?.typescript) throw Error('Missing TypeScript dependency in '+p); pkg.devDependencies.typescript='~5.9.3'; fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\\n'); }"
+          pnpm install --lockfile-only
           pnpm install --frozen-lockfile
           node -e "const v=require('./node_modules/vite/package.json').version; if(v!=='8.3.3') throw Error('Candidate Vite version is '+v+', expected 8.3.3')"
           pnpm why vite
