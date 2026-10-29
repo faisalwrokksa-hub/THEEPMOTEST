@@ -2,6 +2,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { translator, type Lang } from '@/lib/i18n-dict';
 import { validateCreateForm, formErrorText } from '@/lib/create-form-validation.mjs';
+import { isCreateSuccess } from '@/lib/create-response.mjs';
 
 type BaseField = { name: string; label: string; required?: boolean; hint?: string };
 export type Field =
@@ -76,7 +77,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
         method: 'POST', body: new FormData(form), headers: { accept: 'application/json' },
       });
       const j = await res.json().catch(() => ({}));
-      if (!res.ok || j?.error) {
+      if (!isCreateSuccess(res.status, j)) {
         // Field paths come from the server; only render those present in this form.
         const validNames = new Set(fields.map(field => field.name));
         const issues: Record<string, string> = {};
@@ -104,7 +105,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
         return;
       }
       // Navigate only after confirmed success. Preserve the form on failure.
-      window.location.assign(typeof j.redirect === 'string' ? j.redirect : returnTo);
+      window.location.assign(j.redirect);
     } catch {
       setError(t('Could not reach the server. Check your connection and try again.'));
     } finally {
@@ -151,7 +152,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
                   {f.type === 'select' ? (
                     <select name={f.name} required={f.required} defaultValue={f.defaultValue ?? ''}
                             aria-invalid={invalid} aria-describedby={describedBy}
-                            onChange={() => clearFieldError(f.name)} onKeyDown={openPicker}>
+                            onChange={() => clearFieldError(f.name)}>
                       <option value="">{t(f.required ? 'Choose…' : '— none —')}</option>
                       {f.options.map(o => <option key={o.value} value={o.value}>{t(o.label)}</option>)}
                     </select>
@@ -183,13 +184,6 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
       </footer>
     </form>
   );
-}
-
-/** Keep Enter from accidentally submitting a partially completed select. */
-function openPicker(e: React.KeyboardEvent<HTMLSelectElement>) {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
-  try { (e.currentTarget as HTMLSelectElement & { showPicker?: () => void }).showPicker?.(); } catch { /* browser limitation */ }
 }
 
 export function Flash({ error, done, lang }: { error?: string; done?: string; lang?: Lang }) {
