@@ -63,3 +63,7 @@ Each `gates.<gate_id>` record requires:
 The Stripe record also requires `"mode": "test"`. This example illustrates shape only; it is **not evidence**. Do not add a PASS without the corresponding executed test and independently inspectable artifact.
 
 **Release verdict remains NO-GO until all nine gates are complete and signed off.**
+
+## Stripe scenario-level evidence required before review-ready
+
+A single paid-invoice test does **not** prove the recurring paid-customer lifecycle. The `stripe_test_billing` gate must contain a `scenarios` object with evidence for each of these exact scenario IDs: `first_customer_subscription_checkout`, `webhook_signature_verified`, `webhook_replay_idempotent`, `entitlement_activation`, `failed_payment_access_policy`, `subscription_cancellation`, `cross_tenant_billing_isolation`. Each scenario needs `status: PASS`, the same candidate `commitSha`, an HTTPS `artifactUrl`, real UTC `executedAtUtc`, and `testResult: passed`. The gate must retain `mode: test`. The manifest must retain `decision: NO-GO`; this validator only makes it review-ready and cannot authorize release. No fabricated event IDs, tests, or artifacts.
