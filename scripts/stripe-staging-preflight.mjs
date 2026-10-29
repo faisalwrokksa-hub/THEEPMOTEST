@@ -22,7 +22,7 @@ export function checkStripeStagingConfig(env) {
     ['Staging deployment identified', env.DEPLOYMENT_ENV === 'staging'],
     ['Public HTTPS web origin', httpsEndpoint(env.WEB_ORIGIN)],
     ['Public HTTPS Stripe webhook URL', httpsEndpoint(env.STRIPE_WEBHOOK_PUBLIC_URL, '/api/v1/billing/stripe-webhook')],
-    ['Application PostgreSQL URL present', (() => { try { const u = new URL(env.DATABASE_URL); return ['postgres:', 'postgresql:'].includes(u.protocol) && !!u.hostname && !!u.username && !!u.password && !!u.pathname.slice(1); } catch { return false; } })()],
+    ['Application PostgreSQL URL present', (() => { try { const u = new URL(env.DATABASE_URL); return ['postgres:', 'postgresql:'].includes(u.protocol) && !!u.hostname && !!u.username && !!u.password && !!u.pathname.slice(1) && !/replace|placeholder|example|changeme|dummy|your_/i.test(decodeURIComponent(u.password)); } catch { return false; } })()],
     ['Reference webhook disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
     ['Production-build staging explicitly permitted', env.NODE_ENV !== 'production' || env.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION === 'true'],
   ];
