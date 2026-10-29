@@ -96,6 +96,7 @@ export class AskXService {
       throw new BadRequestException('Invalid conversation reference');
 
     const { tenantId, userId } = currentContext();
+    if (!userId) throw new BadRequestException('Authenticated user required');
     const facts = await gather(tenantId);
     const thread = threadId || randomUUID();
 
