@@ -129,3 +129,14 @@ test('rejects artifact URLs containing embedded credentials, fragments or sensit
   assert.match(issues, /entitlement_activation: missing safe HTTPS artifact URL/);
   assert.match(issues, /staging_smoke: missing safe HTTPS evidence artifact URL/);
 });
+
+test('rejects signed or credential-bearing evidence URL query aliases', () => {
+  for (const key of ['access_token', 'api_key', 'client_secret', 'X-Amz-Signature', 'X-Goog-Credential', 'AWSAccessKeyId', 'authToken', 'sig', 'SharedAccessSignature']) {
+    const manifest = valid();
+    manifest.gates.ci_build_tests.artifactUrl = 'https://github.com/example/actions/runs/1?' + key + '=placeholder';
+    assert.match(evaluateCommercialEvidence(manifest).issues.join('\\n'), /ci_build_tests: missing safe HTTPS evidence artifact URL/, key);
+  }
+  const manifest = valid();
+  manifest.gates.ci_build_tests.artifactUrl = 'https://github.com/example/actions/runs/1?view=summary';
+  assert.equal(evaluateCommercialEvidence(manifest).readyForHumanReview, true);
+});
