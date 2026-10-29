@@ -1,0 +1,61 @@
+name: Import EPMO source (one time)
+on:
+  push:
+    paths:
+      - '.github/workflows/import-epmo.yml'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Validate and unpack uploaded EPMO kit
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import io, zipfile, shutil, sys
+          kit=Path("EPMO_GITHUB_UPLOAD_KIT.zip")
+          if not kit.is_file():
+              sys.exit("Upload kit is missing")
+          with zipfile.ZipFile(kit) as outer:
+              source=outer.read("the-epmo-safe-source.zip")
+          dest=Path(".")
+          with zipfile.ZipFile(io.BytesIO(source)) as z:
+              entries=z.infolist()
+              if len(entries) < 400: sys.exit("Unexpectedly small source archive")
+              for e in entries:
+                  p=Path(e.filename)
+                  if p.is_absolute() or ".." in p.parts or "\\" in e.filename:
+                      sys.exit("Unsafe archive path: " + e.filename)
+                  if e.is_dir(): continue
+                  basename=p.name
+                  if (basename.startswith(".env") and not basename.endswith(".example")) or basename.endswith((".pem", ".key", ".p12", ".pfx")):
+                      sys.exit("Potential secret file: " + e.filename)
+                  if p.parts[0] == ".git" or e.filename == "EPMO_GITHUB_UPLOAD_KIT.zip":
+                      sys.exit("Disallowed archive path: " + e.filename)
+              for e in entries:
+                  if e.is_dir(): continue
+                  path=dest / e.filename
+                  path.parent.mkdir(parents=True,exist_ok=True)
+                  with z.open(e) as inp, path.open("wb") as out:
+                      shutil.copyfileobj(inp,out)
+          for required in [".github/workflows/ci.yml","pnpm-lock.yaml","package.json"]:
+              if not Path(required).is_file(): sys.exit("Missing essential file: "+required)
+          print("EPMO source extracted and required CI files verified")
+          PY
+      - name: Commit organized source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git rm -f --ignore-unmatch EPMO_GITHUB_UPLOAD_KIT.zip
+          git add -A
+          if git diff --cached --quiet; then echo "No changes to commit"; exit 0; fi
+          git commit -m "Import Checkpoint 30 EPMO source from verified upload kit"
+          git push origin HEAD:main
