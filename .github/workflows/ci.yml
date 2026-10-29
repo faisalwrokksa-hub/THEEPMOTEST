@@ -208,6 +208,7 @@ jobs:
           # These overrides are NOT committed to application manifests.
           pnpm pkg set 'pnpm.overrides.image-size=^2.0.3' 'pnpm.overrides.vite=^8.2.4' 'pnpm.overrides.typescript=~5.9.3'
           pnpm install --lockfile-only
+          pnpm update vite --recursive --lockfile-only
           # Verify the resolved candidate before installing; avoid silently auditing an older Vite.
           pnpm install --frozen-lockfile
           pnpm why vite
