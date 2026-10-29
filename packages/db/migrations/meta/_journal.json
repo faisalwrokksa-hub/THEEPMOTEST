@@ -1,0 +1,146 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788781459093,
+      "tag": "0000_initial_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789238198559,
+      "tag": "0001_modules_auth_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789238199559,
+      "tag": "0002_module_status_roadmap",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789238200559,
+      "tag": "0003_module_status_roadmap_default",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789238201559,
+      "tag": "0004_notifications_outbox",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1789238202559,
+      "tag": "0005_portfolio_snapshots",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1789238203559,
+      "tag": "0006_ask_messages",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1789238204559,
+      "tag": "0007_platform_admin",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1789238205559,
+      "tag": "0008_wordpress_roles",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1789238206559,
+      "tag": "0009_manage_people",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1789238207559,
+      "tag": "0010_microsoft_connection",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1789238208559,
+      "tag": "0011_commercial_subscriptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1789238209559,
+      "tag": "0012_subscription_event_tenant_integrity",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1789238210559,
+      "tag": "0013_platform_subscription_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1789238211559,
+      "tag": "0014_billing_foundation",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1789238212559,
+      "tag": "0015_stripe_checkout_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1789238213559,
+      "tag": "0016_workspace_profiles_invitations",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1789238214559,
+      "tag": "0017_tenant_membership_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1789238215559,
+      "tag": "0018_payment_exceptions",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1789238216559,
+      "tag": "0019_password_recovery",
+      "breakpoints": true
+    }
+  ]
+}

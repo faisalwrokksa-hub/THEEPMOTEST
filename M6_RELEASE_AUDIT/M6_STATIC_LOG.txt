@@ -1,0 +1,108 @@
+
+=== dictionary ===
+[32m✓[0m 796 phrases, none translated twice
+
+=== translation shadowing ===
+  no shadowed translator calls
+(node:25999) ExperimentalWarning: globSync is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+=== bilingual branding ===
+PASS English/Arabic page metadata
+PASS Correct document lang and direction
+PASS Cookie-backed language preference
+PASS Language toggle persists preference
+PASS Language toggle refreshes server UI
+PASS Language toggle has accessible name
+PASS Bilingual login headline
+PASS Bilingual login help
+PASS Arabic login panel copy
+PASS Bilingual product wordmark
+10/10 static bilingual checks passed
+
+=== production configuration ===
+PASS All configured CORS origins are iterated
+PASS Every production origin must be HTTPS
+PASS Wildcard and empty origins rejected
+PASS Origins prohibit paths and non-HTTP schemes
+PASS Proxy trust validated and bounded
+PASS API uses configured proxy hops
+PASS Production config knobs documented
+7/7 production configuration static checks passed
+
+=== write-origin security ===
+8/8 write-origin tests passed
+(node:26032) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26032) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/common/write-origin.guard.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+
+=== web boundary security ===
+(node:26043) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:26043) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/web/src/lib/browser-mutation.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/web/package.json.
+PASS approved same-origin POST
+PASS approved secondary origin
+PASS attacker origin rejected
+PASS cross-site provenance denied even with approved Origin
+PASS opaque Origin denied
+PASS empty production allowlist rejects even same-origin metadata
+PASS no Origin, cross-site denied
+PASS no Origin, no metadata denied
+PASS same-origin Fetch Metadata permits missing Origin
+PASS sibling subdomain without exact allowlist denied
+PASS local redirect path with query is preserved
+PASS protocol-relative URL rejected
+PASS backslash redirect rejected
+PASS absolute URL rejected
+PASS javascript scheme rejected
+PASS plain relative URL rejected
+PASS unapproved Host cannot poison redirect
+PASS approved secondary forwarded host retained
+PASS production redirects fail closed without configured origin
+PASS local development uses Next request origin
+PASS 20 mutating Next.js routes protected
+PASS production web and API receive WEB_ORIGIN
+
+22/22 web-boundary checks passed
+
+=== tenant header authentication ===
+PASS Header authentication disabled in production
+PASS Header authentication only over loopback
+PASS Header authentication requires a user
+PASS Membership lookup scopes both tenant and user
+PASS Inactive membership rejected
+PASS Missing membership rejected
+
+=== legacy branding ===
+COMPATIBILITY apps/web/src/app/login/page.tsx:54: <tr><td><code>pm@pmoalign.test</code></td><td>{ar ? 'مستشار · النخيل' : 'consultant · Al-Nakheel'}</td></tr>
+COMPATIBILITY apps/web/src/app/login/page.tsx:58: <p>{ar ? 'تستخدم الحسابات التجريبية كلمة المرور ' : 'The seeded accounts use '}<code dir="ltr">pmoalign-dev</code>{ar
+COMPATIBILITY packages/db/src/seed.ts:71: const DEMO_EMAILS = ['fatima@al-nakheel.test', 'khalid@nexa.test', 'pm@pmoalign.test',
+COMPATIBILITY packages/db/src/seed.ts:86: const DEV_PASSWORD = process.env.SEED_PASSWORD ?? 'pmoalign-dev';
+COMPATIBILITY packages/db/src/seed.ts:94: { email: 'pm@pmoalign.test', username: 'pmo_consultant',
+COMPATIBILITY packages/db/src/seed.ts:681: console.log(`  pm@pmoalign.test         staff consultant, Al-Nakheel`);
+COMPATIBILITY infra/bootstrap-db.sh:16: dev)  PROJECT=align360-dev; ENVFILE=.env.dev;
+COMPATIBILITY infra/deploy.sh:16: dev)     DIR=/opt/the-epmo-dev;   PROJECT=align360-dev;  ENVFILE=.env.dev ;;
+COMPATIBILITY infra/sync-catalogue.sh:15: dev)     DIR=/opt/the-epmo-dev;     PROJECT=align360-dev; ENVFILE=.env.dev;
+COMPATIBILITY scripts/pages.sh:12: PASS=${SMOKE_PASS:-pmoalign-dev}
+COMPATIBILITY tests/auth.test.ts:46: const byMail = await login('pm@pmoalign.test');
+COMPATIBILITY tests/auth.test.ts:93: const other = await login('pm@pmoalign.test');
+COMPATIBILITY tests/gate-writes.test.ts:23: viewer = (await login('pm@pmoalign.test'))!.token!;   // staff_consultant: no approve
+COMPATIBILITY tests/helpers.ts:5: export async function login(identifier: string, password = 'pmoalign-dev') {
+COMPATIBILITY tests/microsoft.test.ts:45: viewer = (await login('pm@pmoalign.test')).token!;   // staff_consultant: no admin
+COMPATIBILITY tests/modules.test.ts:89: const consultant = (await login('pm@pmoalign.test')).token!;
+COMPATIBILITY tests/notifications.test.ts:76: const viewer = await login('pm@pmoalign.test');
+COMPATIBILITY tests/notifications.test.ts:82: const viewer = await login('pm@pmoalign.test');
+COMPATIBILITY tests/password-recovery.test.ts:21: const other = await login('pm@pmoalign.test');
+COMPATIBILITY tests/password-recovery.test.ts:45: expect((await login('fatima@al-nakheel.test', 'pmoalign-dev')).res.status).toBe(401);
+COMPATIBILITY tests/phase15-billing-isolation.test.ts:79: login('fatima@al-nakheel.test'), login('khalid@nexa.test'), login('pm@pmoalign.test'),
+COMPATIBILITY tests/phase15-ci-coverage.test.mjs:33: "login('pm@pmoalign.test')", "'/api/v1/subscription/billing/invoices'",
+COMPATIBILITY tests/tenancy.test.ts:10: consultant = (await login('pm@pmoalign.test')).token!;
+COMPATIBILITY tests/trends.test.ts:73: const staff = (await login('pm@pmoalign.test')).token!;
+COMPATIBILITY tests/update-write-authorization.test.ts:21: const contributor = await login('pm@pmoalign.test');
+Brand audit: 0 items to review; 25 compatibility references retained.
+
+Static release checks: 8/8 passed

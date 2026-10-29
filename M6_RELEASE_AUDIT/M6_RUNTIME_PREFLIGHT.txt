@@ -1,0 +1,6 @@
+PASS: Node.js >= 22
+BLOCKED: pnpm available
+BLOCKED: workspace dependencies installed
+BLOCKED: database URL configured
+BLOCKED: web origin configured
+Runtime preflight: 1/5 ready

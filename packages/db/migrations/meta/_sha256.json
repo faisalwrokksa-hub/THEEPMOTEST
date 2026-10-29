@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "algorithm": "sha256",
+  "files": {
+    "0000_initial_schema.sql": "218e8afb6a1b03dbca472a85a464274af93b196090fd5b84872884bf981c9066",
+    "0001_modules_auth_sessions.sql": "cec80208084ce5d151a041062da9fc56cab819fdf0fc5629646c661d0357b00f",
+    "0002_module_status_roadmap.sql": "ffa4e23aba9f915ecc19d0c24e59528b9620bc6710f61f49d47c64bcecd4d19c",
+    "0003_module_status_roadmap_default.sql": "e340f92519b90452a6632200780cd3283487ce2761b995ee723d1b00c54150d1",
+    "0004_notifications_outbox.sql": "f541abc43b9873d4a440fdd5f53dfb2a49c0ce3f138e55ff0a23cd3a309e163f",
+    "0005_portfolio_snapshots.sql": "7ec10b834eba1b578ac8d8f7cde46faefac3321e68b8fef97b37c67f2c0088df",
+    "0006_ask_messages.sql": "603d66858a964a97b8712892046a99ace434ec6a48f5897c682e1a77c2b7d5d3",
+    "0007_platform_admin.sql": "9a88657ecb027caf20de9db71a8ae116222f434e7c2960ae6b528dffca00775e",
+    "0008_wordpress_roles.sql": "744b38ad801a3cebe0b2d033d8ce7bec842c8f8b3b93341b591d83fcefa9cd29",
+    "0009_manage_people.sql": "8dcbadfa96ac8afeefe152b30f8f94625b68f775c0245b8c65813a6f09d3ca3c",
+    "0010_microsoft_connection.sql": "8f75fc38022d0546a88bfb152da23f20c427132834847f10c30493e5ac8e80a0",
+    "0011_commercial_subscriptions.sql": "cebbb126835301135fc7fefc113689a343bd87ff8f50dd4b55e14d55efff143e",
+    "0012_subscription_event_tenant_integrity.sql": "4af32876f449fc6577a1c1f160963e67d5751271299dce3851bca23812612983",
+    "0013_platform_subscription_audit.sql": "f4b0a37c18eb1d5e5a9a5f4362c19d4db0fadb144c86797a6c2ef3b7d53cd7f8",
+    "0014_billing_foundation.sql": "7291413d9b0e1164a6723bccf7b864898a1d0736e55455920bee3095647c8482",
+    "0015_stripe_checkout_sessions.sql": "c2d1b891888397732ffe9d63affae38212451c5bae8099e98309d8dd7ebb9685",
+    "0016_workspace_profiles_invitations.sql": "66d3e8b39759d6a6ca0982c685f268c1b394f9ff7a019ef05628203a2aa9763c",
+    "0017_tenant_membership_status.sql": "cbe388ef3b8d4abb33e99caac44eb3220c1bee5cec24c45434e1ebc2844145bd",
+    "0018_payment_exceptions.sql": "39eaa3a8ca600dc82fdad9dd47f9bb73f7bcee800dd5b2626ead91744d709d1c",
+    "0019_password_recovery.sql": "4bbe5ee55becbf9394b0883314681d56135491c67f9e82ab4e23b6d60a050f74"
+  }
+}

@@ -1,0 +1,3 @@
+# PMOAlign is a private workspace: nothing here should be indexed.
+User-agent: *
+Disallow: /

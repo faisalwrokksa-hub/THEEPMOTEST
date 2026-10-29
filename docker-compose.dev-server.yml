@@ -1,0 +1,14 @@
+# Overlay for the DEV environment on the shared server.
+#
+#   docker compose -f docker-compose.prod.yml -f docker-compose.dev-server.yml \
+#                  -p align360-dev --env-file .env.dev up -d
+#
+# Identical topology to production so that what is tested here is what ships.
+# The one difference: the database is reachable, because a development
+# environment you cannot inspect or reseed is not a development environment.
+services:
+  postgres:
+    # Loopback only. Reach it with an SSH tunnel:
+    #   ssh -i key -L 55432:127.0.0.1:55432 ubuntu@<box>
+    # It is never exposed to the internet.
+    ports: ['127.0.0.1:${PG_HOST_PORT:-55432}:5432']

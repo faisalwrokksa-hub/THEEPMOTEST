@@ -1,0 +1,19 @@
+node_modules/
+dist/
+.next/
+.next-prod/
+.env
+.env.local
+*.log
+.DS_Store
+.turbo/
+.env.prod
+*.pem
+*.key
+.env.*.local
+coverage/
+.vercel
+*.tsbuildinfo
+
+# RC1 staging credentials (never commit)
+.env.staging

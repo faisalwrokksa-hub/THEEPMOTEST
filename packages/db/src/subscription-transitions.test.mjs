@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { transition, effectiveStatus } from './subscription-transitions.mjs';
+const s={id:'sub1',tenantId:'tenant1',status:'active',periodStartsAt:'2026-10-01',periodEndsAt:'2026-11-01',cancelAtPeriodEnd:false};
+test('cancel at period end',()=>assert.equal(transition(s,'cancel_at_period_end').cancelAtPeriodEnd,true));
+test('resume scheduled cancellation',()=>assert.equal(transition({...s,cancelAtPeriodEnd:true},'resume',{now:'2026-10-25'}).cancelAtPeriodEnd,false));
+test('immediate cancellation',()=>assert.equal(transition(s,'cancel_now',{now:'2026-10-25'}).status,'canceled'));
+test('cannot renew without payment confirmation',()=>assert.throws(()=>transition(s,'renew',{periodStartsAt:'2026-11-01',periodEndsAt:'2026-12-01'})));
+test('cannot renew with overlapping dates',()=>assert.throws(()=>transition(s,'renew',{paymentConfirmed:true,paymentReference:'verified',periodStartsAt:'2026-10-20',periodEndsAt:'2026-12-01'})));
+test('renew with verified payment',()=>assert.equal(transition(s,'renew',{paymentConfirmed:true,paymentReference:'verified',periodStartsAt:'2026-11-01',periodEndsAt:'2026-12-01'}).status,'active'));
+test('expired status derived from elapsed period',()=>assert.equal(effectiveStatus(s,'2026-11-02'),'expired'));
+test('premature expiration rejected',()=>assert.throws(()=>transition(s,'expire',{now:'2026-10-25'})));
+test('expired trial derived from trial end',()=>assert.equal(effectiveStatus({...s,status:'trialing',trialEndsAt:'2026-10-20'},'2026-10-25'),'expired'));
+test('tenant identity required',()=>assert.throws(()=>transition({...s,tenantId:null},'cancel_now')));

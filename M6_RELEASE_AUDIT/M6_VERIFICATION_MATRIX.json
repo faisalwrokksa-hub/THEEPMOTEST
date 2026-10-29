@@ -1,0 +1,13 @@
+{
+  "offline_regression": "810 passed / 0 failed / 0 skipped",
+  "static_release": "8/8 passed",
+  "rc1_release_preflight": "9/9 passed (static)",
+  "migration_chain": "20 SQL migrations structurally verified",
+  "runtime_preflight": "1/5 ready (Node only)",
+  "typescript_build": "NOT RUN",
+  "production_database": "NOT RUN",
+  "stripe_test_mode": "NOT RUN",
+  "microsoft_provider_oauth": "NOT RUN",
+  "backup_restore": "NOT RUN",
+  "browser_rtl_a11y": "NOT RUN"
+}

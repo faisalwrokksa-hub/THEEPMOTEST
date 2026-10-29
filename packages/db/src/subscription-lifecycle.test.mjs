@@ -1,0 +1,16 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {subscriptionAccess,moduleAccess,renewalDecision} from './subscription-lifecycle.mjs';
+const base={status:'active',periodStartsAt:'2026-10-01',periodEndsAt:'2026-11-01'};
+const now='2026-10-25';
+test('active access',()=>assert.equal(subscriptionAccess(base,now).allowed,true));
+test('expired period denies despite active status',()=>assert.equal(subscriptionAccess(base,'2026-11-01').allowed,false));
+test('no subscription denies',()=>assert.equal(subscriptionAccess(null,now).allowed,false));
+test('trial must be within trial end',()=>assert.equal(subscriptionAccess({...base,status:'trialing',trialEndsAt:'2026-10-20'},now).allowed,false));
+test('valid trial permits',()=>assert.equal(subscriptionAccess({...base,status:'trialing',trialEndsAt:'2026-10-30'},now).allowed,true));
+test('past due denies',()=>assert.equal(subscriptionAccess({...base,status:'past_due'},now).allowed,false));
+test('disabled module denies',()=>assert.equal(moduleAccess(base,false,null,now).allowed,false));
+test('expired module denies',()=>assert.equal(moduleAccess(base,true,'2026-10-24',now).allowed,false));
+test('active module permits',()=>assert.equal(moduleAccess(base,true,null,now).allowed,true));
+test('renewal requires payment confirmation',()=>assert.equal(renewalDecision(base,'2026-11-01'),'requires_payment_confirmation'));
+test('cancel at end expires',()=>assert.equal(renewalDecision({...base,cancelAtPeriodEnd:true},'2026-11-01'),'expire'));

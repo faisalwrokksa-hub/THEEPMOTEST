@@ -1,0 +1,1 @@
+PASS migration chain: 20 ordered SQL migrations through 0019_password_recovery

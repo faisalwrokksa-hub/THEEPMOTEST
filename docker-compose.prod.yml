@@ -1,0 +1,100 @@
+name: pmo-prod
+
+# Production topology. Secrets come from the environment — never this file.
+# Bring up with:  docker compose -f docker-compose.prod.yml --env-file .env.prod up -d
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${PG_USER:?set PG_USER}
+      POSTGRES_PASSWORD: ${PG_PASSWORD:?set PG_PASSWORD}
+      POSTGRES_DB: ${PG_DB:-pmo}
+    volumes: ['pgdata:/var/lib/postgresql/data']
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 10s
+      retries: 12
+    # Not published: only the API reaches the database.
+    expose: ['5432']
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ['redis-server', '--requirepass', '${REDIS_PASSWORD:?set REDIS_PASSWORD}']
+    expose: ['6379']
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--pass', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      retries: 12
+
+  api:
+    build: { context: ., dockerfile: apps/api/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      REDIS_URL: ${REDIS_URL:?set REDIS_URL}
+      WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN}
+      ALLOW_HEADER_AUTH: 'false'
+      API_PORT: '4000'
+      # Stripe runs only in the API container; do not put secret keys in the
+      # web container or NEXT_PUBLIC_* variables. Compose does NOT pass through
+      # variables from --env-file unless each is explicitly mapped here.
+      DEPLOYMENT_ENV: ${DEPLOYMENT_ENV:-production}
+      STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION: ${STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:-false}
+      STRIPE_ENABLED: ${STRIPE_ENABLED:-false}
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-}
+      STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
+      STRIPE_WEBHOOK_PUBLIC_URL: ${STRIPE_WEBHOOK_PUBLIC_URL:-}
+      # Phase 13A: SES invitation email is API-only. IAM credentials must be
+      # supplied through the host's workload role, never through the web app.
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-none}
+      MAIL_FROM: ${MAIL_FROM:-}
+      MAIL_REGION: ${MAIL_REGION:-ap-south-1}
+      BILLING_REFERENCE_WEBHOOK_ENABLED: 'false'
+      # The PDF export prints the real web app in headless Chromium, so the
+      # API has to be able to reach it over the compose network. This is the
+      # internal address, never the public one — the print must not depend on
+      # DNS, TLS or the reverse proxy being healthy.
+      WEB_INTERNAL_URL: http://web:3000
+      # Ask X. Compose passes through only what is named here — an env-file
+      # entry alone reaches interpolation, not the container, which is how
+      # these two arrived set on the host and empty inside the process.
+      # Credentials are deliberately absent: the instance carries an IAM role
+      # and the SDK picks it up, so no long-lived key exists on this machine.
+      BEDROCK_REGION: ${BEDROCK_REGION:-}
+      BEDROCK_MODEL_ID: ${BEDROCK_MODEL_ID:-}
+      # Microsoft 365. Named here for the same reason as the two above: compose
+      # passes through only what it is told to, so an entry in .env.prod alone
+      # reaches interpolation and not the process. All optional — with none of
+      # them set the Integrations page says Microsoft is not configured rather
+      # than offering a button that cannot work.
+      MS_CLIENT_ID: ${MS_CLIENT_ID:-}
+      MS_CLIENT_SECRET: ${MS_CLIENT_SECRET:-}
+      MS_REDIRECT_URI: ${MS_REDIRECT_URI:-}
+      MS_TOKEN_KEY: ${MS_TOKEN_KEY:-}
+      MS_AUTHORITY: ${MS_AUTHORITY:-}
+    expose: ['4000']
+
+  web:
+    build: { context: ., dockerfile: apps/web/Dockerfile }
+    restart: unless-stopped
+    depends_on:
+      api: { condition: service_healthy }
+    environment:
+      NODE_ENV: production
+      API_URL: http://api:4000
+      NEXT_PUBLIC_API_URL: ${PUBLIC_API_URL:?set PUBLIC_API_URL}
+      WEB_ORIGIN: ${WEB_ORIGIN:?set WEB_ORIGIN}
+    # Host port is configurable so a production stack can run alongside a dev server.
+    # Loopback by default: on a public box the app is reached only through
+    # nginx (TLS), never by hitting the container port directly. Set
+    # WEB_BIND=0.0.0.0 to publish it on every interface.
+    ports: ['${WEB_BIND:-127.0.0.1}:${WEB_PORT:-3000}:3000']
+
+volumes:
+  pgdata:

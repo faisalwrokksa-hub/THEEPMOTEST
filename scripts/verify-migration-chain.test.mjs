@@ -1,0 +1,21 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { checkMigrationChain, verifyRepositoryMigrations } from './verify-migration-chain.mjs';
+const a = { idx:0, tag:'0000_base', when:1000 };
+const b = { idx:1, tag:'0001_billing', when:2000 };
+const journal = {dialect:'postgresql', entries:[a,b]};
+const files = ['0000_base.sql','0001_billing.sql'];
+const check = (j = journal, f = files, c = {}) => checkMigrationChain(j,f,c);
+test('real source contains a complete ordered migration chain', () => {
+  assert.ok(verifyRepositoryMigrations().count >= 16);
+});
+test('valid chain passes', () => assert.deepEqual(check(), []));
+test('missing SQL rejected', () => assert.match(check(journal,files.slice(1)).join(' '),/missing SQL/));
+test('orphan migration rejected', () => assert.match(check(journal,[...files,'0002_orphan.sql']).join(' '),/Unjournaled/));
+test('duplicate tag rejected', () => assert.match(check({ ...journal, entries:[a,{...b,tag:a.tag}] }).join(' '),/duplicate/));
+test('out of order index rejected', () => assert.match(check({...journal,entries:[a,{...b,idx:4}]}).join(' '),/sequence/));
+test('out of order timestamp rejected', () => assert.match(check({...journal,entries:[a,{...b,when:1000}]}).join(' '),/timestamp/));
+test('malformed migration name rejected', () => assert.match(check({...journal,entries:[a,{...b,tag:'../other'}]}).join(' '),/malformed/));
+test('empty SQL rejected', () => assert.match(check(journal,files,{'0001_billing':'  \n'}).join(' '),/empty SQL/));
+test('missing journal rejected', () => assert.match(check(null).join(' '),/journal/));
+test('unknown SQL name rejected', () => assert.match(check(journal,[...files,'change.sql']).join(' '),/Unrecognized/));

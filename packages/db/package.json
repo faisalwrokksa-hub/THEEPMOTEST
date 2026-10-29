@@ -1,0 +1,45 @@
+{
+  "name": "@pmo/db",
+  "version": "0.1.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "push": "node ../../scripts/guard-dev-schema-push.mjs && drizzle-kit push",
+    "rls": "bash scripts/apply-rls.sh",
+    "seed": "tsx src/seed.ts",
+    "studio": "drizzle-kit studio",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "verify": "tsx src/verify-rls.ts",
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch --preserveWatchOutput",
+    "check:data": "tsx src/audit-data.ts",
+    "generate": "drizzle-kit generate",
+    "migrate": "node ../../scripts/deny-drizzle-migrate.mjs",
+    "modules": "tsx src/sync-modules.ts",
+    "modules:sql": "tsx src/sync-modules.ts --sql"
+  },
+  "dependencies": {
+    "@pmo/contracts": "workspace:*",
+    "bcryptjs": "^3.0.3",
+    "dotenv": "^16.4.5",
+    "drizzle-orm": "^0.36.4",
+    "postgres": "^3.4.5"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^3.0.0",
+    "drizzle-kit": "^0.28.1",
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3"
+  },
+  "files": [
+    "dist",
+    "sql",
+    "scripts"
+  ]
+}

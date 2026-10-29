@@ -1,0 +1,4960 @@
+TAP version 13
+# (node:22613) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22613) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/creates/membership-policy.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: a workspace admin may deactivate an ordinary member
+ok 1 - a workspace admin may deactivate an ordinary member
+  ---
+  duration_ms: 27.94759
+  type: 'test'
+  ...
+# Subtest: a workspace admin may reactivate a suspended member
+ok 2 - a workspace admin may reactivate a suspended member
+  ---
+  duration_ms: 0.282009
+  type: 'test'
+  ...
+# Subtest: a member cannot deactivate themselves
+ok 3 - a member cannot deactivate themselves
+  ---
+  duration_ms: 0.242808
+  type: 'test'
+  ...
+# Subtest: a member cannot change their own role
+ok 4 - a member cannot change their own role
+  ---
+  duration_ms: 0.126143
+  type: 'test'
+  ...
+# Subtest: own reactivation without a role change is allowed
+ok 5 - own reactivation without a role change is allowed
+  ---
+  duration_ms: 0.120051
+  type: 'test'
+  ...
+# Subtest: last active workspace owner cannot be deactivated
+ok 6 - last active workspace owner cannot be deactivated
+  ---
+  duration_ms: 0.225078
+  type: 'test'
+  ...
+# Subtest: last active workspace owner cannot be demoted
+ok 7 - last active workspace owner cannot be demoted
+  ---
+  duration_ms: 0.140705
+  type: 'test'
+  ...
+# Subtest: an owner can be deactivated when another active owner exists
+ok 8 - an owner can be deactivated when another active owner exists
+  ---
+  duration_ms: 0.09201
+  type: 'test'
+  ...
+# Subtest: an owner can keep their role and stay active without another owner
+ok 9 - an owner can keep their role and stay active without another owner
+  ---
+  duration_ms: 0.356427
+  type: 'test'
+  ...
+# Subtest: inactive historical owners are not treated as active when being edited
+ok 10 - inactive historical owners are not treated as active when being edited
+  ---
+  duration_ms: 0.385932
+  type: 'test'
+  ...
+# (node:22614) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22614) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/creates/project-dates.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: no dates is valid
+ok 11 - no dates is valid
+  ---
+  duration_ms: 4.037658
+  type: 'test'
+  ...
+# Subtest: valid date range
+ok 12 - valid date range
+  ---
+  duration_ms: 2.004288
+  type: 'test'
+  ...
+# Subtest: same-day projects are allowed
+ok 13 - same-day projects are allowed
+  ---
+  duration_ms: 0.24841
+  type: 'test'
+  ...
+# Subtest: finish before start is denied
+ok 14 - finish before start is denied
+  ---
+  duration_ms: 0.446716
+  type: 'test'
+  ...
+# Subtest: invalid leap day is denied
+ok 15 - invalid leap day is denied
+  ---
+  duration_ms: 0.748534
+  type: 'test'
+  ...
+# Subtest: valid leap day accepted
+ok 16 - valid leap day accepted
+  ---
+  duration_ms: 0.873401
+  type: 'test'
+  ...
+# Subtest: invalid month is denied
+ok 17 - invalid month is denied
+  ---
+  duration_ms: 1.776037
+  type: 'test'
+  ...
+# Subtest: free-form dates are denied
+ok 18 - free-form dates are denied
+  ---
+  duration_ms: 0.334431
+  type: 'test'
+  ...
+# (node:22615) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22615) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/onboarding/invitation-policy.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: invitation token contains unpredictable random secret and only a hash is persisted
+ok 19 - invitation token contains unpredictable random secret and only a hash is persisted
+  ---
+  duration_ms: 4.241211
+  type: 'test'
+  ...
+# Subtest: malformed, short, and oversize tokens fail closed
+ok 20 - malformed, short, and oversize tokens fail closed
+  ---
+  duration_ms: 0.365772
+  type: 'test'
+  ...
+# Subtest: fresh delivered invitation is acceptable
+ok 21 - fresh delivered invitation is acceptable
+  ---
+  duration_ms: 0.257974
+  type: 'test'
+  ...
+# Subtest: expires exactly at its deadline
+ok 22 - expires exactly at its deadline
+  ---
+  duration_ms: 0.410305
+  type: 'test'
+  ...
+# Subtest: replay after consumption is refused
+ok 23 - replay after consumption is refused
+  ---
+  duration_ms: 13.628102
+  type: 'test'
+  ...
+# Subtest: revoked invitation is refused
+ok 24 - revoked invitation is refused
+  ---
+  duration_ms: 0.70466
+  type: 'test'
+  ...
+# Subtest: undelivered invitation is refused
+ok 25 - undelivered invitation is refused
+  ---
+  duration_ms: 0.288498
+  type: 'test'
+  ...
+# Subtest: invalid expiry is refused
+ok 26 - invalid expiry is refused
+  ---
+  duration_ms: 2.424571
+  type: 'test'
+  ...
+# Subtest: fragment token is not sent as URL query or path
+ok 27 - fragment token is not sent as URL query or path
+  ---
+  duration_ms: 1.562266
+  type: 'test'
+  ...
+# Subtest: unsafe nonlocal HTTP invitation links are refused
+ok 28 - unsafe nonlocal HTTP invitation links are refused
+  ---
+  duration_ms: 2.066941
+  type: 'test'
+  ...
+# (node:22646) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22646) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/onboarding/onboarding-progress.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: new workspace is 1 of 5 steps completed
+ok 29 - new workspace is 1 of 5 steps completed
+  ---
+  duration_ms: 2.990017
+  type: 'test'
+  ...
+# Subtest: fully configured workspace is 100 percent
+ok 30 - fully configured workspace is 100 percent
+  ---
+  duration_ms: 1.182837
+  type: 'test'
+  ...
+# Subtest: member count includes administrator, so team requires two members
+ok 31 - member count includes administrator, so team requires two members
+  ---
+  duration_ms: 0.641939
+  type: 'test'
+  ...
+# Subtest: a first project does not fabricate an existing portfolio or programme
+ok 32 - a first project does not fabricate an existing portfolio or programme
+  ---
+  duration_ms: 0.764323
+  type: 'test'
+  ...
+# Subtest: PostgreSQL text-form counts are normalized
+ok 33 - PostgreSQL text-form counts are normalized
+  ---
+  duration_ms: 2.960488
+  type: 'test'
+  ...
+# Subtest: unexpected values cannot mark a task completed
+ok 34 - unexpected values cannot mark a task completed
+  ---
+  duration_ms: 0.719519
+  type: 'test'
+  ...
+# Subtest: all actions target safe internal routes and scoped capabilities
+ok 35 - all actions target safe internal routes and scoped capabilities
+  ---
+  duration_ms: 0.760315
+  type: 'test'
+  ...
+# Subtest: guided setup recommends a portfolio before a programme or project
+ok 36 - guided setup recommends a portfolio before a programme or project
+  ---
+  duration_ms: 0.299853
+  type: 'test'
+  ...
+# Subtest: team invitation is recommended only after project structure exists
+ok 37 - team invitation is recommended only after project structure exists
+  ---
+  duration_ms: 0.998369
+  type: 'test'
+  ...
+# Subtest: an existing project does not skip a missing portfolio or programme
+ok 38 - an existing project does not skip a missing portfolio or programme
+  ---
+  duration_ms: 0.727809
+  type: 'test'
+  ...
+# (node:22647) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22647) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/platform/billing-policy.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: monthly UTC rollover clamps January 31 to February 28
+ok 39 - monthly UTC rollover clamps January 31 to February 28
+  ---
+  duration_ms: 3.402507
+  type: 'test'
+  ...
+# Subtest: leap year annual period clamps Feb 29
+ok 40 - leap year annual period clamps Feb 29
+  ---
+  duration_ms: 0.949503
+  type: 'test'
+  ...
+# Subtest: canceled and expired plans cannot issue renewal invoice
+ok 41 - canceled and expired plans cannot issue renewal invoice
+  ---
+  duration_ms: 0.728263
+  type: 'test'
+  ...
+# Subtest: active subscription can invoice before renewal
+ok 42 - active subscription can invoice before renewal
+  ---
+  duration_ms: 0.627595
+  type: 'test'
+  ...
+# Subtest: matching invoice settlement accepted
+ok 43 - matching invoice settlement accepted
+  ---
+  duration_ms: 6.090981
+  type: 'test'
+  ...
+# Subtest: wrong tenant denied
+ok 44 - wrong tenant denied
+  ---
+  duration_ms: 0.593437
+  type: 'test'
+  ...
+# Subtest: wrong invoice denied
+ok 45 - wrong invoice denied
+  ---
+  duration_ms: 0.210175
+  type: 'test'
+  ...
+# Subtest: wrong amount denied
+ok 46 - wrong amount denied
+  ---
+  duration_ms: 0.558772
+  type: 'test'
+  ...
+# Subtest: wrong currency denied
+ok 47 - wrong currency denied
+  ---
+  duration_ms: 0.457233
+  type: 'test'
+  ...
+# Subtest: canceled renewal denied
+ok 48 - canceled renewal denied
+  ---
+  duration_ms: 2.562931
+  type: 'test'
+  ...
+# Subtest: changed subscription period denied
+ok 49 - changed subscription period denied
+  ---
+  duration_ms: 0.334854
+  type: 'test'
+  ...
+# Subtest: paid invoice cannot settle twice
+ok 50 - paid invoice cannot settle twice
+  ---
+  duration_ms: 0.606753
+  type: 'test'
+  ...
+# Subtest: signature validation allows signed raw bytes only
+ok 51 - signature validation allows signed raw bytes only
+  ---
+  duration_ms: 3.106905
+  type: 'test'
+  ...
+# Subtest: reference settlement adapter rejected on production regardless of NODE_ENV
+ok 52 - reference settlement adapter rejected on production regardless of NODE_ENV
+  ---
+  duration_ms: 0.211122
+  type: 'test'
+  ...
+# Subtest: reference settlement adapter rejected on staging and unknown environments
+ok 53 - reference settlement adapter rejected on staging and unknown environments
+  ---
+  duration_ms: 0.522038
+  type: 'test'
+  ...
+# Subtest: reference settlement adapter permitted only for local nonproduction tests
+ok 54 - reference settlement adapter permitted only for local nonproduction tests
+  ---
+  duration_ms: 0.120744
+  type: 'test'
+  ...
+# (node:22648) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22648) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/platform/billing-reconciliation.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: matched paid invoice and ledger are not flagged
+ok 55 - matched paid invoice and ledger are not flagged
+  ---
+  duration_ms: 3.46918
+  type: 'test'
+  ...
+# Subtest: paid without ledger row is flagged
+ok 56 - paid without ledger row is flagged
+  ---
+  duration_ms: 0.292447
+  type: 'test'
+  ...
+# Subtest: open invoice with payment is flagged
+ok 57 - open invoice with payment is flagged
+  ---
+  duration_ms: 0.228721
+  type: 'test'
+  ...
+# Subtest: void invoice with payment is flagged
+ok 58 - void invoice with payment is flagged
+  ---
+  duration_ms: 0.36964
+  type: 'test'
+  ...
+# Subtest: payment amount mismatch is flagged
+ok 59 - payment amount mismatch is flagged
+  ---
+  duration_ms: 0.300979
+  type: 'test'
+  ...
+# Subtest: payment currency mismatch is flagged
+ok 60 - payment currency mismatch is flagged
+  ---
+  duration_ms: 0.193543
+  type: 'test'
+  ...
+# Subtest: paid timestamp absent is flagged
+ok 61 - paid timestamp absent is flagged
+  ---
+  duration_ms: 0.328235
+  type: 'test'
+  ...
+# Subtest: unpaid invoice with paid timestamp is flagged
+ok 62 - unpaid invoice with paid timestamp is flagged
+  ---
+  duration_ms: 0.195054
+  type: 'test'
+  ...
+# Subtest: open invoice not yet due is not flagged
+ok 63 - open invoice not yet due is not flagged
+  ---
+  duration_ms: 2.679748
+  type: 'test'
+  ...
+# Subtest: overdue open invoice is flagged
+ok 64 - overdue open invoice is flagged
+  ---
+  duration_ms: 0.704529
+  type: 'test'
+  ...
+# Subtest: invalid dates fail closed
+ok 65 - invalid dates fail closed
+  ---
+  duration_ms: 0.61951
+  type: 'test'
+  ...
+# Subtest: safe KPI override leaves defaults intact
+ok 66 - safe KPI override leaves defaults intact
+  ---
+  duration_ms: 2.018225
+  type: 'test'
+  ...
+# Subtest: unknown governance bypass fails closed
+ok 67 - unknown governance bypass fails closed
+  ---
+  duration_ms: 1.250092
+  type: 'test'
+  ...
+# Subtest: invalid threshold fails closed
+ok 68 - invalid threshold fails closed
+  ---
+  duration_ms: 0.309445
+  type: 'test'
+  ...
+# Subtest: deterministic KPI calculation
+ok 69 - deterministic KPI calculation
+  ---
+  duration_ms: 0.883871
+  type: 'test'
+  ...
+# (node:22685) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22685) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/platform/stripe-policy.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: full refund is recognized and is never a paid event
+ok 70 - full refund is recognized and is never a paid event
+  ---
+  duration_ms: 4.321733
+  type: 'test'
+  ...
+# Subtest: partial refund is tracked but does not auto-pause
+ok 71 - partial refund is tracked but does not auto-pause
+  ---
+  duration_ms: 0.709616
+  type: 'test'
+  ...
+# Subtest: valid open dispute pauses only the matching current period
+ok 72 - valid open dispute pauses only the matching current period
+  ---
+  duration_ms: 0.451796
+  type: 'test'
+  ...
+# Subtest: won/lost dispute close is for manual review, not auto-reactivation
+ok 73 - won/lost dispute close is for manual review, not auto-reactivation
+  ---
+  duration_ms: 0.723955
+  type: 'test'
+  ...
+# Subtest: refund from older period does not disable a renewed license
+ok 74 - refund from older period does not disable a renewed license
+  ---
+  duration_ms: 0.388907
+  type: 'test'
+  ...
+# Subtest: expired / already-paused subscription is not changed twice
+ok 75 - expired / already-paused subscription is not changed twice
+  ---
+  duration_ms: 0.401911
+  type: 'test'
+  ...
+# Subtest: invalid refund amounts and bad payment intent IDs rejected
+ok 76 - invalid refund amounts and bad payment intent IDs rejected
+  ---
+  duration_ms: 0.884542
+  type: 'test'
+  ...
+# Subtest: invalid dispute status rejected
+ok 77 - invalid dispute status rejected
+  ---
+  duration_ms: 1.827039
+  type: 'test'
+  ...
+# Subtest: webhook mode mismatch rejected for reversal
+ok 78 - webhook mode mismatch rejected for reversal
+  ---
+  duration_ms: 2.885623
+  type: 'test'
+  ...
+# Subtest: unrelated signed event is ignored by exception handler
+ok 79 - unrelated signed event is ignored by exception handler
+  ---
+  duration_ms: 6.039625
+  type: 'test'
+  ...
+# Subtest: validated server-side PaymentIntent resolves tenant and invoice
+ok 80 - validated server-side PaymentIntent resolves tenant and invoice
+  ---
+  duration_ms: 4.76223
+  type: 'test'
+  ...
+# Subtest: unknown, wrong-tenant and non-succeeded PaymentIntents rejected
+ok 81 - unknown, wrong-tenant and non-succeeded PaymentIntents rejected
+  ---
+  duration_ms: 0.772962
+  type: 'test'
+  ...
+# Subtest: Checkout creates PaymentIntent metadata for future refunds
+ok 82 - Checkout creates PaymentIntent metadata for future refunds
+  ---
+  duration_ms: 0.792434
+  type: 'test'
+  ...
+# Subtest: invoice match validates captured payment before quarantine
+ok 83 - invoice match validates captured payment before quarantine
+  ---
+  duration_ms: 0.385083
+  type: 'test'
+  ...
+# (node:22691) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22691) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/platform/stripe-policy.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: valid Stripe raw body signature
+ok 84 - valid Stripe raw body signature
+  ---
+  duration_ms: 2.488893
+  type: 'test'
+  ...
+# Subtest: tampered body rejected
+ok 85 - tampered body rejected
+  ---
+  duration_ms: 0.468609
+  type: 'test'
+  ...
+# Subtest: old signature rejected
+ok 86 - old signature rejected
+  ---
+  duration_ms: 0.181245
+  type: 'test'
+  ...
+# Subtest: missing signature rejected
+ok 87 - missing signature rejected
+  ---
+  duration_ms: 0.101266
+  type: 'test'
+  ...
+# Subtest: multiple signatures can include rotated key
+ok 88 - multiple signatures can include rotated key
+  ---
+  duration_ms: 0.352158
+  type: 'test'
+  ...
+# Subtest: valid checkout paid event accepted
+ok 89 - valid checkout paid event accepted
+  ---
+  duration_ms: 0.419534
+  type: 'test'
+  ...
+# Subtest: livemode mismatch denied
+ok 90 - livemode mismatch denied
+  ---
+  duration_ms: 1.358493
+  type: 'test'
+  ...
+# Subtest: unpaid checkout ignored
+ok 91 - unpaid checkout ignored
+  ---
+  duration_ms: 0.342719
+  type: 'test'
+  ...
+# Subtest: ignored unrelated signed events
+ok 92 - ignored unrelated signed events
+  ---
+  duration_ms: 0.31356
+  type: 'test'
+  ...
+# Subtest: valid settlement gives payment intent
+ok 93 - valid settlement gives payment intent
+  ---
+  duration_ms: 1.009793
+  type: 'test'
+  ...
+# Subtest: wrong tenant metadata is rejected
+ok 94 - wrong tenant metadata is rejected
+  ---
+  duration_ms: 0.354137
+  type: 'test'
+  ...
+# Subtest: wrong checkout session rejected
+ok 95 - wrong checkout session rejected
+  ---
+  duration_ms: 0.204251
+  type: 'test'
+  ...
+# Subtest: wrong amount rejected
+ok 96 - wrong amount rejected
+  ---
+  duration_ms: 0.1342
+  type: 'test'
+  ...
+# Subtest: wrong currency rejected
+ok 97 - wrong currency rejected
+  ---
+  duration_ms: 0.077544
+  type: 'test'
+  ...
+# Subtest: missing payment intent rejected
+ok 98 - missing payment intent rejected
+  ---
+  duration_ms: 0.064458
+  type: 'test'
+  ...
+# Subtest: paid invoice rejected
+ok 99 - paid invoice rejected
+  ---
+  duration_ms: 0.061729
+  type: 'test'
+  ...
+# Subtest: canceled subscription rejected
+ok 100 - canceled subscription rejected
+  ---
+  duration_ms: 0.108722
+  type: 'test'
+  ...
+# Subtest: changed period rejected
+ok 101 - changed period rejected
+  ---
+  duration_ms: 0.08705
+  type: 'test'
+  ...
+# Subtest: checkout parameters are server-bound
+ok 102 - checkout parameters are server-bound
+  ---
+  duration_ms: 0.266
+  type: 'test'
+  ...
+# Subtest: Stripe idempotency key is stable within an attempt
+ok 103 - Stripe idempotency key is stable within an attempt
+  ---
+  duration_ms: 0.08361
+  type: 'test'
+  ...
+# Subtest: new checkout attempt never reuses an expired session key
+ok 104 - new checkout attempt never reuses an expired session key
+  ---
+  duration_ms: 0.090879
+  type: 'test'
+  ...
+# Subtest: invalid invoice and attempt index fail closed
+ok 105 - invalid invoice and attempt index fail closed
+  ---
+  duration_ms: 0.13366
+  type: 'test'
+  ...
+# Subtest: production requires live Stripe keys by default
+ok 106 - production requires live Stripe keys by default
+  ---
+  duration_ms: 0.077678
+  type: 'test'
+  ...
+# Subtest: production-build staging requires two explicit test-mode flags
+ok 107 - production-build staging requires two explicit test-mode flags
+  ---
+  duration_ms: 0.048816
+  type: 'test'
+  ...
+# Subtest: staging rejects live Stripe keys
+ok 108 - staging rejects live Stripe keys
+  ---
+  duration_ms: 0.041561
+  type: 'test'
+  ...
+# Subtest: production target never accepts test payments with development NODE_ENV
+ok 109 - production target never accepts test payments with development NODE_ENV
+  ---
+  duration_ms: 0.106277
+  type: 'test'
+  ...
+# Subtest: production live payments demand production NODE_ENV and no test override
+ok 110 - production live payments demand production NODE_ENV and no test override
+  ---
+  duration_ms: 0.048091
+  type: 'test'
+  ...
+# Subtest: staging accepts only explicitly authorized Stripe test mode
+ok 111 - staging accepts only explicitly authorized Stripe test mode
+  ---
+  duration_ms: 0.05034
+  type: 'test'
+  ...
+# Subtest: unrecognized deployments and local live keys fail closed
+ok 112 - unrecognized deployments and local live keys fail closed
+  ---
+  duration_ms: 0.06313
+  type: 'test'
+  ...
+# Subtest: billing guidance rejects unapproved or unknown actions
+ok 113 - billing guidance rejects unapproved or unknown actions
+  ---
+  duration_ms: 0.919896
+  type: 'test'
+  ...
+# Subtest: billing guidance preserves verified payment warning in two languages
+ok 114 - billing guidance preserves verified payment warning in two languages
+  ---
+  duration_ms: 0.460271
+  type: 'test'
+  ...
+# Subtest: valid project dates accepted
+ok 115 - valid project dates accepted
+  ---
+  duration_ms: 3.117654
+  type: 'test'
+  ...
+# Subtest: project date order stops invalid submission
+ok 116 - project date order stops invalid submission
+  ---
+  duration_ms: 0.34834
+  type: 'test'
+  ...
+# Subtest: project rejects invalid calendar dates
+ok 117 - project rejects invalid calendar dates
+  ---
+  duration_ms: 0.620694
+  type: 'test'
+  ...
+# Subtest: project code is checked
+ok 118 - project code is checked
+  ---
+  duration_ms: 0.187781
+  type: 'test'
+  ...
+# Subtest: budget cannot be negative
+ok 119 - budget cannot be negative
+  ---
+  duration_ms: 0.22088
+  type: 'test'
+  ...
+# Subtest: empty optional amount and dates accepted
+ok 120 - empty optional amount and dates accepted
+  ---
+  duration_ms: 0.116935
+  type: 'test'
+  ...
+# Subtest: schedule progress over 100 rejected
+ok 121 - schedule progress over 100 rejected
+  ---
+  duration_ms: 0.517454
+  type: 'test'
+  ...
+# Subtest: schedule progress fractional rejected
+ok 122 - schedule progress fractional rejected
+  ---
+  duration_ms: 0.174364
+  type: 'test'
+  ...
+# Subtest: schedule baseline order validated
+ok 123 - schedule baseline order validated
+  ---
+  duration_ms: 0.63727
+  type: 'test'
+  ...
+# Subtest: allocation must be 1–100
+ok 124 - allocation must be 1–100
+  ---
+  duration_ms: 0.693228
+  type: 'test'
+  ...
+# Subtest: allocation date order validated
+ok 125 - allocation date order validated
+  ---
+  duration_ms: 0.196994
+  type: 'test'
+  ...
+# Subtest: risk impact out of range rejected
+ok 126 - risk impact out of range rejected
+  ---
+  duration_ms: 0.411316
+  type: 'test'
+  ...
+# Subtest: stakeholder interest fraction rejected
+ok 127 - stakeholder interest fraction rejected
+  ---
+  duration_ms: 0.100479
+  type: 'test'
+  ...
+# Subtest: cost accepts negative credits
+ok 128 - cost accepts negative credits
+  ---
+  duration_ms: 0.104801
+  type: 'test'
+  ...
+# Subtest: cost currency must have three letters
+ok 129 - cost currency must have three letters
+  ---
+  duration_ms: 0.081507
+  type: 'test'
+  ...
+# Subtest: Arabic feedback is localized
+ok 130 - Arabic feedback is localized
+  ---
+  duration_ms: 0.352773
+  type: 'test'
+  ...
+# Subtest: unknown server validation falls back to generic Arabic copy
+ok 131 - unknown server validation falls back to generic Arabic copy
+  ---
+  duration_ms: 0.073806
+  type: 'test'
+  ...
+# (node:22734) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22734) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/web/src/lib/decision-cockpit.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/web/package.json.
+# Subtest: critical RAID takes priority and cites actual source record
+ok 132 - critical RAID takes priority and cites actual source record
+  ---
+  duration_ms: 2.899812
+  type: 'test'
+  ...
+# Subtest: blocked gate suggests evidence completion
+ok 133 - blocked gate suggests evidence completion
+  ---
+  duration_ms: 0.26758
+  type: 'test'
+  ...
+# Subtest: no gate links to register
+ok 134 - no gate links to register
+  ---
+  duration_ms: 0.361473
+  type: 'test'
+  ...
+# Subtest: returned-window totals clearly distinguished
+ok 135 - returned-window totals clearly distinguished
+  ---
+  duration_ms: 1.633516
+  type: 'test'
+  ...
+# Subtest: no fabricated numbers for empty portfolio
+ok 136 - no fabricated numbers for empty portfolio
+  ---
+  duration_ms: 0.354973
+  type: 'test'
+  ...
+# Subtest: explanations omit financial amounts and sensitive account data
+ok 137 - explanations omit financial amounts and sensitive account data
+  ---
+  duration_ms: 1.375913
+  type: 'test'
+  ...
+# (node:22740) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22740) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/web/src/lib/executive-attention.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/web/package.json.
+# Subtest: healthy project without blockers only returns neutral fallback
+ok 138 - healthy project without blockers only returns neutral fallback
+  ---
+  duration_ms: 2.937131
+  type: 'test'
+  ...
+# Subtest: missing gate checklist is a governance issue
+ok 139 - missing gate checklist is a governance issue
+  ---
+  duration_ms: 0.229484
+  type: 'test'
+  ...
+# Subtest: unmet criteria includes correct count
+ok 140 - unmet criteria includes correct count
+  ---
+  duration_ms: 0.124369
+  type: 'test'
+  ...
+# Subtest: missing approvers blocks sign-off
+ok 141 - missing approvers blocks sign-off
+  ---
+  duration_ms: 0.096211
+  type: 'test'
+  ...
+# Subtest: an unaccountable approver is not enough
+ok 142 - an unaccountable approver is not enough
+  ---
+  duration_ms: 0.096889
+  type: 'test'
+  ...
+# Subtest: pending approvals are surfaced
+ok 143 - pending approvals are surfaced
+  ---
+  duration_ms: 0.087922
+  type: 'test'
+  ...
+# Subtest: rejected approvals are surfaced
+ok 144 - rejected approvals are surfaced
+  ---
+  duration_ms: 0.230121
+  type: 'test'
+  ...
+# Subtest: unapproved previous gates are surfaced
+ok 145 - unapproved previous gates are surfaced
+  ---
+  duration_ms: 0.210632
+  type: 'test'
+  ...
+# Subtest: RAID blockers are surfaced
+ok 146 - RAID blockers are surfaced
+  ---
+  duration_ms: 0.462365
+  type: 'test'
+  ...
+# Subtest: critical RAID items surface without active gates
+ok 147 - critical RAID items surface without active gates
+  ---
+  duration_ms: 0.409421
+  type: 'test'
+  ...
+# Subtest: overdue RAID items surface without active gates
+ok 148 - overdue RAID items surface without active gates
+  ---
+  duration_ms: 0.164866
+  type: 'test'
+  ...
+# Subtest: project link safely encodes a path segment
+ok 149 - project link safely encodes a path segment
+  ---
+  duration_ms: 0.174263
+  type: 'test'
+  ...
+# Subtest: no active gate routes to RAID board
+ok 150 - no active gate routes to RAID board
+  ---
+  duration_ms: 0.216055
+  type: 'test'
+  ...
+# (node:22752) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22752) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/web/src/lib/onboarding-guidance.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/web/package.json.
+# Subtest: actions use only internal, known destinations
+ok 151 - actions use only internal, known destinations
+  ---
+  duration_ms: 2.04551
+  type: 'test'
+  ...
+# Subtest: unlicensed workspaces cannot follow commercial create actions
+ok 152 - unlicensed workspaces cannot follow commercial create actions
+  ---
+  duration_ms: 0.363618
+  type: 'test'
+  ...
+# Subtest: workspace and team remain accessible without paid PMO module
+ok 153 - workspace and team remain accessible without paid PMO module
+  ---
+  duration_ms: 0.30297
+  type: 'test'
+  ...
+# (node:22767) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22767) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/web/src/lib/portfolio-intelligence.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/web/package.json.
+# Subtest: missing history never fabricates forecasts
+ok 154 - missing history never fabricates forecasts
+  ---
+  duration_ms: 0.925226
+  type: 'test'
+  ...
+# Subtest: six days do not justify a trend
+ok 155 - six days do not justify a trend
+  ---
+  duration_ms: 11.217342
+  type: 'test'
+  ...
+# Subtest: seven distinct days give explainable historical direction
+ok 156 - seven distinct days give explainable historical direction
+  ---
+  duration_ms: 0.472447
+  type: 'test'
+  ...
+# Subtest: unsorted duplicate dates are deduplicated
+ok 157 - unsorted duplicate dates are deduplicated
+  ---
+  duration_ms: 0.568742
+  type: 'test'
+  ...
+# Subtest: malformed values are ignored and no financial or identity fields leak
+ok 158 - malformed values are ignored and no financial or identity fields leak
+  ---
+  duration_ms: 0.334183
+  type: 'test'
+  ...
+# Subtest: missing subscription is presented as none
+ok 159 - missing subscription is presented as none
+  ---
+  duration_ms: 2.085495
+  type: 'test'
+  ...
+# Subtest: active subscription shows active within period
+ok 160 - active subscription shows active within period
+  ---
+  duration_ms: 0.615969
+  type: 'test'
+  ...
+# Subtest: active subscription past period displays expired
+ok 161 - active subscription past period displays expired
+  ---
+  duration_ms: 0.162899
+  type: 'test'
+  ...
+# Subtest: trial inside period displays trialing
+ok 162 - trial inside period displays trialing
+  ---
+  duration_ms: 0.174344
+  type: 'test'
+  ...
+# Subtest: trial beyond deadline displays expired
+ok 163 - trial beyond deadline displays expired
+  ---
+  duration_ms: 0.512211
+  type: 'test'
+  ...
+# Subtest: trial without deadline cannot be shown as valid
+ok 164 - trial without deadline cannot be shown as valid
+  ---
+  duration_ms: 0.207345
+  type: 'test'
+  ...
+# Subtest: invalid subscription dates never show active
+ok 165 - invalid subscription dates never show active
+  ---
+  duration_ms: 0.459269
+  type: 'test'
+  ...
+# Subtest: future start is clearly upcoming
+ok 166 - future start is clearly upcoming
+  ---
+  duration_ms: 0.632551
+  type: 'test'
+  ...
+# Subtest: past_due status stays past_due
+ok 167 - past_due status stays past_due
+  ---
+  duration_ms: 0.620114
+  type: 'test'
+  ...
+# Subtest: days rounded up and clamped to zero
+ok 168 - days rounded up and clamped to zero
+  ---
+  duration_ms: 1.301988
+  type: 'test'
+  ...
+# Subtest: invalid date returns null
+ok 169 - invalid date returns null
+  ---
+  duration_ms: 0.305449
+  type: 'test'
+  ...
+# Subtest: currencies with two decimals use ISO fraction
+ok 170 - currencies with two decimals use ISO fraction
+  ---
+  duration_ms: 38.284031
+  type: 'test'
+  ...
+# Subtest: zero-decimal currency uses correct units
+ok 171 - zero-decimal currency uses correct units
+  ---
+  duration_ms: 0.752631
+  type: 'test'
+  ...
+# Subtest: invalid money does not display price
+ok 172 - invalid money does not display price
+  ---
+  duration_ms: 0.107404
+  type: 'test'
+  ...
+# Subtest: invalid currency fails closed
+ok 173 - invalid currency fails closed
+  ---
+  duration_ms: 0.061301
+  type: 'test'
+  ...
+# Subtest: Arabic prices use Arabic locale
+ok 174 - Arabic prices use Arabic locale
+  ---
+  duration_ms: 0.510423
+  type: 'test'
+  ...
+# Subtest: billing dates are UTC-consistent
+ok 175 - billing dates are UTC-consistent
+  ---
+  duration_ms: 5.264418
+  type: 'test'
+  ...
+# Subtest: invalid dates have a safe fallback
+ok 176 - invalid dates have a safe fallback
+  ---
+  duration_ms: 0.244513
+  type: 'test'
+  ...
+# Subtest: active subscription permits cancellation and invoicing
+ok 177 - active subscription permits cancellation and invoicing
+  ---
+  duration_ms: 7.566443
+  type: 'test'
+  ...
+# Subtest: scheduled cancellation only offers resumption
+ok 178 - scheduled cancellation only offers resumption
+  ---
+  duration_ms: 0.272468
+  type: 'test'
+  ...
+# Subtest: expired subscription offers no actions
+ok 179 - expired subscription offers no actions
+  ---
+  duration_ms: 0.16032
+  type: 'test'
+  ...
+# Subtest: no subscription offers no actions
+ok 180 - no subscription offers no actions
+  ---
+  duration_ms: 0.229908
+  type: 'test'
+  ...
+# Subtest: trial checklist is factual and bilingual
+ok 181 - trial checklist is factual and bilingual
+  ---
+  duration_ms: 1.299188
+  type: 'test'
+  ...
+# Subtest: trial example is synthetic, frozen and not customer state
+ok 182 - trial example is synthetic, frozen and not customer state
+  ---
+  duration_ms: 0.237081
+  type: 'test'
+  ...
+# Subtest: active access
+ok 183 - active access
+  ---
+  duration_ms: 3.075098
+  type: 'test'
+  ...
+# Subtest: expired period denies despite active status
+ok 184 - expired period denies despite active status
+  ---
+  duration_ms: 0.333601
+  type: 'test'
+  ...
+# Subtest: no subscription denies
+ok 185 - no subscription denies
+  ---
+  duration_ms: 0.118035
+  type: 'test'
+  ...
+# Subtest: trial must be within trial end
+ok 186 - trial must be within trial end
+  ---
+  duration_ms: 0.396855
+  type: 'test'
+  ...
+# Subtest: valid trial permits
+ok 187 - valid trial permits
+  ---
+  duration_ms: 0.211923
+  type: 'test'
+  ...
+# Subtest: past due denies
+ok 188 - past due denies
+  ---
+  duration_ms: 0.303593
+  type: 'test'
+  ...
+# Subtest: disabled module denies
+ok 189 - disabled module denies
+  ---
+  duration_ms: 0.271208
+  type: 'test'
+  ...
+# Subtest: expired module denies
+ok 190 - expired module denies
+  ---
+  duration_ms: 0.110886
+  type: 'test'
+  ...
+# Subtest: active module permits
+ok 191 - active module permits
+  ---
+  duration_ms: 0.267449
+  type: 'test'
+  ...
+# Subtest: renewal requires payment confirmation
+ok 192 - renewal requires payment confirmation
+  ---
+  duration_ms: 0.619538
+  type: 'test'
+  ...
+# Subtest: cancel at end expires
+ok 193 - cancel at end expires
+  ---
+  duration_ms: 0.306161
+  type: 'test'
+  ...
+# Subtest: cancel at period end
+ok 194 - cancel at period end
+  ---
+  duration_ms: 4.060547
+  type: 'test'
+  ...
+# Subtest: resume scheduled cancellation
+ok 195 - resume scheduled cancellation
+  ---
+  duration_ms: 0.220089
+  type: 'test'
+  ...
+# Subtest: immediate cancellation
+ok 196 - immediate cancellation
+  ---
+  duration_ms: 0.473826
+  type: 'test'
+  ...
+# Subtest: cannot renew without payment confirmation
+ok 197 - cannot renew without payment confirmation
+  ---
+  duration_ms: 0.764054
+  type: 'test'
+  ...
+# Subtest: cannot renew with overlapping dates
+ok 198 - cannot renew with overlapping dates
+  ---
+  duration_ms: 0.153094
+  type: 'test'
+  ...
+# Subtest: renew with verified payment
+ok 199 - renew with verified payment
+  ---
+  duration_ms: 0.219102
+  type: 'test'
+  ...
+# Subtest: expired status derived from elapsed period
+ok 200 - expired status derived from elapsed period
+  ---
+  duration_ms: 0.35558
+  type: 'test'
+  ...
+# Subtest: premature expiration rejected
+ok 201 - premature expiration rejected
+  ---
+  duration_ms: 0.133351
+  type: 'test'
+  ...
+# Subtest: expired trial derived from trial end
+ok 202 - expired trial derived from trial end
+  ---
+  duration_ms: 0.257111
+  type: 'test'
+  ...
+# Subtest: tenant identity required
+ok 203 - tenant identity required
+  ---
+  duration_ms: 1.352679
+  type: 'test'
+  ...
+# Subtest: admin bearer-token embedding is disabled by default
+ok 204 - admin bearer-token embedding is disabled by default
+  ---
+  duration_ms: 1.855483
+  type: 'test'
+  ...
+# Subtest: CI runs actual dependency-backed workspace builds and typechecks
+ok 205 - CI runs actual dependency-backed workspace builds and typechecks
+  ---
+  duration_ms: 2.147496
+  type: 'test'
+  ...
+# Subtest: CI migrates a real database, applies RLS, and checks effective privileges
+ok 206 - CI migrates a real database, applies RLS, and checks effective privileges
+  ---
+  duration_ms: 0.583523
+  type: 'test'
+  ...
+# Subtest: CI explicitly runs opt-in live recovery on a disposable loopback database
+ok 207 - CI explicitly runs opt-in live recovery on a disposable loopback database
+  ---
+  duration_ms: 0.15124
+  type: 'test'
+  ...
+# Subtest: recovery CI receipt is recorded only after live test exits successfully
+ok 208 - recovery CI receipt is recorded only after live test exits successfully
+  ---
+  duration_ms: 0.256183
+  type: 'test'
+  ...
+# Subtest: missing recovery API evidence blocks CI even when previous gates succeeded
+ok 209 - missing recovery API evidence blocks CI even when previous gates succeeded
+  ---
+  duration_ms: 6.290573
+  type: 'test'
+  ...
+# Subtest: live test covers simultaneous redemption and checks exactly one new audit event
+ok 210 - live test covers simultaneous redemption and checks exactly one new audit event
+  ---
+  duration_ms: 0.375174
+  type: 'test'
+  ...
+# Subtest: security definer function revokes all user sessions before reporting reset success
+ok 211 - security definer function revokes all user sessions before reporting reset success
+  ---
+  duration_ms: 0.902054
+  type: 'test'
+  ...
+# Subtest: CI builds both actual Dockerfiles before recording production evidence
+ok 212 - CI builds both actual Dockerfiles before recording production evidence
+  ---
+  duration_ms: 2.417953
+  type: 'test'
+  ...
+# Subtest: CI Docker steps do not publish images or require credentials
+ok 213 - CI Docker steps do not publish images or require credentials
+  ---
+  duration_ms: 0.571819
+  type: 'test'
+  ...
+# Subtest: both runtime Dockerfiles use a non-root account and health checks
+ok 214 - both runtime Dockerfiles use a non-root account and health checks
+  ---
+  duration_ms: 0.65025
+  type: 'test'
+  ...
+# Subtest: image probe succeeds for two well-formed disposable images
+ok 215 - image probe succeeds for two well-formed disposable images
+  ---
+  duration_ms: 449.221329
+  type: 'test'
+  ...
+# Subtest: image probe rejects invalid user
+ok 216 - image probe rejects invalid user
+  ---
+  duration_ms: 49.054612
+  type: 'test'
+  ...
+# Subtest: image probe rejects invalid health
+ok 217 - image probe rejects invalid health
+  ---
+  duration_ms: 141.708263
+  type: 'test'
+  ...
+# Subtest: image probe rejects invalid port
+ok 218 - image probe rejects invalid port
+  ---
+  duration_ms: 224.499929
+  type: 'test'
+  ...
+# Subtest: image probe rejects invalid run
+ok 219 - image probe rejects invalid run
+  ---
+  duration_ms: 270.113308
+  type: 'test'
+  ...
+# Subtest: accepts only the seeded disposable GitHub CI database
+ok 220 - accepts only the seeded disposable GitHub CI database
+  ---
+  duration_ms: 2.817937
+  type: 'test'
+  ...
+# Subtest: requires actual GitHub Actions identity and explicit disposable acknowledgement
+ok 221 - requires actual GitHub Actions identity and explicit disposable acknowledgement
+  ---
+  duration_ms: 0.705363
+  type: 'test'
+  ...
+# Subtest: rejects remote and public database addresses
+ok 222 - rejects remote and public database addresses
+  ---
+  duration_ms: 1.040829
+  type: 'test'
+  ...
+# Subtest: refuses a different source or destination database and port
+ok 223 - refuses a different source or destination database and port
+  ---
+  duration_ms: 2.532538
+  type: 'test'
+  ...
+# Subtest: rejects URL parameters that could inject PostgreSQL connection settings
+ok 224 - rejects URL parameters that could inject PostgreSQL connection settings
+  ---
+  duration_ms: 0.503835
+  type: 'test'
+  ...
+# Subtest: restore drill does not issue DROP against the seeded source database
+ok 225 - restore drill does not issue DROP against the seeded source database
+  ---
+  duration_ms: 0.804054
+  type: 'test'
+  ...
+# Subtest: restore must validate seeded tenant and user rows and migration count
+ok 226 - restore must validate seeded tenant and user rows and migration count
+  ---
+  duration_ms: 0.455976
+  type: 'test'
+  ...
+# Subtest: CI records a successful restore before typechecking and refuses missing evidence
+ok 227 - CI records a successful restore before typechecking and refuses missing evidence
+  ---
+  duration_ms: 6.611138
+  type: 'test'
+  ...
+# Subtest: libpq child processes cannot inherit PGHOSTADDR or arbitrary service overrides
+ok 228 - libpq child processes cannot inherit PGHOSTADDR or arbitrary service overrides
+  ---
+  duration_ms: 1.196247
+  type: 'test'
+  ...
+# Subtest: disposable restore requires CI-only source and explicitly generated destination
+ok 229 - disposable restore requires CI-only source and explicitly generated destination
+  ---
+  duration_ms: 0.688798
+  type: 'test'
+  ...
+# (node:22862) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22862) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/packages/db/src/seed-safety.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/packages/db/package.json.
+# Subtest: explicit acknowledgement and matching local DB permits CI demo seed
+ok 230 - explicit acknowledgement and matching local DB permits CI demo seed
+  ---
+  duration_ms: 2.824866
+  type: 'test'
+  ...
+# Subtest: local development requires the same explicit acknowledgement
+ok 231 - local development requires the same explicit acknowledgement
+  ---
+  duration_ms: 1.203315
+  type: 'test'
+  ...
+# Subtest: never seed on production or unknown Node environments
+ok 232 - never seed on production or unknown Node environments
+  ---
+  duration_ms: 0.298147
+  type: 'test'
+  ...
+# Subtest: never seed a staging or production deployment even with NODE_ENV=test
+ok 233 - never seed a staging or production deployment even with NODE_ENV=test
+  ---
+  duration_ms: 0.272158
+  type: 'test'
+  ...
+# Subtest: rejects remote databases even with an acknowledgement
+ok 234 - rejects remote databases even with an acknowledgement
+  ---
+  duration_ms: 1.007215
+  type: 'test'
+  ...
+# Subtest: rejects different databases or ports and different hostnames
+ok 235 - rejects different databases or ports and different hostnames
+  ---
+  duration_ms: 0.621679
+  type: 'test'
+  ...
+# Subtest: rejects a privileged app connection or identical admin role
+ok 236 - rejects a privileged app connection or identical admin role
+  ---
+  duration_ms: 0.315985
+  type: 'test'
+  ...
+# Subtest: never accepts missing credentials or non-PostgreSQL URLs
+ok 237 - never accepts missing credentials or non-PostgreSQL URLs
+  ---
+  duration_ms: 0.4163
+  type: 'test'
+  ...
+# Subtest: seed performs safety checks before database client construction or deletes
+ok 238 - seed performs safety checks before database client construction or deletes
+  ---
+  duration_ms: 2.322045
+  type: 'test'
+  ...
+# Subtest: CI opts in only with a local disposable app+admin database configuration
+ok 239 - CI opts in only with a local disposable app+admin database configuration
+  ---
+  duration_ms: 1.11456
+  type: 'test'
+  ...
+# Subtest: failure errors do not disclose connection credentials
+ok 240 - failure errors do not disclose connection credentials
+  ---
+  duration_ms: 0.358593
+  type: 'test'
+  ...
+# Subtest: overview returns no financial aggregate to users without financial view
+ok 241 - overview returns no financial aggregate to users without financial view
+  ---
+  duration_ms: 4.039346
+  type: 'test'
+  ...
+# Subtest: dashboard tolerates omitted financial aggregate without depicting false 0% spend
+ok 242 - dashboard tolerates omitted financial aggregate without depicting false 0% spend
+  ---
+  duration_ms: 0.733361
+  type: 'test'
+  ...
+# Subtest: analytics leaves nonfinancial health intact while withholding spend-by-project
+ok 243 - analytics leaves nonfinancial health intact while withholding spend-by-project
+  ---
+  duration_ms: 0.471692
+  type: 'test'
+  ...
+# Subtest: S-curve is restricted but other trends remain available
+ok 244 - S-curve is restricted but other trends remain available
+  ---
+  duration_ms: 1.644492
+  type: 'test'
+  ...
+# Subtest: project lists mask budgets for readers without financial permission
+ok 245 - project lists mask budgets for readers without financial permission
+  ---
+  duration_ms: 0.793686
+  type: 'test'
+  ...
+# Subtest: all sensitive Ask X entry points guard finance permission before queries or Bedrock
+ok 246 - all sensitive Ask X entry points guard finance permission before queries or Bedrock
+  ---
+  duration_ms: 0.454138
+  type: 'test'
+  ...
+# Subtest: Ask X historical prompts cannot be retrieved across user identities
+ok 247 - Ask X historical prompts cannot be retrieved across user identities
+  ---
+  duration_ms: 0.583236
+  type: 'test'
+  ...
+# Subtest: Guessing a foreign conversation ID cannot append a new conversation or see a transcript
+ok 248 - Guessing a foreign conversation ID cannot append a new conversation or see a transcript
+  ---
+  duration_ms: 0.197932
+  type: 'test'
+  ...
+# Subtest: AI conversation listing is user-owned, not tenant-wide
+ok 249 - AI conversation listing is user-owned, not tenant-wide
+  ---
+  duration_ms: 0.800793
+  type: 'test'
+  ...
+# Subtest: AI interface does not offer a widget to roles blocked by the API
+ok 250 - AI interface does not offer a widget to roles blocked by the API
+  ---
+  duration_ms: 0.752656
+  type: 'test'
+  ...
+# Subtest: all board pack formats require financial viewing at their shared data boundary
+ok 251 - all board pack formats require financial viewing at their shared data boundary
+  ---
+  duration_ms: 0.489892
+  type: 'test'
+  ...
+# Subtest: Excel project workbook is finance-gated because it contains costs and benefits
+ok 252 - Excel project workbook is finance-gated because it contains costs and benefits
+  ---
+  duration_ms: 0.279545
+  type: 'test'
+  ...
+# Subtest: Excel import demands project-management AND financial-write capabilities
+ok 253 - Excel import demands project-management AND financial-write capabilities
+  ---
+  duration_ms: 0.1556
+  type: 'test'
+  ...
+# Subtest: project creation with approved budget requires finance-write capability
+ok 254 - project creation with approved budget requires finance-write capability
+  ---
+  duration_ms: 0.144736
+  type: 'test'
+  ...
+# Subtest: general activity hides audit diff payloads that can contain private costs
+ok 255 - general activity hides audit diff payloads that can contain private costs
+  ---
+  duration_ms: 0.276035
+  type: 'test'
+  ...
+# Subtest: AI rejects malformed conversation IDs before any database access
+ok 256 - AI rejects malformed conversation IDs before any database access
+  ---
+  duration_ms: 0.246228
+  type: 'test'
+  ...
+# Subtest: CI accepts a deliberate manual run without removing push/PR triggers
+ok 257 - CI accepts a deliberate manual run without removing push/PR triggers
+  ---
+  duration_ms: 1.260667
+  type: 'test'
+  ...
+# Subtest: CI uses read-only GitHub token for every job by default
+ok 258 - CI uses read-only GitHub token for every job by default
+  ---
+  duration_ms: 3.118501
+  type: 'test'
+  ...
+# Subtest: CI has dependency-free checks, a full integration job, and vulnerability audit
+ok 259 - CI has dependency-free checks, a full integration job, and vulnerability audit
+  ---
+  duration_ms: 0.253201
+  type: 'test'
+  ...
+# Subtest: a manual run cannot mark CI accepted without compiled web and recovery evidence
+ok 260 - a manual run cannot mark CI accepted without compiled web and recovery evidence
+  ---
+  duration_ms: 0.623581
+  type: 'test'
+  ...
+# Subtest: CI includes actual Postgres migrations, RLS checks and API smoke
+ok 261 - CI includes actual Postgres migrations, RLS checks and API smoke
+  ---
+  duration_ms: 0.447695
+  type: 'test'
+  ...
+# Subtest: CI evidence is tied to current GitHub run and cannot be overwritten
+ok 262 - CI evidence is tied to current GitHub run and cannot be overwritten
+  ---
+  duration_ms: 0.134359
+  type: 'test'
+  ...
+# Subtest: account writes are limited to explicitly required columns
+ok 263 - account writes are limited to explicitly required columns
+  ---
+  duration_ms: 1.824988
+  type: 'test'
+  ...
+# Subtest: a later blanket GRANT is rejected by the regression check
+ok 264 - a later blanket GRANT is rejected by the regression check
+  ---
+  duration_ms: 1.16408
+  type: 'test'
+  ...
+# Subtest: missing blanket-rights revocation is rejected
+ok 265 - missing blanket-rights revocation is rejected
+  ---
+  duration_ms: 0.371106
+  type: 'test'
+  ...
+# Subtest: PostgreSQL gate checks effective privileges and protected account columns
+ok 266 - PostgreSQL gate checks effective privileges and protected account columns
+  ---
+  duration_ms: 0.453577
+  type: 'test'
+  ...
+# Subtest: staging bootstrap enforces global privileges after applying policies
+ok 267 - staging bootstrap enforces global privileges after applying policies
+  ---
+  duration_ms: 0.36012
+  type: 'test'
+  ...
+# Subtest: CI runs the global-user privilege gate before migrations/RLS evidence
+ok 268 - CI runs the global-user privilege gate before migrations/RLS evidence
+  ---
+  duration_ms: 0.184314
+  type: 'test'
+  ...
+# Subtest: authentication uses only the granted update columns
+ok 269 - authentication uses only the granted update columns
+  ---
+  duration_ms: 0.59272
+  type: 'test'
+  ...
+# Subtest: new-account invitation uses only the granted insert columns
+ok 270 - new-account invitation uses only the granted insert columns
+  ---
+  duration_ms: 0.174552
+  type: 'test'
+  ...
+# Subtest: header impersonation requires local development and a loopback socket
+ok 271 - header impersonation requires local development and a loopback socket
+  ---
+  duration_ms: 0.579287
+  type: 'test'
+  ...
+# Subtest: staging/prod reject header impersonation even under dev NODE_ENV
+ok 272 - staging/prod reject header impersonation even under dev NODE_ENV
+  ---
+  duration_ms: 0.947775
+  type: 'test'
+  ...
+# (node:22960) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:22960) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/common/log-safety.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: accepts a bounded safe correlation ID
+ok 273 - accepts a bounded safe correlation ID
+  ---
+  duration_ms: 3.71485
+  type: 'test'
+  ...
+# Subtest: rejects untrusted correlation ID with newlines
+ok 274 - rejects untrusted correlation ID with newlines
+  ---
+  duration_ms: 1.576166
+  type: 'test'
+  ...
+# Subtest: rejects oversized correlation ID
+ok 275 - rejects oversized correlation ID
+  ---
+  duration_ms: 6.108823
+  type: 'test'
+  ...
+# Subtest: rejects a list of request IDs
+ok 276 - rejects a list of request IDs
+  ---
+  duration_ms: 0.242386
+  type: 'test'
+  ...
+# Subtest: logs route template, never concrete invite token
+ok 277 - logs route template, never concrete invite token
+  ---
+  duration_ms: 0.853748
+  type: 'test'
+  ...
+# Subtest: omits untrusted route path with query
+ok 278 - omits untrusted route path with query
+  ---
+  duration_ms: 0.269357
+  type: 'test'
+  ...
+# Subtest: omits unmatched URL instead of logging its query
+ok 279 - omits unmatched URL instead of logging its query
+  ---
+  duration_ms: 0.236451
+  type: 'test'
+  ...
+# Subtest: omits non-string route patterns
+ok 280 - omits non-string route patterns
+  ---
+  duration_ms: 0.471517
+  type: 'test'
+  ...
+# Subtest: never logs unknown exception names or messages
+ok 281 - never logs unknown exception names or messages
+  ---
+  duration_ms: 0.617564
+  type: 'test'
+  ...
+# Subtest: logs safe known exception classes
+ok 282 - logs safe known exception classes
+  ---
+  duration_ms: 0.564799
+  type: 'test'
+  ...
+# Subtest: request logger never reads raw URL or query string
+ok 283 - request logger never reads raw URL or query string
+  ---
+  duration_ms: 0.328982
+  type: 'test'
+  ...
+# Subtest: exception filter never exposes stack or message for 5xx
+ok 284 - exception filter never exposes stack or message for 5xx
+  ---
+  duration_ms: 0.427726
+  type: 'test'
+  ...
+# Subtest: Microsoft Graph logger avoids remote error text and raw URL
+ok 285 - Microsoft Graph logger avoids remote error text and raw URL
+  ---
+  duration_ms: 0.150473
+  type: 'test'
+  ...
+# Subtest: background jobs and integrations do not log provider message bodies or email addresses
+ok 286 - background jobs and integrations do not log provider message bodies or email addresses
+  ---
+  duration_ms: 0.94237
+  type: 'test'
+  ...
+# Subtest: legacy direct member creation explicitly returns 410 instead of assigning credentials
+ok 287 - legacy direct member creation explicitly returns 410 instead of assigning credentials
+  ---
+  duration_ms: 8.817177
+  type: 'test'
+  ...
+# Subtest: creation service no longer silently enrolls existing global accounts
+ok 288 - creation service no longer silently enrolls existing global accounts
+  ---
+  duration_ms: 0.597822
+  type: 'test'
+  ...
+# Subtest: legacy contract is labeled deprecated so new clients use invitations
+ok 289 - legacy contract is labeled deprecated so new clients use invitations
+  ---
+  duration_ms: 0.43897
+  type: 'test'
+  ...
+# Subtest: invitation issuance requires personnel permission, transport, and a hashed token
+ok 290 - invitation issuance requires personnel permission, transport, and a hashed token
+  ---
+  duration_ms: 0.505431
+  type: 'test'
+  ...
+# Subtest: membership is added only after locked single-use token acceptance
+ok 291 - membership is added only after locked single-use token acceptance
+  ---
+  duration_ms: 1.34583
+  type: 'test'
+  ...
+# Subtest: public accept endpoint is narrowly scoped and throttled
+ok 292 - public accept endpoint is narrowly scoped and throttled
+  ---
+  duration_ms: 0.262412
+  type: 'test'
+  ...
+# Subtest: development identity enumeration is not registered in the customer API
+ok 293 - development identity enumeration is not registered in the customer API
+  ---
+  duration_ms: 0.247229
+  type: 'test'
+  ...
+# Subtest: recovery table stores a digest not plaintext, expires in 30 minutes
+ok 294 - recovery table stores a digest not plaintext, expires in 30 minutes
+  ---
+  duration_ms: 2.450152
+  type: 'test'
+  ...
+# Subtest: redeem only succeeds for unused and unexpired tokens
+ok 295 - redeem only succeeds for unused and unexpired tokens
+  ---
+  duration_ms: 0.9025
+  type: 'test'
+  ...
+# Subtest: redeem cannot execute for arbitrary malformed password hashes
+ok 296 - redeem cannot execute for arbitrary malformed password hashes
+  ---
+  duration_ms: 1.386539
+  type: 'test'
+  ...
+# Subtest: redeem transaction rotates credential, revokes ALL sessions and records audit
+ok 297 - redeem transaction rotates credential, revokes ALL sessions and records audit
+  ---
+  duration_ms: 0.229256
+  type: 'test'
+  ...
+# Subtest: only the privileged function can update an existing password
+ok 298 - only the privileged function can update an existing password
+  ---
+  duration_ms: 0.315834
+  type: 'test'
+  ...
+# Subtest: database role must never read bearer token hashes
+ok 299 - database role must never read bearer token hashes
+  ---
+  duration_ms: 1.450669
+  type: 'test'
+  ...
+# Subtest: recovery initiation has generic response, cooldown and confirmed delivery
+ok 300 - recovery initiation has generic response, cooldown and confirmed delivery
+  ---
+  duration_ms: 0.41441
+  type: 'test'
+  ...
+# Subtest: reset hashes password before narrow database function redemption
+ok 301 - reset hashes password before narrow database function redemption
+  ---
+  duration_ms: 0.465141
+  type: 'test'
+  ...
+# Subtest: public endpoints are IP rate limited and schema validated
+ok 302 - public endpoints are IP rate limited and schema validated
+  ---
+  duration_ms: 0.664347
+  type: 'test'
+  ...
+# Subtest: proxies reject CSRF and never return recovery bearer data
+ok 303 - proxies reject CSRF and never return recovery bearer data
+  ---
+  duration_ms: 0.727941
+  type: 'test'
+  ...
+# Subtest: web page uses fragment token only and erases it immediately
+ok 304 - web page uses fragment token only and erases it immediately
+  ---
+  duration_ms: 0.518861
+  type: 'test'
+  ...
+# Subtest: development password hint is not displayed on staging or production deployment
+ok 305 - development password hint is not displayed on staging or production deployment
+  ---
+  duration_ms: 0.146968
+  type: 'test'
+  ...
+# Subtest: posting is an explicit capability, not implicit read access
+ok 306 - posting is an explicit capability, not implicit read access
+  ---
+  duration_ms: 1.388279
+  type: 'test'
+  ...
+# Subtest: read-only roles cannot publish new updates
+ok 307 - read-only roles cannot publish new updates
+  ---
+  duration_ms: 1.020651
+  type: 'test'
+  ...
+# Subtest: project, governance and finance personnel can publish updates
+ok 308 - project, governance and finance personnel can publish updates
+  ---
+  duration_ms: 0.471319
+  type: 'test'
+  ...
+# Subtest: contributors and external professionals retain collaboration access
+ok 309 - contributors and external professionals retain collaboration access
+  ---
+  duration_ms: 0.281749
+  type: 'test'
+  ...
+# Subtest: workspace owners and administrators receive the posting capability
+ok 310 - workspace owners and administrators receive the posting capability
+  ---
+  duration_ms: 1.297708
+  type: 'test'
+  ...
+# Subtest: updates remain readable without posting privilege
+ok 311 - updates remain readable without posting privilege
+  ---
+  duration_ms: 0.226422
+  type: 'test'
+  ...
+# Subtest: UI shows the editor only to posting-capable sessions
+ok 312 - UI shows the editor only to posting-capable sessions
+  ---
+  duration_ms: 0.228341
+  type: 'test'
+  ...
+# Subtest: API validates the update payload and still owns write authorization
+ok 313 - API validates the update payload and still owns write authorization
+  ---
+  duration_ms: 0.148278
+  type: 'test'
+  ...
+# Subtest: live DB authorization test cannot be silently skipped by CI
+ok 314 - live DB authorization test cannot be silently skipped by CI
+  ---
+  duration_ms: 1.992697
+  type: 'test'
+  ...
+# Subtest: workspace settings explains the new posting permission
+ok 315 - workspace settings explains the new posting permission
+  ---
+  duration_ms: 0.416491
+  type: 'test'
+  ...
+# Subtest: profile changes require workspace admin capability
+ok 316 - profile changes require workspace admin capability
+  ---
+  duration_ms: 3.543352
+  type: 'test'
+  ...
+# Subtest: invitation issuance requires manage-people capability
+ok 317 - invitation issuance requires manage-people capability
+  ---
+  duration_ms: 0.502582
+  type: 'test'
+  ...
+# Subtest: revocation and listing require manage-people capability
+ok 318 - revocation and listing require manage-people capability
+  ---
+  duration_ms: 0.18996
+  type: 'test'
+  ...
+# Subtest: invitation role is allowlisted and cannot be owner or vendor administrator
+ok 319 - invitation role is allowlisted and cannot be owner or vendor administrator
+  ---
+  duration_ms: 0.153442
+  type: 'test'
+  ...
+# Subtest: HTTP APIs never accept a workspace tenantId in their request body
+ok 320 - HTTP APIs never accept a workspace tenantId in their request body
+  ---
+  duration_ms: 0.141303
+  type: 'test'
+  ...
+# Subtest: email delivery must be configured and failure invalidates invitations
+ok 321 - email delivery must be configured and failure invalidates invitations
+  ---
+  duration_ms: 0.20916
+  type: 'test'
+  ...
+# Subtest: acceptance locks the database row before creating membership
+ok 322 - acceptance locks the database row before creating membership
+  ---
+  duration_ms: 0.234928
+  type: 'test'
+  ...
+# Subtest: invitation acceptance never resets an existing account password
+ok 323 - invitation acceptance never resets an existing account password
+  ---
+  duration_ms: 0.256678
+  type: 'test'
+  ...
+# Subtest: database enforces unique token hashes and one active invitation per address
+ok 324 - database enforces unique token hashes and one active invitation per address
+  ---
+  duration_ms: 0.520383
+  type: 'test'
+  ...
+# Subtest: invitations and profiles enforce RLS and cannot be deleted by the app
+ok 325 - invitations and profiles enforce RLS and cannot be deleted by the app
+  ---
+  duration_ms: 0.474098
+  type: 'test'
+  ...
+# Subtest: public accept route is explicit and throttled; no arbitrary unauthenticated API paths
+ok 326 - public accept route is explicit and throttled; no arbitrary unauthenticated API paths
+  ---
+  duration_ms: 0.275512
+  type: 'test'
+  ...
+# Subtest: browser proxies reject cross-site mutations and arbitrary API paths
+ok 327 - browser proxies reject cross-site mutations and arbitrary API paths
+  ---
+  duration_ms: 0.160208
+  type: 'test'
+  ...
+# Subtest: invitation tokens are never returned to the administrator
+ok 328 - invitation tokens are never returned to the administrator
+  ---
+  duration_ms: 0.135073
+  type: 'test'
+  ...
+# Subtest: browser removes invitation token from address bar
+ok 329 - browser removes invitation token from address bar
+  ---
+  duration_ms: 0.059963
+  type: 'test'
+  ...
+# Subtest: UI includes bilingual invitation controls and separates owner configuration
+ok 330 - UI includes bilingual invitation controls and separates owner configuration
+  ---
+  duration_ms: 0.066519
+  type: 'test'
+  ...
+# Subtest: forged invitations are rejected before password hashing
+ok 331 - forged invitations are rejected before password hashing
+  ---
+  duration_ms: 2.264459
+  type: 'test'
+  ...
+# Subtest: public acceptance and admin issuance have separate rate limits
+ok 332 - public acceptance and admin issuance have separate rate limits
+  ---
+  duration_ms: 0.079972
+  type: 'test'
+  ...
+# Subtest: Compose passes SES configuration only to the API container
+ok 333 - Compose passes SES configuration only to the API container
+  ---
+  duration_ms: 0.24162
+  type: 'test'
+  ...
+# Subtest: onboarding requires authenticated read permission
+ok 334 - onboarding requires authenticated read permission
+  ---
+  duration_ms: 1.634614
+  type: 'test'
+  ...
+# Subtest: tenant ID is not accepted from query or body
+ok 335 - tenant ID is not accepted from query or body
+  ---
+  duration_ms: 0.827431
+  type: 'test'
+  ...
+# Subtest: all five aggregate queries use tenant predicates
+ok 336 - all five aggregate queries use tenant predicates
+  ---
+  duration_ms: 0.652996
+  type: 'test'
+  ...
+# Subtest: the route is enabled as a core module endpoint
+ok 337 - the route is enabled as a core module endpoint
+  ---
+  duration_ms: 0.200634
+  type: 'test'
+  ...
+# Subtest: navigation is core and visible with read capability
+ok 338 - navigation is core and visible with read capability
+  ---
+  duration_ms: 0.497441
+  type: 'test'
+  ...
+# Subtest: web page shows bilingual status and restricts create links by capabilities
+ok 339 - web page shows bilingual status and restricts create links by capabilities
+  ---
+  duration_ms: 0.277529
+  type: 'test'
+  ...
+# Subtest: onboarding next action checks both permission and paid module access
+ok 340 - onboarding next action checks both permission and paid module access
+  ---
+  duration_ms: 2.711817
+  type: 'test'
+  ...
+# Subtest: create forms open only for exact deep-link query values
+ok 341 - create forms open only for exact deep-link query values
+  ---
+  duration_ms: 2.652178
+  type: 'test'
+  ...
+# Subtest: creation UI respects permission and license in portfolio and project screens
+ok 342 - creation UI respects permission and license in portfolio and project screens
+  ---
+  duration_ms: 0.771593
+  type: 'test'
+  ...
+# Subtest: guided create links cannot be supplied as unchecked external destinations
+ok 343 - guided create links cannot be supplied as unchecked external destinations
+  ---
+  duration_ms: 0.468079
+  type: 'test'
+  ...
+# Subtest: the gate metric counts all authoritative gate blockers, not only RAID
+ok 344 - the gate metric counts all authoritative gate blockers, not only RAID
+  ---
+  duration_ms: 1.083349
+  type: 'test'
+  ...
+# Subtest: attention uses left join so gate-less projects remain visible
+ok 345 - attention uses left join so gate-less projects remain visible
+  ---
+  duration_ms: 0.619931
+  type: 'test'
+  ...
+# Subtest: attention shows one project per row and limits executive page size
+ok 346 - attention shows one project per row and limits executive page size
+  ---
+  duration_ms: 0.156521
+  type: 'test'
+  ...
+# Subtest: gate summary and attention execute under tenant RLS
+ok 347 - gate summary and attention execute under tenant RLS
+  ---
+  duration_ms: 0.135363
+  type: 'test'
+  ...
+# Subtest: the historical gate snapshot includes missing approval ownership
+ok 348 - the historical gate snapshot includes missing approval ownership
+  ---
+  duration_ms: 0.314444
+  type: 'test'
+  ...
+# Subtest: governance board does not green-light missing accountable approvals
+ok 349 - governance board does not green-light missing accountable approvals
+  ---
+  duration_ms: 0.138559
+  type: 'test'
+  ...
+# Subtest: executive UI links directly to relevant tenant-scoped workflow
+ok 350 - executive UI links directly to relevant tenant-scoped workflow
+  ---
+  duration_ms: 0.161453
+  type: 'test'
+  ...
+# Subtest: Arabic dictionary includes all executive reason labels
+ok 351 - Arabic dictionary includes all executive reason labels
+  ---
+  duration_ms: 0.155717
+  type: 'test'
+  ...
+# Subtest: board-pack HTML consumes the current executive attention schema
+ok 352 - board-pack HTML consumes the current executive attention schema
+  ---
+  duration_ms: 1.86358
+  type: 'test'
+  ...
+# Subtest: Word and PowerPoint use the same priority queue with Arabic-safe reason codes
+ok 353 - Word and PowerPoint use the same priority queue with Arabic-safe reason codes
+  ---
+  duration_ms: 0.640112
+  type: 'test'
+  ...
+# Subtest: fresh production output passes all eight checks
+ok 354 - fresh production output passes all eight checks
+  ---
+  duration_ms: 9.53831
+  type: 'test'
+  ...
+# Subtest: package-only and API scopes require only their own dependencies
+ok 355 - package-only and API scopes require only their own dependencies
+  ---
+  duration_ms: 5.233469
+  type: 'test'
+  ...
+# Subtest: wrong Next output directory must not satisfy production check
+ok 356 - wrong Next output directory must not satisfy production check
+  ---
+  duration_ms: 6.815487
+  type: 'test'
+  ...
+# Subtest: empty or missing JavaScript bundle fails closed
+ok 357 - empty or missing JavaScript bundle fails closed
+  ---
+  duration_ms: 4.469556
+  type: 'test'
+  ...
+# Subtest: CLI exits nonzero and reports missing artifacts
+ok 358 - CLI exits nonzero and reports missing artifacts
+  ---
+  duration_ms: 77.246891
+  type: 'test'
+  ...
+# Subtest: CLI rejects unknown scope
+ok 359 - CLI rejects unknown scope
+  ---
+  duration_ms: 107.191552
+  type: 'test'
+  ...
+# Subtest: CI runs artifact checks after package and application builds
+ok 360 - CI runs artifact checks after package and application builds
+  ---
+  duration_ms: 0.873702
+  type: 'test'
+  ...
+# Subtest: disabled by default: ordinary tests remain non-destructive
+ok 361 - disabled by default: ordinary tests remain non-destructive
+  ---
+  duration_ms: 5.223934
+  type: 'test'
+  ...
+# Subtest: valid disposable local test database permits live test
+ok 362 - valid disposable local test database permits live test
+  ---
+  duration_ms: 0.485392
+  type: 'test'
+  ...
+# Subtest: requires separate explicit destructive-fixture acknowledgement
+ok 363 - requires separate explicit destructive-fixture acknowledgement
+  ---
+  duration_ms: 0.869211
+  type: 'test'
+  ...
+# Subtest: rejects production runtime
+ok 364 - rejects production runtime
+  ---
+  duration_ms: 0.142881
+  type: 'test'
+  ...
+# Subtest: rejects staging deployment
+ok 365 - rejects staging deployment
+  ---
+  duration_ms: 0.57442
+  type: 'test'
+  ...
+# Subtest: rejects remote admin database
+ok 366 - rejects remote admin database
+  ---
+  duration_ms: 0.17808
+  type: 'test'
+  ...
+# Subtest: rejects mixed database names
+ok 367 - rejects mixed database names
+  ---
+  duration_ms: 0.121585
+  type: 'test'
+  ...
+# Subtest: rejects mixed database ports
+ok 368 - rejects mixed database ports
+  ---
+  duration_ms: 0.104842
+  type: 'test'
+  ...
+# Subtest: rejects privileged application connection
+ok 369 - rejects privileged application connection
+  ---
+  duration_ms: 0.644062
+  type: 'test'
+  ...
+# Subtest: rejects insecure nonlocal API
+ok 370 - rejects insecure nonlocal API
+  ---
+  duration_ms: 0.546898
+  type: 'test'
+  ...
+# Subtest: rejects databases without a password
+ok 371 - rejects databases without a password
+  ---
+  duration_ms: 0.301425
+  type: 'test'
+  ...
+# Subtest: does not print secrets in failure messages
+ok 372 - does not print secrets in failure messages
+  ---
+  duration_ms: 0.422077
+  type: 'test'
+  ...
+# Subtest: accepts only local HTTP server roots
+ok 373 - accepts only local HTTP server roots
+  ---
+  duration_ms: 2.387679
+  type: 'test'
+  ...
+# Subtest: rejects remote host and HTTPS production targets
+ok 374 - rejects remote host and HTTPS production targets
+  ---
+  duration_ms: 1.2126
+  type: 'test'
+  ...
+# Subtest: rejects credentials, paths and query parameters
+ok 375 - rejects credentials, paths and query parameters
+  ---
+  duration_ms: 0.321674
+  type: 'test'
+  ...
+# Subtest: accepts bilingual HTML and four login redirects
+ok 376 - accepts bilingual HTML and four login redirects
+  ---
+  duration_ms: 1.739128
+  type: 'test'
+  ...
+# Subtest: requests Arabic with locale cookie and refuses implicit redirects
+ok 377 - requests Arabic with locale cookie and refuses implicit redirects
+  ---
+  duration_ms: 1.991982
+  type: 'test'
+  ...
+# Subtest: rejects an untranslated Arabic page
+ok 378 - rejects an untranslated Arabic page
+  ---
+  duration_ms: 0.384842
+  type: 'test'
+  ...
+# Subtest: rejects wrong direction on root html
+ok 379 - rejects wrong direction on root html
+  ---
+  duration_ms: 0.468911
+  type: 'test'
+  ...
+# Subtest: rejects missing login form
+ok 380 - rejects missing login form
+  ---
+  duration_ms: 0.252675
+  type: 'test'
+  ...
+# Subtest: rejects non-HTML login responses
+ok 381 - rejects non-HTML login responses
+  ---
+  duration_ms: 0.620128
+  type: 'test'
+  ...
+# Subtest: rejects unauthenticated private page returning HTTP 200
+ok 382 - rejects unauthenticated private page returning HTTP 200
+  ---
+  duration_ms: 0.550543
+  type: 'test'
+  ...
+# Subtest: rejects private redirect to an external host
+ok 383 - rejects private redirect to an external host
+  ---
+  duration_ms: 1.870216
+  type: 'test'
+  ...
+# Subtest: rejects redirects to other internal routes
+ok 384 - rejects redirects to other internal routes
+  ---
+  duration_ms: 0.442235
+  type: 'test'
+  ...
+# Subtest: rejects missing redirect location
+ok 385 - rejects missing redirect location
+  ---
+  duration_ms: 0.258403
+  type: 'test'
+  ...
+# Subtest: rejects login errors and missing content
+ok 386 - rejects login errors and missing content
+  ---
+  duration_ms: 0.137383
+  type: 'test'
+  ...
+# Subtest: all CI release gates are unique and launch requires extra live evidence
+ok 387 - all CI release gates are unique and launch requires extra live evidence
+  ---
+  duration_ms: 2.945594
+  type: 'test'
+  ...
+# Subtest: missing receipts block both CI and launch
+ok 388 - missing receipts block both CI and launch
+  ---
+  duration_ms: 6.593559
+  type: 'test'
+  ...
+# Subtest: all CI receipts allow CI profile but not launch profile
+ok 389 - all CI receipts allow CI profile but not launch profile
+  ---
+  duration_ms: 8.833628
+  type: 'test'
+  ...
+# Subtest: launch profile requires all three additional live checks
+ok 390 - launch profile requires all three additional live checks
+  ---
+  duration_ms: 4.197775
+  type: 'test'
+  ...
+# Subtest: different CI commit is rejected
+ok 391 - different CI commit is rejected
+  ---
+  duration_ms: 5.873341
+  type: 'test'
+  ...
+# Subtest: different CI run ID is rejected
+ok 392 - different CI run ID is rejected
+  ---
+  duration_ms: 4.541113
+  type: 'test'
+  ...
+# Subtest: invalid and future timestamps are rejected
+ok 393 - invalid and future timestamps are rejected
+  ---
+  duration_ms: 4.879712
+  type: 'test'
+  ...
+# Subtest: malformed receipts fail closed
+ok 394 - malformed receipts fail closed
+  ---
+  duration_ms: 4.981023
+  type: 'test'
+  ...
+# Subtest: an old successful receipt is not current release evidence
+ok 395 - an old successful receipt is not current release evidence
+  ---
+  duration_ms: 4.83861
+  type: 'test'
+  ...
+# Subtest: duplicate receipts are rejected rather than overwritten
+ok 396 - duplicate receipts are rejected rather than overwritten
+  ---
+  duration_ms: 4.12513
+  type: 'test'
+  ...
+# Subtest: unknown gate and malformed context are rejected
+ok 397 - unknown gate and malformed context are rejected
+  ---
+  duration_ms: 0.441764
+  type: 'test'
+  ...
+# Subtest: a receipt whose gate or status was edited is rejected
+ok 398 - a receipt whose gate or status was edited is rejected
+  ---
+  duration_ms: 3.248708
+  type: 'test'
+  ...
+# Subtest: backup and deployment scripts have valid shell syntax
+ok 399 - backup and deployment scripts have valid shell syntax
+  ---
+  duration_ms: 12.404935
+  type: 'test'
+  ...
+# Subtest: pre-migration backup succeeds and verifies SHA256 checksum
+ok 400 - pre-migration backup succeeds and verifies SHA256 checksum
+  ---
+  duration_ms: 92.40254
+  type: 'test'
+  ...
+# Subtest: pg_dump failure blocks deployment and cleans partial archive
+ok 401 - pg_dump failure blocks deployment and cleans partial archive
+  ---
+  duration_ms: 45.106939
+  type: 'test'
+  ...
+# Subtest: invalid archive blocks deployment and cleans partial archive
+ok 402 - invalid archive blocks deployment and cleans partial archive
+  ---
+  duration_ms: 53.911607
+  type: 'test'
+  ...
+# Subtest: unsafe relative backup destination fails closed
+ok 403 - unsafe relative backup destination fails closed
+  ---
+  duration_ms: 6.887273
+  type: 'test'
+  ...
+# Subtest: deployment builds before dump, migrations, and service switch
+ok 404 - deployment builds before dump, migrations, and service switch
+  ---
+  duration_ms: 0.618066
+  type: 'test'
+  ...
+# Subtest: backup refuses destination inside deployed project before pg_dump
+ok 405 - backup refuses destination inside deployed project before pg_dump
+  ---
+  duration_ms: 9.264987
+  type: 'test'
+  ...
+# Subtest: backup refuses deployment directory itself
+ok 406 - backup refuses deployment directory itself
+  ---
+  duration_ms: 10.699054
+  type: 'test'
+  ...
+# Subtest: backup refuses a symlinked parent pointing into deployment tree
+ok 407 - backup refuses a symlinked parent pointing into deployment tree
+  ---
+  duration_ms: 10.729255
+  type: 'test'
+  ...
+# Subtest: backup permits external directory even with similar path prefix
+ok 408 - backup permits external directory even with similar path prefix
+  ---
+  duration_ms: 91.534653
+  type: 'test'
+  ...
+# Subtest: checksum verification failure removes published archive and blocks migration
+ok 409 - checksum verification failure removes published archive and blocks migration
+  ---
+  duration_ms: 88.006235
+  type: 'test'
+  ...
+# Subtest: restore rehearsal shell syntax is valid
+ok 410 - restore rehearsal shell syntax is valid
+  ---
+  duration_ms: 11.575349
+  type: 'test'
+  ...
+# Subtest: staging-only rehearsal restores and drops an isolated random database
+ok 411 - staging-only rehearsal restores and drops an isolated random database
+  ---
+  duration_ms: 130.907813
+  type: 'test'
+  ...
+# Subtest: production mode is rejected without invoking Docker
+ok 412 - production mode is rejected without invoking Docker
+  ---
+  duration_ms: 7.324277
+  type: 'test'
+  ...
+# Subtest: requires explicitly marked staging environment
+ok 413 - requires explicitly marked staging environment
+  ---
+  duration_ms: 8.599132
+  type: 'test'
+  ...
+# Subtest: rejects tampered backup before any database commands
+ok 414 - rejects tampered backup before any database commands
+  ---
+  duration_ms: 27.391954
+  type: 'test'
+  ...
+# Subtest: rejects an archive outside the expected staging backup naming scheme
+ok 415 - rejects an archive outside the expected staging backup naming scheme
+  ---
+  duration_ms: 28.589917
+  type: 'test'
+  ...
+# Subtest: failed restore always removes newly created temporary database
+ok 416 - failed restore always removes newly created temporary database
+  ---
+  duration_ms: 106.425226
+  type: 'test'
+  ...
+# Subtest: missing restored tables fails and removes temporary database
+ok 417 - missing restored tables fails and removes temporary database
+  ---
+  duration_ms: 144.41218
+  type: 'test'
+  ...
+# Subtest: failed database creation must not drop preexisting database
+ok 418 - failed database creation must not drop preexisting database
+  ---
+  duration_ms: 151.68271
+  type: 'test'
+  ...
+# Subtest: failed cleanup blocks approval and identifies temporary database for cleanup
+ok 419 - failed cleanup blocks approval and identifies temporary database for cleanup
+  ---
+  duration_ms: 111.564046
+  type: 'test'
+  ...
+# Subtest: checksum sidecar cannot reference a different backup file
+ok 420 - checksum sidecar cannot reference a different backup file
+  ---
+  duration_ms: 17.159863
+  type: 'test'
+  ...
+# Subtest: fresh staging database restores an empty schema and allows first bootstrap
+ok 421 - fresh staging database restores an empty schema and allows first bootstrap
+  ---
+  duration_ms: 99.836639
+  type: 'test'
+  ...
+# Subtest: partially initialized source fails before creating temporary database
+ok 422 - partially initialized source fails before creating temporary database
+  ---
+  duration_ms: 249.057438
+  type: 'test'
+  ...
+# Subtest: existing source rejects an incorrectly selected empty backup
+ok 423 - existing source rejects an incorrectly selected empty backup
+  ---
+  duration_ms: 135.66746
+  type: 'test'
+  ...
+# Subtest: fresh source rejects restored application tables from the wrong backup
+ok 424 - fresh source rejects restored application tables from the wrong backup
+  ---
+  duration_ms: 110.767443
+  type: 'test'
+  ...
+# Subtest: failure inspecting the source database blocks before creating a temporary database
+ok 425 - failure inspecting the source database blocks before creating a temporary database
+  ---
+  duration_ms: 108.171675
+  type: 'test'
+  ...
+# Subtest: accepts the healthy pmo-staging web container and its local published port
+ok 426 - accepts the healthy pmo-staging web container and its local published port
+  ---
+  duration_ms: 4.089369
+  type: 'test'
+  ...
+# Subtest: rejects production environment before HTTP
+ok 427 - rejects production environment before HTTP
+  ---
+  duration_ms: 2.941654
+  type: 'test'
+  ...
+# Subtest: rejects publicly bound staging port
+ok 428 - rejects publicly bound staging port
+  ---
+  duration_ms: 0.591287
+  type: 'test'
+  ...
+# Subtest: rejects unsafe and privileged ports
+ok 429 - rejects unsafe and privileged ports
+  ---
+  duration_ms: 0.529563
+  type: 'test'
+  ...
+# Subtest: rejects absent or mismatched container ID
+ok 430 - rejects absent or mismatched container ID
+  ---
+  duration_ms: 0.388945
+  type: 'test'
+  ...
+# Subtest: rejects mismatched compose project and service labels
+ok 431 - rejects mismatched compose project and service labels
+  ---
+  duration_ms: 0.83623
+  type: 'test'
+  ...
+# Subtest: rejects stopped or unhealthy containers
+ok 432 - rejects stopped or unhealthy containers
+  ---
+  duration_ms: 1.453077
+  type: 'test'
+  ...
+# Subtest: rejects exposed, mismatched, or duplicated container-port mappings
+ok 433 - rejects exposed, mismatched, or duplicated container-port mappings
+  ---
+  duration_ms: 0.319574
+  type: 'test'
+  ...
+# Subtest: runs bilingual and anonymous-access tests against verified port
+ok 434 - runs bilingual and anonymous-access tests against verified port
+  ---
+  duration_ms: 2.787789
+  type: 'test'
+  ...
+# Subtest: fails when protected route serves private content
+ok 435 - fails when protected route serves private content
+  ---
+  duration_ms: 1.577492
+  type: 'test'
+  ...
+# Subtest: staging deploy performs smoke acceptance after the health check
+ok 436 - staging deploy performs smoke acceptance after the health check
+  ---
+  duration_ms: 1.969491
+  type: 'test'
+  ...
+# Subtest: simulated staging deploy aborts if the post-deploy smoke fails
+ok 437 - simulated staging deploy aborts if the post-deploy smoke fails
+  ---
+  duration_ms: 65.814856
+  type: 'test'
+  ...
+# Subtest: the acceptance tool has valid Node syntax
+ok 438 - the acceptance tool has valid Node syntax
+  ---
+  duration_ms: 39.518054
+  type: 'test'
+  ...
+# Subtest: accepts authenticated container identity but never credentials from untrusted environment
+ok 439 - accepts authenticated container identity but never credentials from untrusted environment
+  ---
+  duration_ms: 2.483744
+  type: 'test'
+  ...
+# Subtest: rejects production target and mismatched/stale container identities
+ok 440 - rejects production target and mismatched/stale container identities
+  ---
+  duration_ms: 1.316103
+  type: 'test'
+  ...
+# Subtest: rejects incorrect Docker project/service and unhealthy API
+ok 441 - rejects incorrect Docker project/service and unhealthy API
+  ---
+  duration_ms: 0.253712
+  type: 'test'
+  ...
+# Subtest: rejects development header-auth and wrong runtime deployment mode
+ok 442 - rejects development header-auth and wrong runtime deployment mode
+  ---
+  duration_ms: 0.91057
+  type: 'test'
+  ...
+# Subtest: refuses staging API exposed through a host-published port
+ok 443 - refuses staging API exposed through a host-published port
+  ---
+  duration_ms: 0.423211
+  type: 'test'
+  ...
+# Subtest: checks health, billing, licensing and Super Admin endpoints with no credentials
+ok 444 - checks health, billing, licensing and Super Admin endpoints with no credentials
+  ---
+  duration_ms: 1.744144
+  type: 'test'
+  ...
+# Subtest: rejects a wrong or unhealthy service on the local API port
+ok 445 - rejects a wrong or unhealthy service on the local API port
+  ---
+  duration_ms: 1.558676
+  type: 'test'
+  ...
+# Subtest: rejects a nonlocal or alternate target even if requests could succeed
+ok 446 - rejects a nonlocal or alternate target even if requests could succeed
+  ---
+  duration_ms: 2.668842
+  type: 'test'
+  ...
+# Subtest: fails when a protected endpoint returns HTTP 200, HTTP 403, or redirects instead of 401
+ok 447 - fails when a protected endpoint returns HTTP 200, HTTP 403, or redirects instead of 401
+  ---
+  duration_ms: 2.161972
+  type: 'test'
+  ...
+# Subtest: fails if forged tenant identity headers bypass authentication
+ok 448 - fails if forged tenant identity headers bypass authentication
+  ---
+  duration_ms: 1.173679
+  type: 'test'
+  ...
+# Subtest: all requests are read-only, disallow redirects and target the fixed local API
+ok 449 - all requests are read-only, disallow redirects and target the fixed local API
+  ---
+  duration_ms: 0.657296
+  type: 'test'
+  ...
+# Subtest: deployment verifies staging API only after web acceptance and before claiming success
+ok 450 - deployment verifies staging API only after web acceptance and before claiming success
+  ---
+  duration_ms: 10.479251
+  type: 'test'
+  ...
+# Subtest: API smoke script passes Node syntax check
+ok 451 - API smoke script passes Node syntax check
+  ---
+  duration_ms: 74.750856
+  type: 'test'
+  ...
+# Subtest: Docker API build includes staging API verifier and env parser
+ok 452 - Docker API build includes staging API verifier and env parser
+  ---
+  duration_ms: 1.446679
+  type: 'test'
+  ...
+# Subtest: live acceptance has a dedicated authenticated tenant isolation section
+ok 453 - live acceptance has a dedicated authenticated tenant isolation section
+  ---
+  duration_ms: 6.565424
+  type: 'test'
+  ...
+# Subtest: tenant fixture reuses existing reseed rather than destructive duplicate setup
+ok 454 - tenant fixture reuses existing reseed rather than destructive duplicate setup
+  ---
+  duration_ms: 0.337201
+  type: 'test'
+  ...
+# Subtest: proves project listing and direct detail isolation for both owners
+ok 455 - proves project listing and direct detail isolation for both owners
+  ---
+  duration_ms: 0.161058
+  type: 'test'
+  ...
+# Subtest: rejects session cookie plus forged tenant/user headers
+ok 456 - rejects session cookie plus forged tenant/user headers
+  ---
+  duration_ms: 0.134865
+  type: 'test'
+  ...
+# Subtest: covers denied switch for owner and allowed switch for dual member
+ok 457 - covers denied switch for owner and allowed switch for dual member
+  ---
+  duration_ms: 1.128284
+  type: 'test'
+  ...
+# Subtest: project and subscription fixture includes two independently populated tenants
+ok 458 - project and subscription fixture includes two independently populated tenants
+  ---
+  duration_ms: 0.251318
+  type: 'test'
+  ...
+# Subtest: CI requires the real suite after the API boots and database seeds
+ok 459 - CI requires the real suite after the API boots and database seeds
+  ---
+  duration_ms: 0.27877
+  type: 'test'
+  ...
+# Subtest: CI opts into the test only for disposable test database
+ok 460 - CI opts into the test only for disposable test database
+  ---
+  duration_ms: 0.107224
+  type: 'test'
+  ...
+# Subtest: accepts populated tenant-scoped project list with expected seed
+ok 461 - accepts populated tenant-scoped project list with expected seed
+  ---
+  duration_ms: 7.4511
+  type: 'test'
+  ...
+# Subtest: rejects empty list as non-evidence
+ok 462 - rejects empty list as non-evidence
+  ---
+  duration_ms: 0.653822
+  type: 'test'
+  ...
+# Subtest: rejects duplicate tenant IDs
+ok 463 - rejects duplicate tenant IDs
+  ---
+  duration_ms: 0.288861
+  type: 'test'
+  ...
+# Subtest: rejects missing project fixture
+ok 464 - rejects missing project fixture
+  ---
+  duration_ms: 0.177354
+  type: 'test'
+  ...
+# Subtest: rejects foreign project in list
+ok 465 - rejects foreign project in list
+  ---
+  duration_ms: 0.443105
+  type: 'test'
+  ...
+# Subtest: rejects malformed project row
+ok 466 - rejects malformed project row
+  ---
+  duration_ms: 0.299389
+  type: 'test'
+  ...
+# Subtest: accepts correct project detail
+ok 467 - accepts correct project detail
+  ---
+  duration_ms: 0.195481
+  type: 'test'
+  ...
+# Subtest: rejects foreign project detail
+ok 468 - rejects foreign project detail
+  ---
+  duration_ms: 0.453326
+  type: 'test'
+  ...
+# Subtest: requires 404 for foreign project details
+ok 469 - requires 404 for foreign project details
+  ---
+  duration_ms: 0.907382
+  type: 'test'
+  ...
+# Subtest: checks active workspace in authenticated session
+ok 470 - checks active workspace in authenticated session
+  ---
+  duration_ms: 1.054887
+  type: 'test'
+  ...
+# Subtest: checks invoicing after workspace switch
+ok 471 - checks invoicing after workspace switch
+  ---
+  duration_ms: 0.816947
+  type: 'test'
+  ...
+# Subtest: rejects empty invoice response and foreign invoice
+ok 472 - rejects empty invoice response and foreign invoice
+  ---
+  duration_ms: 0.573414
+  type: 'test'
+  ...
+# Subtest: deploy.sh rejects root and parent-only destinations before invoking remote tools
+ok 473 - deploy.sh rejects root and parent-only destinations before invoking remote tools
+  ---
+  duration_ms: 45.637194
+  type: 'test'
+  ...
+# Subtest: deploy.sh rejects cross-environment destination selection
+ok 474 - deploy.sh rejects cross-environment destination selection
+  ---
+  duration_ms: 23.910622
+  type: 'test'
+  ...
+# Subtest: deploy.sh checks remote resolved directory before modifying files
+ok 475 - deploy.sh checks remote resolved directory before modifying files
+  ---
+  duration_ms: 0.333079
+  type: 'test'
+  ...
+# Subtest: sync-catalogue.sh rejects root and parent-only destinations before invoking remote tools
+ok 476 - sync-catalogue.sh rejects root and parent-only destinations before invoking remote tools
+  ---
+  duration_ms: 35.763483
+  type: 'test'
+  ...
+# Subtest: sync-catalogue.sh rejects cross-environment destination selection
+ok 477 - sync-catalogue.sh rejects cross-environment destination selection
+  ---
+  duration_ms: 46.187385
+  type: 'test'
+  ...
+# Subtest: sync-catalogue.sh checks remote resolved directory before modifying files
+ok 478 - sync-catalogue.sh checks remote resolved directory before modifying files
+  ---
+  duration_ms: 0.38165
+  type: 'test'
+  ...
+# Subtest: staging deployment with a custom isolated checkout performs remote checks before rsync
+ok 479 - staging deployment with a custom isolated checkout performs remote checks before rsync
+  ---
+  duration_ms: 44.907073
+  type: 'test'
+  ...
+# Subtest: symlinked remote checkout blocks staging deployment before rsync
+ok 480 - symlinked remote checkout blocks staging deployment before rsync
+  ---
+  duration_ms: 11.210441
+  type: 'test'
+  ...
+# Subtest: existing 20 migration SQL sources match pinned release digests
+ok 481 - existing 20 migration SQL sources match pinned release digests
+  ---
+  duration_ms: 9.695051
+  type: 'test'
+  ...
+# Subtest: matching SQL contents accepted
+ok 482 - matching SQL contents accepted
+  ---
+  duration_ms: 1.519009
+  type: 'test'
+  ...
+# Subtest: changed SQL body rejected despite identical migration filename
+ok 483 - changed SQL body rejected despite identical migration filename
+  ---
+  duration_ms: 2.454692
+  type: 'test'
+  ...
+# Subtest: new migration requires a pinned digest
+ok 484 - new migration requires a pinned digest
+  ---
+  duration_ms: 0.398072
+  type: 'test'
+  ...
+# Subtest: removed migration remains detectable
+ok 485 - removed migration remains detectable
+  ---
+  duration_ms: 0.213308
+  type: 'test'
+  ...
+# Subtest: manifest digest format and schema must be valid
+ok 486 - manifest digest format and schema must be valid
+  ---
+  duration_ms: 0.350965
+  type: 'test'
+  ...
+# Subtest: actual verifier fails if a migration is tampered in an extracted release
+ok 487 - actual verifier fails if a migration is tampered in an extracted release
+  ---
+  duration_ms: 12.365036
+  type: 'test'
+  ...
+# Subtest: staging bootstrap runs migration integrity gate before altering database
+ok 488 - staging bootstrap runs migration integrity gate before altering database
+  ---
+  duration_ms: 0.40505
+  type: 'test'
+  ...
+# Subtest: CI runner protects first-time ledger creation with a PostgreSQL advisory lock
+ok 489 - CI runner protects first-time ledger creation with a PostgreSQL advisory lock
+  ---
+  duration_ms: 4.198237
+  type: 'test'
+  ...
+# Subtest: deployment runner protects first-time ledger creation with the same lock
+ok 490 - deployment runner protects first-time ledger creation with the same lock
+  ---
+  duration_ms: 0.218042
+  type: 'test'
+  ...
+# Subtest: both runners recheck ledger row under an exclusive transaction lock
+ok 491 - both runners recheck ledger row under an exclusive transaction lock
+  ---
+  duration_ms: 0.209549
+  type: 'test'
+  ...
+# Subtest: CI emits transactional SQL guards for every previously unapplied migration
+ok 492 - CI emits transactional SQL guards for every previously unapplied migration
+  ---
+  duration_ms: 3013.55232
+  type: 'test'
+  ...
+# Subtest: re-running the CI runner skips recorded migrations without re-emitting DDL
+ok 493 - re-running the CI runner skips recorded migrations without re-emitting DDL
+  ---
+  duration_ms: 3845.208141
+  type: 'test'
+  ...
+# Subtest: CI keeps the SQL runner before applying PostgreSQL RLS policies
+ok 494 - CI keeps the SQL runner before applying PostgreSQL RLS policies
+  ---
+  duration_ms: 2.303087
+  type: 'test'
+  ...
+# Subtest: explicit local-only development push is allowed
+ok 495 - explicit local-only development push is allowed
+  ---
+  duration_ms: 2.734816
+  type: 'test'
+  ...
+# Subtest: production and staging cannot invoke schema push
+ok 496 - production and staging cannot invoke schema push
+  ---
+  duration_ms: 0.399886
+  type: 'test'
+  ...
+# Subtest: missing opt-in is blocked even with valid development URL
+ok 497 - missing opt-in is blocked even with valid development URL
+  ---
+  duration_ms: 0.168338
+  type: 'test'
+  ...
+# Subtest: remote, production, and changed-port admin URLs are blocked
+ok 498 - remote, production, and changed-port admin URLs are blocked
+  ---
+  duration_ms: 0.5211
+  type: 'test'
+  ...
+# Subtest: CLI refuses absent opt-in and never prints a database password
+ok 499 - CLI refuses absent opt-in and never prints a database password
+  ---
+  duration_ms: 64.65486
+  type: 'test'
+  ...
+# Subtest: CLI passes with explicit opt-in on disposable local database
+ok 500 - CLI passes with explicit opt-in on disposable local database
+  ---
+  duration_ms: 93.29981
+  type: 'test'
+  ...
+# Subtest: root db:migrate uses the checked SQL ledger; package migrator is disabled
+ok 501 - root db:migrate uses the checked SQL ledger; package migrator is disabled
+  ---
+  duration_ms: 0.738589
+  type: 'test'
+  ...
+# Subtest: schema push no longer uses force and always invokes safety guard
+ok 502 - schema push no longer uses force and always invokes safety guard
+  ---
+  duration_ms: 0.271796
+  type: 'test'
+  ...
+# Subtest: legacy Drizzle migration launcher fails closed
+ok 503 - legacy Drizzle migration launcher fails closed
+  ---
+  duration_ms: 63.332508
+  type: 'test'
+  ...
+# Subtest: bootstrap checks for an existing Drizzle journal before running SQL migrations
+ok 504 - bootstrap checks for an existing Drizzle journal before running SQL migrations
+  ---
+  duration_ms: 3.915364
+  type: 'test'
+  ...
+# Subtest: each bootstrap migration and its ledger insert share an explicit transaction
+ok 505 - each bootstrap migration and its ledger insert share an explicit transaction
+  ---
+  duration_ms: 0.488752
+  type: 'test'
+  ...
+# Subtest: a failed migration aborts bootstrap and prevents RLS application
+ok 506 - a failed migration aborts bootstrap and prevents RLS application
+  ---
+  duration_ms: 0.775838
+  type: 'test'
+  ...
+# Subtest: RLS setup cannot manufacture a default-password application account
+ok 507 - RLS setup cannot manufacture a default-password application account
+  ---
+  duration_ms: 0.662848
+  type: 'test'
+  ...
+# Subtest: CI creates application role before migration requiring it
+ok 508 - CI creates application role before migration requiring it
+  ---
+  duration_ms: 2.064455
+  type: 'test'
+  ...
+# Subtest: bootstrap uses non-default application password from the application URL
+ok 509 - bootstrap uses non-default application password from the application URL
+  ---
+  duration_ms: 0.238715
+  type: 'test'
+  ...
+# Subtest: database startup wait is bounded and fails before schema changes
+ok 510 - database startup wait is bounded and fails before schema changes
+  ---
+  duration_ms: 0.302146
+  type: 'test'
+  ...
+# Subtest: bootstrap verifies exact SQL migration history before applying RLS
+ok 511 - bootstrap verifies exact SQL migration history before applying RLS
+  ---
+  duration_ms: 0.213333
+  type: 'test'
+  ...
+# Subtest: financial RLS assertion is enforced after applying RLS policies
+ok 512 - financial RLS assertion is enforced after applying RLS policies
+  ---
+  duration_ms: 0.486158
+  type: 'test'
+  ...
+# Subtest: bootstrap converts an existing NOLOGIN app role into a restricted LOGIN
+ok 513 - bootstrap converts an existing NOLOGIN app role into a restricted LOGIN
+  ---
+  duration_ms: 3.329306
+  type: 'test'
+  ...
+# Subtest: staging configuration passes when complete and safe
+ok 514 - staging configuration passes when complete and safe
+  ---
+  duration_ms: 3.301086
+  type: 'test'
+  ...
+# Subtest: production accepts only live keys and no staging exemption
+ok 515 - production accepts only live keys and no staging exemption
+  ---
+  duration_ms: 0.537685
+  type: 'test'
+  ...
+# Subtest: staging rejects live keys even with override
+ok 516 - staging rejects live keys even with override
+  ---
+  duration_ms: 0.552471
+  type: 'test'
+  ...
+# Subtest: production rejects staging test keys
+ok 517 - production rejects staging test keys
+  ---
+  duration_ms: 0.395309
+  type: 'test'
+  ...
+# Subtest: production rejects test-mode exemption
+ok 518 - production rejects test-mode exemption
+  ---
+  duration_ms: 0.679132
+  type: 'test'
+  ...
+# Subtest: URL must point to exact webhook path and host
+ok 519 - URL must point to exact webhook path and host
+  ---
+  duration_ms: 0.212482
+  type: 'test'
+  ...
+# Subtest: production-looking web origins required
+ok 520 - production-looking web origins required
+  ---
+  duration_ms: 0.261807
+  type: 'test'
+  ...
+# Subtest: application cannot authenticate as database admin
+ok 521 - application cannot authenticate as database admin
+  ---
+  duration_ms: 0.147038
+  type: 'test'
+  ...
+# Subtest: application database password cannot remain default
+ok 522 - application database password cannot remain default
+  ---
+  duration_ms: 0.433487
+  type: 'test'
+  ...
+# Subtest: redis password must match actual URL
+ok 523 - redis password must match actual URL
+  ---
+  duration_ms: 0.402194
+  type: 'test'
+  ...
+# Subtest: reference adapter cannot be enabled
+ok 524 - reference adapter cannot be enabled
+  ---
+  duration_ms: 0.238625
+  type: 'test'
+  ...
+# Subtest: missing Stripe secrets must block
+ok 525 - missing Stripe secrets must block
+  ---
+  duration_ms: 0.120213
+  type: 'test'
+  ...
+# Subtest: parse env without executing shell commands
+ok 526 - parse env without executing shell commands
+  ---
+  duration_ms: 6.69652
+  type: 'test'
+  ...
+# Subtest: duplicate env keys rejected
+ok 527 - duplicate env keys rejected
+  ---
+  duration_ms: 0.605395
+  type: 'test'
+  ...
+# Subtest: env interpolation rejected to prevent disagreement with compose
+ok 528 - env interpolation rejected to prevent disagreement with compose
+  ---
+  duration_ms: 0.52841
+  type: 'test'
+  ...
+# Subtest: current repository wires API and keeps Stripe secrets off web
+ok 529 - current repository wires API and keeps Stripe secrets off web
+  ---
+  duration_ms: 1.987028
+  type: 'test'
+  ...
+# Subtest: missing API secret mapping is caught
+ok 530 - missing API secret mapping is caught
+  ---
+  duration_ms: 0.521388
+  type: 'test'
+  ...
+# Subtest: rejects publicly bound web container port in staging or production
+ok 531 - rejects publicly bound web container port in staging or production
+  ---
+  duration_ms: 0.643028
+  type: 'test'
+  ...
+# Subtest: deployment script has valid bash syntax
+ok 532 - deployment script has valid bash syntax
+  ---
+  duration_ms: 11.561076
+  type: 'test'
+  ...
+# Subtest: deployment fails closed with no explicit server
+ok 533 - deployment fails closed with no explicit server
+  ---
+  duration_ms: 17.698807
+  type: 'test'
+  ...
+# Subtest: deployment rejects command injection in host or target path
+ok 534 - deployment rejects command injection in host or target path
+  ---
+  duration_ms: 20.910387
+  type: 'test'
+  ...
+# Subtest: deployment refuses missing SSH key before contacting server
+ok 535 - deployment refuses missing SSH key before contacting server
+  ---
+  duration_ms: 10.03463
+  type: 'test'
+  ...
+# Subtest: staging calls secure transport, preflight, bootstrap and bounded health check
+ok 536 - staging calls secure transport, preflight, bootstrap and bounded health check
+  ---
+  duration_ms: 35.332021
+  type: 'test'
+  ...
+# Subtest: remote prerequisite check happens before destructive file sync
+ok 537 - remote prerequisite check happens before destructive file sync
+  ---
+  duration_ms: 43.280871
+  type: 'test'
+  ...
+# Subtest: missing remote staging configuration blocks before rsync
+ok 538 - missing remote staging configuration blocks before rsync
+  ---
+  duration_ms: 13.774581
+  type: 'test'
+  ...
+# Subtest: branded deployment targets are used by default
+ok 539 - branded deployment targets are used by default
+  ---
+  duration_ms: 0.321463
+  type: 'test'
+  ...
+# Subtest: no baked server or indefinite health polling in deploy code
+ok 540 - no baked server or indefinite health polling in deploy code
+  ---
+  duration_ms: 0.890238
+  type: 'test'
+  ...
+# Subtest: failed staging restore rehearsal aborts before SQL migrations
+ok 541 - failed staging restore rehearsal aborts before SQL migrations
+  ---
+  duration_ms: 28.854951
+  type: 'test'
+  ...
+# Subtest: module sync bash syntax is valid
+ok 542 - module sync bash syntax is valid
+  ---
+  duration_ms: 14.065149
+  type: 'test'
+  ...
+# Subtest: module sync refuses to infer a server
+ok 543 - module sync refuses to infer a server
+  ---
+  duration_ms: 10.997638
+  type: 'test'
+  ...
+# Subtest: module sync refuses remote-command injection
+ok 544 - module sync refuses remote-command injection
+  ---
+  duration_ms: 16.012015
+  type: 'test'
+  ...
+# Subtest: module sync refuses missing SSH key
+ok 545 - module sync refuses missing SSH key
+  ---
+  duration_ms: 5.843394
+  type: 'test'
+  ...
+# Subtest: module sync has no legacy host or embedded private key
+ok 546 - module sync has no legacy host or embedded private key
+  ---
+  duration_ms: 0.588714
+  type: 'test'
+  ...
+# Subtest: staging module sync uses approved host and isolated project
+ok 547 - staging module sync uses approved host and isolated project
+  ---
+  duration_ms: 9.98316
+  type: 'test'
+  ...
+# Subtest: runner shell syntax and application-role guard
+ok 548 - runner shell syntax and application-role guard
+  ---
+  duration_ms: 97.873073
+  type: 'test'
+  ...
+# Subtest: runner refuses an existing Drizzle journal before altering database
+ok 549 - runner refuses an existing Drizzle journal before altering database
+  ---
+  duration_ms: 147.559494
+  type: 'test'
+  ...
+# Subtest: runner applies ordered migrations, journals transactionally and skips on retry
+ok 550 - runner applies ordered migrations, journals transactionally and skips on retry
+  ---
+  duration_ms: 4466.357808
+  type: 'test'
+  ...
+# Subtest: failed migration blocks release and leaves ledger short
+ok 551 - failed migration blocks release and leaves ledger short
+  ---
+  duration_ms: 501.474153
+  type: 'test'
+  ...
+# Subtest: CI invokes the SQL runner with an admin role before applying RLS
+ok 552 - CI invokes the SQL runner with an admin role before applying RLS
+  ---
+  duration_ms: 1.124034
+  type: 'test'
+  ...
+# Subtest: rejects production mode
+ok 553 - rejects production mode
+  ---
+  duration_ms: 7.545097
+  type: 'test'
+  ...
+# Subtest: rejects admin database roles
+ok 554 - rejects admin database roles
+  ---
+  duration_ms: 2.367023
+  type: 'test'
+  ...
+# Subtest: rejects equal tenants
+ok 555 - rejects equal tenants
+  ---
+  duration_ms: 0.96301
+  type: 'test'
+  ...
+# Subtest: accepts staging restricted-role configuration
+ok 556 - accepts staging restricted-role configuration
+  ---
+  duration_ms: 0.916418
+  type: 'test'
+  ...
+# Subtest: all financial tables require FORCE RLS and policy
+ok 557 - all financial tables require FORCE RLS and policy
+  ---
+  duration_ms: 1.199203
+  type: 'test'
+  ...
+# Subtest: missing migration is detected
+ok 558 - missing migration is detected
+  ---
+  duration_ms: 0.327415
+  type: 'test'
+  ...
+# Subtest: RLS enabled but not forced fails
+ok 559 - RLS enabled but not forced fails
+  ---
+  duration_ms: 0.525799
+  type: 'test'
+  ...
+# Subtest: missing policy fails
+ok 560 - missing policy fails
+  ---
+  duration_ms: 0.828354
+  type: 'test'
+  ...
+# Subtest: tenant rows visible with matching tenant
+ok 561 - tenant rows visible with matching tenant
+  ---
+  duration_ms: 1.367421
+  type: 'test'
+  ...
+# Subtest: detects cross-tenant rows
+ok 562 - detects cross-tenant rows
+  ---
+  duration_ms: 1.007392
+  type: 'test'
+  ...
+# Subtest: detects visibility with unset tenant
+ok 563 - detects visibility with unset tenant
+  ---
+  duration_ms: 0.32629
+  type: 'test'
+  ...
+# Subtest: accepts read-only staging audit with two populated tenants
+ok 564 - accepts read-only staging audit with two populated tenants
+  ---
+  duration_ms: 2.059567
+  type: 'test'
+  ...
+# Subtest: rejects superuser or bypass-RLS application connection
+ok 565 - rejects superuser or bypass-RLS application connection
+  ---
+  duration_ms: 0.412139
+  type: 'test'
+  ...
+# Subtest: rejects empty data as inconclusive
+ok 566 - rejects empty data as inconclusive
+  ---
+  duration_ms: 2.659636
+  type: 'test'
+  ...
+# Subtest: rejects records visible with no tenant selected
+ok 567 - rejects records visible with no tenant selected
+  ---
+  duration_ms: 0.811587
+  type: 'test'
+  ...
+# Subtest: aggregated counts are not limited to one row
+ok 568 - aggregated counts are not limited to one row
+  ---
+  duration_ms: 0.15635
+  type: 'test'
+  ...
+# Subtest: rejects invalid aggregation counts
+ok 569 - rejects invalid aggregation counts
+  ---
+  duration_ms: 0.425733
+  type: 'test'
+  ...
+# Subtest: rejects live Stripe keys and production mode
+ok 570 - rejects live Stripe keys and production mode
+  ---
+  duration_ms: 2.312689
+  type: 'test'
+  ...
+# Subtest: rejects insecure or credentialed origins and shared tenant sessions
+ok 571 - rejects insecure or credentialed origins and shared tenant sessions
+  ---
+  duration_ms: 0.991318
+  type: 'test'
+  ...
+# Subtest: reads an unpaid baseline and a paid Stripe settlement without any mutation
+ok 572 - reads an unpaid baseline and a paid Stripe settlement without any mutation
+  ---
+  duration_ms: 10.65934
+  type: 'test'
+  ...
+# Subtest: fails baseline when payment is already complete
+ok 573 - fails baseline when payment is already complete
+  ---
+  duration_ms: 0.443874
+  type: 'test'
+  ...
+# Subtest: fails if an amount or currency disagrees with Stripe
+ok 574 - fails if an amount or currency disagrees with Stripe
+  ---
+  duration_ms: 2.43298
+  type: 'test'
+  ...
+# Subtest: fails if the second tenant can read first tenant invoice
+ok 575 - fails if the second tenant can read first tenant invoice
+  ---
+  duration_ms: 0.549407
+  type: 'test'
+  ...
+# Subtest: fails if second tenant can see payment ledger
+ok 576 - fails if second tenant can see payment ledger
+  ---
+  duration_ms: 0.852751
+  type: 'test'
+  ...
+# Subtest: fails paid verification when ledger has no payment
+ok 577 - fails paid verification when ledger has no payment
+  ---
+  duration_ms: 0.833349
+  type: 'test'
+  ...
+# Subtest: fails paid verification on duplicate ledger settlement
+ok 578 - fails paid verification on duplicate ledger settlement
+  ---
+  duration_ms: 3.046793
+  type: 'test'
+  ...
+# Subtest: fails paid verification if subscription did not extend
+ok 579 - fails paid verification if subscription did not extend
+  ---
+  duration_ms: 1.475738
+  type: 'test'
+  ...
+# Subtest: fails paid verification if Stripe payment intent differs from ledger
+ok 580 - fails paid verification if Stripe payment intent differs from ledger
+  ---
+  duration_ms: 1.16892
+  type: 'test'
+  ...
+# Subtest: fails paid verification if invoice dates have changed
+ok 581 - fails paid verification if invoice dates have changed
+  ---
+  duration_ms: 0.556663
+  type: 'test'
+  ...
+# Subtest: rejects API failures and unprivileged cookies
+ok 582 - rejects API failures and unprivileged cookies
+  ---
+  duration_ms: 0.284311
+  type: 'test'
+  ...
+# Subtest: uses GET-only, no redirect, and never calls write API
+ok 583 - uses GET-only, no redirect, and never calls write API
+  ---
+  duration_ms: 1.863649
+  type: 'test'
+  ...
+# Subtest: replay evidence remains identical after duplicate webhook delivery
+ok 584 - replay evidence remains identical after duplicate webhook delivery
+  ---
+  duration_ms: 0.851155
+  type: 'test'
+  ...
+# Subtest: paid ledger amount must match invoice and Stripe amount
+ok 585 - paid ledger amount must match invoice and Stripe amount
+  ---
+  duration_ms: 0.388301
+  type: 'test'
+  ...
+# Subtest: fails Stripe session bound to different tenant metadata
+ok 586 - fails Stripe session bound to different tenant metadata
+  ---
+  duration_ms: 0.348739
+  type: 'test'
+  ...
+# Subtest: fully configured staging passes configuration-only checks
+ok 587 - fully configured staging passes configuration-only checks
+  ---
+  duration_ms: 17.299268
+  type: 'test'
+  ...
+# Subtest: missing keys fail
+ok 588 - missing keys fail
+  ---
+  duration_ms: 1.569428
+  type: 'test'
+  ...
+# Subtest: live key fails the staging check
+ok 589 - live key fails the staging check
+  ---
+  duration_ms: 0.242402
+  type: 'test'
+  ...
+# Subtest: missing signing secret fails
+ok 590 - missing signing secret fails
+  ---
+  duration_ms: 0.199321
+  type: 'test'
+  ...
+# Subtest: HTTP staging site fails
+ok 591 - HTTP staging site fails
+  ---
+  duration_ms: 0.219378
+  type: 'test'
+  ...
+# Subtest: local callback URL fails
+ok 592 - local callback URL fails
+  ---
+  duration_ms: 0.244544
+  type: 'test'
+  ...
+# Subtest: incorrect webhook path fails
+ok 593 - incorrect webhook path fails
+  ---
+  duration_ms: 0.162567
+  type: 'test'
+  ...
+# Subtest: production build without explicit staging exception fails
+ok 594 - production build without explicit staging exception fails
+  ---
+  duration_ms: 0.103466
+  type: 'test'
+  ...
+# Subtest: reference webhook must stay off
+ok 595 - reference webhook must stay off
+  ---
+  duration_ms: 0.305851
+  type: 'test'
+  ...
+# Subtest: production designation fails staging check
+ok 596 - production designation fails staging check
+  ---
+  duration_ms: 0.797202
+  type: 'test'
+  ...
+# Subtest: private IP callback URL fails
+ok 597 - private IP callback URL fails
+  ---
+  duration_ms: 0.284433
+  type: 'test'
+  ...
+# Subtest: IP localhost callback URL fails
+ok 598 - IP localhost callback URL fails
+  ---
+  duration_ms: 0.112047
+  type: 'test'
+  ...
+# Subtest: private internal DNS callback URL fails
+ok 599 - private internal DNS callback URL fails
+  ---
+  duration_ms: 0.078874
+  type: 'test'
+  ...
+# Subtest: real source contains a complete ordered migration chain
+ok 600 - real source contains a complete ordered migration chain
+  ---
+  duration_ms: 5.830593
+  type: 'test'
+  ...
+# Subtest: valid chain passes
+ok 601 - valid chain passes
+  ---
+  duration_ms: 1.397502
+  type: 'test'
+  ...
+# Subtest: missing SQL rejected
+ok 602 - missing SQL rejected
+  ---
+  duration_ms: 0.34887
+  type: 'test'
+  ...
+# Subtest: orphan migration rejected
+ok 603 - orphan migration rejected
+  ---
+  duration_ms: 1.902495
+  type: 'test'
+  ...
+# Subtest: duplicate tag rejected
+ok 604 - duplicate tag rejected
+  ---
+  duration_ms: 0.519831
+  type: 'test'
+  ...
+# Subtest: out of order index rejected
+ok 605 - out of order index rejected
+  ---
+  duration_ms: 0.189695
+  type: 'test'
+  ...
+# Subtest: out of order timestamp rejected
+ok 606 - out of order timestamp rejected
+  ---
+  duration_ms: 0.111764
+  type: 'test'
+  ...
+# Subtest: malformed migration name rejected
+ok 607 - malformed migration name rejected
+  ---
+  duration_ms: 0.096749
+  type: 'test'
+  ...
+# Subtest: empty SQL rejected
+ok 608 - empty SQL rejected
+  ---
+  duration_ms: 0.310795
+  type: 'test'
+  ...
+# Subtest: missing journal rejected
+ok 609 - missing journal rejected
+  ---
+  duration_ms: 0.384748
+  type: 'test'
+  ...
+# Subtest: unknown SQL name rejected
+ok 610 - unknown SQL name rejected
+  ---
+  duration_ms: 0.151598
+  type: 'test'
+  ...
+# (node:24236) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:24236) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/common/write-origin.guard.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: unknown-account dummy password digest is a valid bcrypt format and cost 12
+ok 611 - unknown-account dummy password digest is a valid bcrypt format and cost 12
+  ---
+  duration_ms: 2.969208
+  type: 'test'
+  ...
+# Subtest: login executes a bcrypt comparison for unknown accounts before rejecting
+ok 612 - login executes a bcrypt comparison for unknown accounts before rejecting
+  ---
+  duration_ms: 0.576449
+  type: 'test'
+  ...
+# Subtest: locked, invalid and no-membership sign-ins all use the same public denial
+ok 613 - locked, invalid and no-membership sign-ins all use the same public denial
+  ---
+  duration_ms: 0.530881
+  type: 'test'
+  ...
+# Subtest: security event still distinguishes locked and failed sign-ins for administrators
+ok 614 - security event still distinguishes locked and failed sign-ins for administrators
+  ---
+  duration_ms: 0.426995
+  type: 'test'
+  ...
+# Subtest: disabled user sessions are deleted before returning unauthenticated
+ok 615 - disabled user sessions are deleted before returning unauthenticated
+  ---
+  duration_ms: 0.351953
+  type: 'test'
+  ...
+# Subtest: revoked workspace membership deletes the active session
+ok 616 - revoked workspace membership deletes the active session
+  ---
+  duration_ms: 0.205593
+  type: 'test'
+  ...
+# Subtest: cross-site requests are denied even with a trusted-looking Origin
+ok 617 - cross-site requests are denied even with a trusted-looking Origin
+  ---
+  duration_ms: 0.348289
+  type: 'test'
+  ...
+# Subtest: sibling-site browser POST cannot bypass Origin validation by omitting Origin
+ok 618 - sibling-site browser POST cannot bypass Origin validation by omitting Origin
+  ---
+  duration_ms: 0.146339
+  type: 'test'
+  ...
+# Subtest: unlabelled internal server-to-server POST remains permitted
+ok 619 - unlabelled internal server-to-server POST remains permitted
+  ---
+  duration_ms: 0.471073
+  type: 'test'
+  ...
+# Subtest: legitimate same-origin browser writes remain permitted
+ok 620 - legitimate same-origin browser writes remain permitted
+  ---
+  duration_ms: 0.579029
+  type: 'test'
+  ...
+# Subtest: untrusted origin or browser unknown site are rejected
+ok 621 - untrusted origin or browser unknown site are rejected
+  ---
+  duration_ms: 0.171764
+  type: 'test'
+  ...
+# Subtest: GET and HEAD are not blocked by mutation CSRF protection
+ok 622 - GET and HEAD are not blocked by mutation CSRF protection
+  ---
+  duration_ms: 1.363893
+  type: 'test'
+  ...
+# (node:24329) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:24329) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/common/deployment-policy.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: staging enforces HTTPS and secure cookies even with NODE_ENV=development
+ok 623 - staging enforces HTTPS and secure cookies even with NODE_ENV=development
+  ---
+  duration_ms: 1.228119
+  type: 'test'
+  ...
+# Subtest: production deployment enforces HTTPS even with NODE_ENV=test
+ok 624 - production deployment enforces HTTPS even with NODE_ENV=test
+  ---
+  duration_ms: 0.356957
+  type: 'test'
+  ...
+# Subtest: NODE_ENV=production enforces HTTPS even without deployment identity
+ok 625 - NODE_ENV=production enforces HTTPS even without deployment identity
+  ---
+  duration_ms: 0.121205
+  type: 'test'
+  ...
+# Subtest: local development and tests can use HTTP
+ok 626 - local development and tests can use HTTP
+  ---
+  duration_ms: 0.280826
+  type: 'test'
+  ...
+# Subtest: auth session cookie security is derived from deployment identity
+ok 627 - auth session cookie security is derived from deployment identity
+  ---
+  duration_ms: 0.275693
+  type: 'test'
+  ...
+# Subtest: environment refuses unknown deployment modes
+ok 628 - environment refuses unknown deployment modes
+  ---
+  duration_ms: 0.130323
+  type: 'test'
+  ...
+# Subtest: staging and production HTTP browser origins are rejected by boot validation
+ok 629 - staging and production HTTP browser origins are rejected by boot validation
+  ---
+  duration_ms: 0.089012
+  type: 'test'
+  ...
+# Subtest: reference payment simulator is blocked in all secure deployments
+ok 630 - reference payment simulator is blocked in all secure deployments
+  ---
+  duration_ms: 0.080115
+  type: 'test'
+  ...
+# Subtest: Stripe browser redirects require HTTPS in secure deployments
+ok 631 - Stripe browser redirects require HTTPS in secure deployments
+  ---
+  duration_ms: 0.347981
+  type: 'test'
+  ...
+# Subtest: login and session constraints remain enforced in secure deployments
+ok 632 - login and session constraints remain enforced in secure deployments
+  ---
+  duration_ms: 0.385962
+  type: 'test'
+  ...
+# (node:24396) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:24396) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/microsoft/return-path.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: notification outbox is restricted to administrators, not any workspace reader
+ok 633 - notification outbox is restricted to administrators, not any workspace reader
+  ---
+  duration_ms: 2.078832
+  type: 'test'
+  ...
+# Subtest: notification navigation advertises the same capability as API
+ok 634 - notification navigation advertises the same capability as API
+  ---
+  duration_ms: 0.189698
+  type: 'test'
+  ...
+# Subtest: notification limits must be positive bounded safe integers
+ok 635 - notification limits must be positive bounded safe integers
+  ---
+  duration_ms: 0.111593
+  type: 'test'
+  ...
+# Subtest: valid OAuth return paths stay inside the integration settings page
+ok 636 - valid OAuth return paths stay inside the integration settings page
+  ---
+  duration_ms: 0.315098
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value //evil.example/path
+ok 637 - OAuth return path rejects unapproved value //evil.example/path
+  ---
+  duration_ms: 0.649147
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value /\\evil.example
+ok 638 - OAuth return path rejects unapproved value /\\evil.example
+  ---
+  duration_ms: 1.157349
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value https://evil.example
+ok 639 - OAuth return path rejects unapproved value https://evil.example
+  ---
+  duration_ms: 0.116121
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value javascript:alert(1)
+ok 640 - OAuth return path rejects unapproved value javascript:alert(1)
+  ---
+  duration_ms: 0.067966
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value /projects
+ok 641 - OAuth return path rejects unapproved value /projects
+  ---
+  duration_ms: 0.783744
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value /integrations/other
+ok 642 - OAuth return path rejects unapproved value /integrations/other
+  ---
+  duration_ms: 0.586749
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value /integrations\\nHost:evil
+ok 643 - OAuth return path rejects unapproved value /integrations\\nHost:evil
+  ---
+  duration_ms: 0.184359
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value /integrations/integrations/integrations/integ
+ok 644 - OAuth return path rejects unapproved value /integrations/integrations/integrations/integ
+  ---
+  duration_ms: 0.063948
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value null
+ok 645 - OAuth return path rejects unapproved value null
+  ---
+  duration_ms: 0.039049
+  type: 'test'
+  ...
+# Subtest: OAuth return path rejects unapproved value 5
+ok 646 - OAuth return path rejects unapproved value 5
+  ---
+  duration_ms: 0.032468
+  type: 'test'
+  ...
+# Subtest: OAuth callback revalidates stored redirect before sending Location header
+ok 647 - OAuth callback revalidates stored redirect before sending Location header
+  ---
+  duration_ms: 0.172341
+  type: 'test'
+  ...
+# Subtest: OAuth initiation stores a validated redirect, not the caller-provided string
+ok 648 - OAuth initiation stores a validated redirect, not the caller-provided string
+  ---
+  duration_ms: 0.067286
+  type: 'test'
+  ...
+# (node:24475) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:24475) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///mnt/data/epmo_m5/the-epmo/apps/api/src/microsoft/connection-policy.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /mnt/data/epmo_m5/the-epmo/apps/api/package.json.
+# Subtest: non-admin Microsoft connection status contains only safe summary
+ok 649 - non-admin Microsoft connection status contains only safe summary
+  ---
+  duration_ms: 1.230958
+  type: 'test'
+  ...
+# Subtest: workspace administrators retain full connection metadata
+ok 650 - workspace administrators retain full connection metadata
+  ---
+  duration_ms: 0.42672
+  type: 'test'
+  ...
+# Subtest: service status reads authenticated capabilities before returning metadata
+ok 651 - service status reads authenticated capabilities before returning metadata
+  ---
+  duration_ms: 0.263897
+  type: 'test'
+  ...
+# Subtest: Power BI report listing checks admin permission BEFORE getting shared Microsoft token
+ok 652 - Power BI report listing checks admin permission BEFORE getting shared Microsoft token
+  ---
+  duration_ms: 0.311081
+  type: 'test'
+  ...
+# Subtest: Power BI embed checks admin permission BEFORE fetching transferable bearer token
+ok 653 - Power BI embed checks admin permission BEFORE fetching transferable bearer token
+  ---
+  duration_ms: 2.556956
+  type: 'test'
+  ...
+# Subtest: API cannot rely on UI for provider authorization
+ok 654 - API cannot rely on UI for provider authorization
+  ---
+  duration_ms: 0.163761
+  type: 'test'
+  ...
+# Subtest: Power BI SSR page independently rejects non-admin users
+ok 655 - Power BI SSR page independently rejects non-admin users
+  ---
+  duration_ms: 0.552017
+  type: 'test'
+  ...
+# Subtest: navigation requires admin capability for Power BI
+ok 656 - navigation requires admin capability for Power BI
+  ---
+  duration_ms: 0.263101
+  type: 'test'
+  ...
+# Subtest: Microsoft panel conceals configuration details from non-admins
+ok 657 - Microsoft panel conceals configuration details from non-admins
+  ---
+  duration_ms: 0.542382
+  type: 'test'
+  ...
+# Subtest: provider integration error messages are omitted for non-admins
+ok 658 - provider integration error messages are omitted for non-admins
+  ---
+  duration_ms: 0.717803
+  type: 'test'
+  ...
+# Subtest: documentation makes shared-token restrictions explicit
+ok 659 - documentation makes shared-token restrictions explicit
+  ---
+  duration_ms: 0.352203
+  type: 'test'
+  ...
+# Subtest: client documentation does not falsely advertise per-user Power BI tokens
+ok 660 - client documentation does not falsely advertise per-user Power BI tokens
+  ---
+  duration_ms: 0.105067
+  type: 'test'
+  ...
+# Subtest: revocation authenticates the current cookie rather than a request-supplied user id
+ok 661 - revocation authenticates the current cookie rather than a request-supplied user id
+  ---
+  duration_ms: 1.283161
+  type: 'test'
+  ...
+# Subtest: revocation deletes every session for the global user, not only the active tenant
+ok 662 - revocation deletes every session for the global user, not only the active tenant
+  ---
+  duration_ms: 0.287386
+  type: 'test'
+  ...
+# Subtest: audit is committed in the same transaction as session deletion
+ok 663 - audit is committed in the same transaction as session deletion
+  ---
+  duration_ms: 0.339613
+  type: 'test'
+  ...
+# Subtest: API removes the browser cookie only after server-side revocation succeeds
+ok 664 - API removes the browser cookie only after server-side revocation succeeds
+  ---
+  duration_ms: 0.381333
+  type: 'test'
+  ...
+# Subtest: ordinary browser logout does not hide backend failures
+ok 665 - ordinary browser logout does not hide backend failures
+  ---
+  duration_ms: 0.529163
+  type: 'test'
+  ...
+# Subtest: browser logout-all requires trusted mutation provenance and a cookie
+ok 666 - browser logout-all requires trusted mutation provenance and a cookie
+  ---
+  duration_ms: 0.427768
+  type: 'test'
+  ...
+# Subtest: browser logout-all never claims success when the API is unavailable
+ok 667 - browser logout-all never claims success when the API is unavailable
+  ---
+  duration_ms: 1.461144
+  type: 'test'
+  ...
+# Subtest: account menu offers a form POST for all-device revocation
+ok 668 - account menu offers a form POST for all-device revocation
+  ---
+  duration_ms: 0.154357
+  type: 'test'
+  ...
+# Subtest: new security action has explicit Arabic translations
+ok 669 - new security action has explicit Arabic translations
+  ---
+  duration_ms: 0.395343
+  type: 'test'
+  ...
+# Subtest: single and all-device session routes use safe no-store failure responses
+ok 670 - single and all-device session routes use safe no-store failure responses
+  ---
+  duration_ms: 0.379304
+  type: 'test'
+  ...
+# Subtest: manual trends capture uses the authenticated tenant, never full-tenant capture
+ok 671 - manual trends capture uses the authenticated tenant, never full-tenant capture
+  ---
+  duration_ms: 0.99738
+  type: 'test'
+  ...
+# Subtest: tenant snapshot writes occur under withTenant with that tenant ID
+ok 672 - tenant snapshot writes occur under withTenant with that tenant ID
+  ---
+  duration_ms: 0.344283
+  type: 'test'
+  ...
+# Subtest: global snapshot capture is system-only and calls tenant-scoped implementation
+ok 673 - global snapshot capture is system-only and calls tenant-scoped implementation
+  ---
+  duration_ms: 0.123725
+  type: 'test'
+  ...
+# Subtest: startup and scheduler retain system-wide snapshot behavior
+ok 674 - startup and scheduler retain system-wide snapshot behavior
+  ---
+  duration_ms: 0.158713
+  type: 'test'
+  ...
+# Subtest: detailed finance data requires both its module and the viewing capability
+ok 675 - detailed finance data requires both its module and the viewing capability
+  ---
+  duration_ms: 0.336342
+  type: 'test'
+  ...
+# Subtest: benefit details require viewing capability in addition to module license
+ok 676 - benefit details require viewing capability in addition to module license
+  ---
+  duration_ms: 0.114946
+  type: 'test'
+  ...
+# Subtest: finance and benefits navigation already require financial-view access
+ok 677 - finance and benefits navigation already require financial-view access
+  ---
+  duration_ms: 0.165854
+  type: 'test'
+  ...
+# Subtest: workspace read-only staff role does not inherit financial-view capability
+ok 678 - workspace read-only staff role does not inherit financial-view capability
+  ---
+  duration_ms: 0.14242
+  type: 'test'
+  ...
+# Subtest: integration tests assert single-tenant capture and non-admin denial
+ok 679 - integration tests assert single-tenant capture and non-admin denial
+  ---
+  duration_ms: 0.313088
+  type: 'test'
+  ...
+# Subtest: integration tests assert both denied and allowed financial reads
+ok 680 - integration tests assert both denied and allowed financial reads
+  ---
+  duration_ms: 0.544098
+  type: 'test'
+  ...
+# Subtest: main create route validates programme visibility before insert
+ok 681 - main create route validates programme visibility before insert
+  ---
+  duration_ms: 0.971839
+  type: 'test'
+  ...
+# Subtest: main create route validates owner membership before insert
+ok 682 - main create route validates owner membership before insert
+  ---
+  duration_ms: 0.335436
+  type: 'test'
+  ...
+# Subtest: both project create routes validate dates
+ok 683 - both project create routes validate dates
+  ---
+  duration_ms: 0.23755
+  type: 'test'
+  ...
+# Subtest: secondary create route requires project-management permission
+ok 684 - secondary create route requires project-management permission
+  ---
+  duration_ms: 0.120913
+  type: 'test'
+  ...
+# Subtest: secondary create route validates programme and owner
+ok 685 - secondary create route validates programme and owner
+  ---
+  duration_ms: 0.150815
+  type: 'test'
+  ...
+# Subtest: project list uses validated programme filter on server
+ok 686 - project list uses validated programme filter on server
+  ---
+  duration_ms: 0.104828
+  type: 'test'
+  ...
+# Subtest: portfolio programmes deep-link into project list
+ok 687 - portfolio programmes deep-link into project list
+  ---
+  duration_ms: 0.132592
+  type: 'test'
+  ...
+# Subtest: project table links to governance details
+ok 688 - project table links to governance details
+  ---
+  duration_ms: 0.076514
+  type: 'test'
+  ...
+# Subtest: programme filter is reflected on projects screen
+ok 689 - programme filter is reflected on projects screen
+  ---
+  duration_ms: 0.279891
+  type: 'test'
+  ...
+# Subtest: programme-linked create form preselects the selected programme
+ok 690 - programme-linked create form preselects the selected programme
+  ---
+  duration_ms: 0.632135
+  type: 'test'
+  ...
+# Subtest: project creation opens its new governance page after success
+ok 691 - project creation opens its new governance page after success
+  ---
+  duration_ms: 0.242021
+  type: 'test'
+  ...
+# Subtest: numerical sorting uses numeric values
+ok 692 - numerical sorting uses numeric values
+  ---
+  duration_ms: 2.760178
+  type: 'test'
+  ...
+# Subtest: natural sort handles text with embedded project numbers
+ok 693 - natural sort handles text with embedded project numbers
+  ---
+  duration_ms: 41.830695
+  type: 'test'
+  ...
+# Subtest: both languages sort alphabetic strings with locale collators
+ok 694 - both languages sort alphabetic strings with locale collators
+  ---
+  duration_ms: 2.462082
+  type: 'test'
+  ...
+# Subtest: empty values stay at the bottom in both directions
+ok 695 - empty values stay at the bottom in both directions
+  ---
+  duration_ms: 0.339845
+  type: 'test'
+  ...
+# Subtest: English counts have Western digits and Arabic counts have Arabic numbering
+ok 696 - English counts have Western digits and Arabic counts have Arabic numbering
+  ---
+  duration_ms: 18.21139
+  type: 'test'
+  ...
+# Subtest: mobile navigation supports locale and route-aware closing
+ok 697 - mobile navigation supports locale and route-aware closing
+  ---
+  duration_ms: 0.913851
+  type: 'test'
+  ...
+# Subtest: navigation passes selected locale and translates command groups
+ok 698 - navigation passes selected locale and translates command groups
+  ---
+  duration_ms: 0.645975
+  type: 'test'
+  ...
+# Subtest: tables use locale helpers and bidi isolation for raw values
+ok 699 - tables use locale helpers and bidi isolation for raw values
+  ---
+  duration_ms: 0.92289
+  type: 'test'
+  ...
+# Subtest: localized chrome translations exist
+ok 700 - localized chrome translations exist
+  ---
+  duration_ms: 2.727655
+  type: 'test'
+  ...
+# Subtest: account switcher isolates bidi names and localizes count and state
+ok 701 - account switcher isolates bidi names and localizes count and state
+  ---
+  duration_ms: 1.611493
+  type: 'test'
+  ...
+# Subtest: billing page requires authenticated workspace administrator capability
+ok 702 - billing page requires authenticated workspace administrator capability
+  ---
+  duration_ms: 0.979227
+  type: 'test'
+  ...
+# Subtest: plans and subscription are fetched through tenant-aware API
+ok 703 - plans and subscription are fetched through tenant-aware API
+  ---
+  duration_ms: 0.329275
+  type: 'test'
+  ...
+# Subtest: subscription read includes pricing metadata
+ok 704 - subscription read includes pricing metadata
+  ---
+  duration_ms: 0.286027
+  type: 'test'
+  ...
+# Subtest: payment does not activate licenses on browser redirect
+ok 705 - payment does not activate licenses on browser redirect
+  ---
+  duration_ms: 0.136001
+  type: 'test'
+  ...
+# Subtest: form actions use existing safe mutation proxy
+ok 706 - form actions use existing safe mutation proxy
+  ---
+  duration_ms: 0.172405
+  type: 'test'
+  ...
+# Subtest: mutation proxy cannot accept caller-selected tenant ids or external URLs
+ok 707 - mutation proxy cannot accept caller-selected tenant ids or external URLs
+  ---
+  duration_ms: 0.190309
+  type: 'test'
+  ...
+# Subtest: plans are display-only, not secretly self-activating
+ok 708 - plans are display-only, not secretly self-activating
+  ---
+  duration_ms: 0.173447
+  type: 'test'
+  ...
+# Subtest: trial and cancellation instructions are bilingual
+ok 709 - trial and cancellation instructions are bilingual
+  ---
+  duration_ms: 0.097162
+  type: 'test'
+  ...
+# Subtest: customer docs explicitly describe staging gap
+ok 710 - customer docs explicitly describe staging gap
+  ---
+  duration_ms: 0.330371
+  type: 'test'
+  ...
+# Subtest: getting started displays trial guidance only to authorized admins
+ok 711 - getting started displays trial guidance only to authorized admins
+  ---
+  duration_ms: 0.406215
+  type: 'test'
+  ...
+# Subtest: billing customer guides exist in both languages and clearly separate payments from invoice creation
+ok 712 - billing customer guides exist in both languages and clearly separate payments from invoice creation
+  ---
+  duration_ms: 0.377558
+  type: 'test'
+  ...
+# Subtest: raid: project is verified before insert
+ok 713 - raid: project is verified before insert
+  ---
+  duration_ms: 1.414338
+  type: 'test'
+  ...
+# Subtest: raid: assigned person is a tenant member before insert
+ok 714 - raid: assigned person is a tenant member before insert
+  ---
+  duration_ms: 0.291106
+  type: 'test'
+  ...
+# Subtest: task: project is verified before insert
+ok 715 - task: project is verified before insert
+  ---
+  duration_ms: 0.104437
+  type: 'test'
+  ...
+# Subtest: task: assigned person is a tenant member before insert
+ok 716 - task: assigned person is a tenant member before insert
+  ---
+  duration_ms: 0.085561
+  type: 'test'
+  ...
+# Subtest: benefit: project is verified before insert
+ok 717 - benefit: project is verified before insert
+  ---
+  duration_ms: 0.192156
+  type: 'test'
+  ...
+# Subtest: benefit: assigned person is a tenant member before insert
+ok 718 - benefit: assigned person is a tenant member before insert
+  ---
+  duration_ms: 0.079055
+  type: 'test'
+  ...
+# Subtest: document: project is verified before insert
+ok 719 - document: project is verified before insert
+  ---
+  duration_ms: 0.186945
+  type: 'test'
+  ...
+# Subtest: document: assigned person is a tenant member before insert
+ok 720 - document: assigned person is a tenant member before insert
+  ---
+  duration_ms: 0.07735
+  type: 'test'
+  ...
+# Subtest: updates: optional project is verified before insert
+ok 721 - updates: optional project is verified before insert
+  ---
+  duration_ms: 0.531076
+  type: 'test'
+  ...
+# Subtest: task and RAID writes retain required module guards and capabilities
+ok 722 - task and RAID writes retain required module guards and capabilities
+  ---
+  duration_ms: 0.456774
+  type: 'test'
+  ...
+# Subtest: project lookup does not accept IDs without a tenant-filtered transaction
+ok 723 - project lookup does not accept IDs without a tenant-filtered transaction
+  ---
+  duration_ms: 0.257864
+  type: 'test'
+  ...
+# Subtest: member lookup is against tenant-isolated memberships, not global users
+ok 724 - member lookup is against tenant-isolated memberships, not global users
+  ---
+  duration_ms: 0.139653
+  type: 'test'
+  ...
+# Subtest: client validation runs before any submission
+ok 725 - client validation runs before any submission
+  ---
+  duration_ms: 1.324683
+  type: 'test'
+  ...
+# Subtest: rapid duplicate submissions are prevented
+ok 726 - rapid duplicate submissions are prevented
+  ---
+  duration_ms: 1.815966
+  type: 'test'
+  ...
+# Subtest: form input is preserved when API refuses save
+ok 727 - form input is preserved when API refuses save
+  ---
+  duration_ms: 0.303087
+  type: 'test'
+  ...
+# Subtest: API route preserves structured field-level validation issues
+ok 728 - API route preserves structured field-level validation issues
+  ---
+  duration_ms: 0.180956
+  type: 'test'
+  ...
+# Subtest: server field names are allow-listed against form fields
+ok 729 - server field names are allow-listed against form fields
+  ---
+  duration_ms: 0.170873
+  type: 'test'
+  ...
+# Subtest: field errors are announced and connected to inputs
+ok 730 - field errors are announced and connected to inputs
+  ---
+  duration_ms: 0.461542
+  type: 'test'
+  ...
+# Subtest: focus moves after field errors are committed
+ok 731 - focus moves after field errors are committed
+  ---
+  duration_ms: 0.184665
+  type: 'test'
+  ...
+# Subtest: field errors have visible styles including RTL-safe margins
+ok 732 - field errors have visible styles including RTL-safe margins
+  ---
+  duration_ms: 0.389858
+  type: 'test'
+  ...
+# Subtest: create form keeps no-JavaScript POST fallback and csrf checks
+ok 733 - create form keeps no-JavaScript POST fallback and csrf checks
+  ---
+  duration_ms: 1.181178
+  type: 'test'
+  ...
+# Subtest: project creation advertises code, budget constraints
+ok 734 - project creation advertises code, budget constraints
+  ---
+  duration_ms: 3.134642
+  type: 'test'
+  ...
+# Subtest: allocation, schedule, and risk entries carry numeric bounds
+ok 735 - allocation, schedule, and risk entries carry numeric bounds
+  ---
+  duration_ms: 1.5132
+  type: 'test'
+  ...
+# Subtest: financial amounts allow decimals and currency is limited to three letters
+ok 736 - financial amounts allow decimals and currency is limited to three letters
+  ---
+  duration_ms: 0.338797
+  type: 'test'
+  ...
+# Subtest: stakeholder email uses native HTML5 validation
+ok 737 - stakeholder email uses native HTML5 validation
+  ---
+  duration_ms: 0.136544
+  type: 'test'
+  ...
+# Subtest: migration preserves existing memberships as active and has an index
+ok 738 - migration preserves existing memberships as active and has an index
+  ---
+  duration_ms: 2.158412
+  type: 'test'
+  ...
+# Subtest: Drizzle schema models tenant membership activity
+ok 739 - Drizzle schema models tenant membership activity
+  ---
+  duration_ms: 0.380238
+  type: 'test'
+  ...
+# Subtest: member suspension does not modify the global user state
+ok 740 - member suspension does not modify the global user state
+  ---
+  duration_ms: 0.33239
+  type: 'test'
+  ...
+# Subtest: membership update locks tenant row before checking last active owner
+ok 741 - membership update locks tenant row before checking last active owner
+  ---
+  duration_ms: 0.331033
+  type: 'test'
+  ...
+# Subtest: login tenant list only includes active workspace memberships
+ok 742 - login tenant list only includes active workspace memberships
+  ---
+  duration_ms: 2.370372
+  type: 'test'
+  ...
+# Subtest: existing sessions refuse disabled memberships immediately
+ok 743 - existing sessions refuse disabled memberships immediately
+  ---
+  duration_ms: 0.110621
+  type: 'test'
+  ...
+# Subtest: development header auth cannot bypass disabled memberships
+ok 744 - development header auth cannot bypass disabled memberships
+  ---
+  duration_ms: 0.463285
+  type: 'test'
+  ...
+# Subtest: assignment and creation choices exclude inactive memberships
+ok 745 - assignment and creation choices exclude inactive memberships
+  ---
+  duration_ms: 0.138854
+  type: 'test'
+  ...
+# Subtest: scheduled notifications exclude deactivated workspace members
+ok 746 - scheduled notifications exclude deactivated workspace members
+  ---
+  duration_ms: 0.559986
+  type: 'test'
+  ...
+# Subtest: onboarding progress counts only active members
+ok 747 - onboarding progress counts only active members
+  ---
+  duration_ms: 0.337869
+  type: 'test'
+  ...
+# Subtest: API member update accepts explicit JSON boolean rather than coercion
+ok 748 - API member update accepts explicit JSON boolean rather than coercion
+  ---
+  duration_ms: 0.139409
+  type: 'test'
+  ...
+# Subtest: browser creation proxy returns retryable status if API is unreachable
+ok 749 - browser creation proxy returns retryable status if API is unreachable
+  ---
+  duration_ms: 0.491478
+  type: 'test'
+  ...
+# Subtest: new record form localizes temporary failures and preserves entered values
+ok 750 - new record form localizes temporary failures and preserves entered values
+  ---
+  duration_ms: 0.570384
+  type: 'test'
+  ...
+# Subtest: gate lock is transaction-held PostgreSQL row lock
+ok 751 - gate lock is transaction-held PostgreSQL row lock
+  ---
+  duration_ms: 1.406426
+  type: 'test'
+  ...
+# Subtest: criterion updates lock gate and reread row before changing it
+ok 752 - criterion updates lock gate and reread row before changing it
+  ---
+  duration_ms: 0.497876
+  type: 'test'
+  ...
+# Subtest: approval decisions lock gate before rechecking pending status and signer
+ok 753 - approval decisions lock gate before rechecking pending status and signer
+  ---
+  duration_ms: 0.247673
+  type: 'test'
+  ...
+# Subtest: advance locks project then gate before recalculating readiness and auditing
+ok 754 - advance locks project then gate before recalculating readiness and auditing
+  ---
+  duration_ms: 0.409553
+  type: 'test'
+  ...
+# Subtest: updates to RAID blockers serialize with an advancing gate
+ok 755 - updates to RAID blockers serialize with an advancing gate
+  ---
+  duration_ms: 0.355812
+  type: 'test'
+  ...
+# Subtest: gate approver reassignment and criteria additions serialize with advance
+ok 756 - gate approver reassignment and criteria additions serialize with advance
+  ---
+  duration_ms: 0.193279
+  type: 'test'
+  ...
+# Subtest: unchanged task state skips another update and audit
+ok 757 - unchanged task state skips another update and audit
+  ---
+  duration_ms: 0.34711
+  type: 'test'
+  ...
+# Subtest: unchanged criterion and evidence skip another update and audit
+ok 758 - unchanged criterion and evidence skip another update and audit
+  ---
+  duration_ms: 0.173234
+  type: 'test'
+  ...
+# Subtest: Excel update locks all gates in order after project update
+ok 759 - Excel update locks all gates in order after project update
+  ---
+  duration_ms: 0.800733
+  type: 'test'
+  ...
+# Subtest: Excel reimport cannot add criteria to an approved gate
+ok 760 - Excel reimport cannot add criteria to an approved gate
+  ---
+  duration_ms: 0.949074
+  type: 'test'
+  ...
+# Subtest: RAID creation locks project and active gate before inserting a blocker
+ok 761 - RAID creation locks project and active gate before inserting a blocker
+  ---
+  duration_ms: 0.326862
+  type: 'test'
+  ...
+# Subtest: audit writes run in the same database transaction
+ok 762 - audit writes run in the same database transaction
+  ---
+  duration_ms: 0.176395
+  type: 'test'
+  ...
+# Subtest: workspace billing reads and renewal writes require workspace admin, never vendor privileges
+ok 763 - workspace billing reads and renewal writes require workspace admin, never vendor privileges
+  ---
+  duration_ms: 1.871159
+  type: 'test'
+  ...
+# Subtest: the vendor-only Super Admin and module-entitlement boundary has NOT been relaxed
+ok 764 - the vendor-only Super Admin and module-entitlement boundary has NOT been relaxed
+  ---
+  duration_ms: 0.64299
+  type: 'test'
+  ...
+# Subtest: billing navigation and page use customer admin capability
+ok 765 - billing navigation and page use customer admin capability
+  ---
+  duration_ms: 0.239915
+  type: 'test'
+  ...
+# Subtest: tenant billing actions resolve tenant from authenticated context, not body/path
+ok 766 - tenant billing actions resolve tenant from authenticated context, not body/path
+  ---
+  duration_ms: 0.180435
+  type: 'test'
+  ...
+# Subtest: repeated cancellation preference skips both update and event insertion
+ok 767 - repeated cancellation preference skips both update and event insertion
+  ---
+  duration_ms: 0.898433
+  type: 'test'
+  ...
+# Subtest: membership changes remain locked and role/status writes require actual changes
+ok 768 - membership changes remain locked and role/status writes require actual changes
+  ---
+  duration_ms: 0.203439
+  type: 'test'
+  ...
+# Subtest: membership audit records before and after values, not the full raw request
+ok 769 - membership audit records before and after values, not the full raw request
+  ---
+  duration_ms: 0.358915
+  type: 'test'
+  ...
+# Subtest: gate readiness rejects inaccessible/nonexistent gate before assessing blockers
+ok 770 - gate readiness rejects inaccessible/nonexistent gate before assessing blockers
+  ---
+  duration_ms: 0.144154
+  type: 'test'
+  ...
+# Subtest: gate approval writes and audit events still share one tenant transaction
+ok 771 - gate approval writes and audit events still share one tenant transaction
+  ---
+  duration_ms: 1.617512
+  type: 'test'
+  ...
+# Subtest: failed sign-in counters increment in SQL rather than from a stale fetched value
+ok 772 - failed sign-in counters increment in SQL rather than from a stale fetched value
+  ---
+  duration_ms: 2.730593
+  type: 'test'
+  ...
+# Subtest: failed login is serialized by a single atomic database UPDATE
+ok 773 - failed login is serialized by a single atomic database UPDATE
+  ---
+  duration_ms: 0.336524
+  type: 'test'
+  ...
+# Subtest: lockout resets after expiration, not immediately relocked on first bad password
+ok 774 - lockout resets after expiration, not immediately relocked on first bad password
+  ---
+  duration_ms: 0.161789
+  type: 'test'
+  ...
+# Subtest: account lock and inactive-account rejection still precede success and session creation
+ok 775 - account lock and inactive-account rejection still precede success and session creation
+  ---
+  duration_ms: 0.131494
+  type: 'test'
+  ...
+# Subtest: mail provider errors are handled as delivery failures and never leak to caller
+ok 776 - mail provider errors are handled as delivery failures and never leak to caller
+  ---
+  duration_ms: 0.181367
+  type: 'test'
+  ...
+# Subtest: failed or thrown delivery revokes the pending token before reporting failure
+ok 777 - failed or thrown delivery revokes the pending token before reporting failure
+  ---
+  duration_ms: 0.133003
+  type: 'test'
+  ...
+# Subtest: invitation token never leaves the service response and the acceptance policy remains single-use
+ok 778 - invitation token never leaves the service response and the acceptance policy remains single-use
+  ---
+  duration_ms: 0.101761
+  type: 'test'
+  ...
+# Subtest: CI runs Phase 15 live acceptance after the API starts, not in offline checks
+ok 779 - CI runs Phase 15 live acceptance after the API starts, not in offline checks
+  ---
+  duration_ms: 0.939221
+  type: 'test'
+  ...
+# Subtest: live suite requires two distinct tenants with seeded invoice records
+ok 780 - live suite requires two distinct tenants with seeded invoice records
+  ---
+  duration_ms: 0.188702
+  type: 'test'
+  ...
+# Subtest: live suite exercises authenticated tenant boundaries and denies unauthorized billing writes
+ok 781 - live suite exercises authenticated tenant boundaries and denies unauthorized billing writes
+  ---
+  duration_ms: 0.305168
+  type: 'test'
+  ...
+# Subtest: offline test command includes the source gate but not live Vitest execution
+ok 782 - offline test command includes the source gate but not live Vitest execution
+  ---
+  duration_ms: 0.321311
+  type: 'test'
+  ...
+# Subtest: live suite checks disposable DB safety BEFORE destructive reseed
+ok 783 - live suite checks disposable DB safety BEFORE destructive reseed
+  ---
+  duration_ms: 2.710952
+  type: 'test'
+  ...
+# Subtest: CI separately acknowledges destructive fixtures
+ok 784 - CI separately acknowledges destructive fixtures
+  ---
+  duration_ms: 2.242859
+  type: 'test'
+  ...
+# Subtest: CI executes live RLS audit after authenticated billing acceptance and before general test run
+ok 785 - CI executes live RLS audit after authenticated billing acceptance and before general test run
+  ---
+  duration_ms: 0.836497
+  type: 'test'
+  ...
+# Subtest: live audit extracts IDs only from fixed test tenants
+ok 786 - live audit extracts IDs only from fixed test tenants
+  ---
+  duration_ms: 0.297478
+  type: 'test'
+  ...
+# Subtest: live audit uses the restricted app role from existing financial table verifier
+ok 787 - live audit uses the restricted app role from existing financial table verifier
+  ---
+  duration_ms: 0.445689
+  type: 'test'
+  ...
+# Subtest: offline tests cannot reseed or run live financial gate implicitly
+ok 788 - offline tests cannot reseed or run live financial gate implicitly
+  ---
+  duration_ms: 0.963318
+  type: 'test'
+  ...
+# Subtest: CI executes runtime acceptance after compiling web and checking artifacts
+ok 789 - CI executes runtime acceptance after compiling web and checking artifacts
+  ---
+  duration_ms: 2.775199
+  type: 'test'
+  ...
+# Subtest: runner starts compiled standalone server rather than dev server
+ok 790 - runner starts compiled standalone server rather than dev server
+  ---
+  duration_ms: 0.913736
+  type: 'test'
+  ...
+# Subtest: runner fails clearly when compiled artifact is missing
+ok 791 - runner fails clearly when compiled artifact is missing
+  ---
+  duration_ms: 0.390738
+  type: 'test'
+  ...
+# Subtest: runner terminates temporary web server on failures and success
+ok 792 - runner terminates temporary web server on failures and success
+  ---
+  duration_ms: 0.36512
+  type: 'test'
+  ...
+# Subtest: web acceptance uses no credentials or mutating HTTP methods
+ok 793 - web acceptance uses no credentials or mutating HTTP methods
+  ---
+  duration_ms: 0.298086
+  type: 'test'
+  ...
+# Subtest: smoke covers Arabic RTL and the protected Super Admin page
+ok 794 - smoke covers Arabic RTL and the protected Super Admin page
+  ---
+  duration_ms: 0.194242
+  type: 'test'
+  ...
+# Subtest: runner refuses to mistake a pre-existing service for the compiled app
+ok 795 - runner refuses to mistake a pre-existing service for the compiled app
+  ---
+  duration_ms: 0.443907
+  type: 'test'
+  ...
+# Subtest: CI runs every required live check before recording corresponding evidence
+ok 796 - CI runs every required live check before recording corresponding evidence
+  ---
+  duration_ms: 1.586579
+  type: 'test'
+  ...
+# Subtest: CI fails closed when any evidence is missing and always publishes partial diagnostics
+ok 797 - CI fails closed when any evidence is missing and always publishes partial diagnostics
+  ---
+  duration_ms: 0.348163
+  type: 'test'
+  ...
+# Subtest: CI cannot silently claim live Stripe, SES, or browser acceptance
+ok 798 - CI cannot silently claim live Stripe, SES, or browser acceptance
+  ---
+  duration_ms: 0.198145
+  type: 'test'
+  ...
+# Subtest: compiled web is built using production NODE_ENV
+ok 799 - compiled web is built using production NODE_ENV
+  ---
+  duration_ms: 0.160986
+  type: 'test'
+  ...
+# Subtest: platform guard uses authenticated capability and a freshly verified vendor flag
+ok 800 - platform guard uses authenticated capability and a freshly verified vendor flag
+  ---
+  duration_ms: 0.936974
+  type: 'test'
+  ...
+# Subtest: every admin operation calls vendor verification
+ok 801 - every admin operation calls vendor verification
+  ---
+  duration_ms: 0.591074
+  type: 'test'
+  ...
+# Subtest: tenant operations have a target tenant RLS transaction
+ok 802 - tenant operations have a target tenant RLS transaction
+  ---
+  duration_ms: 0.159479
+  type: 'test'
+  ...
+# Subtest: write operations do not trust caller-supplied actor identity
+ok 803 - write operations do not trust caller-supplied actor identity
+  ---
+  duration_ms: 0.305011
+  type: 'test'
+  ...
+# Subtest: manual grants are not treated as verified payments
+ok 804 - manual grants are not treated as verified payments
+  ---
+  duration_ms: 0.241087
+  type: 'test'
+  ...
+# Subtest: cross-tenant subscription writes bind the validated path tenant id
+ok 805 - cross-tenant subscription writes bind the validated path tenant id
+  ---
+  duration_ms: 0.212762
+  type: 'test'
+  ...
+# Subtest: grant and cancellation serialize on one tenant advisory lock
+ok 806 - grant and cancellation serialize on one tenant advisory lock
+  ---
+  duration_ms: 0.225455
+  type: 'test'
+  ...
+# Subtest: plan creation and edits have a vendor-wide audit transaction
+ok 807 - plan creation and edits have a vendor-wide audit transaction
+  ---
+  duration_ms: 0.101101
+  type: 'test'
+  ...
+# Subtest: controller validates UUID path arguments and Zod mutation bodies
+ok 808 - controller validates UUID path arguments and Zod mutation bodies
+  ---
+  duration_ms: 0.382306
+  type: 'test'
+  ...
+# Subtest: browser proxy rejects unsafe origins and never offers arbitrary paths
+ok 809 - browser proxy rejects unsafe origins and never offers arbitrary paths
+  ---
+  duration_ms: 0.58654
+  type: 'test'
+  ...
+# Subtest: the management page and protected routes are registered
+ok 810 - the management page and protected routes are registered
+  ---
+  duration_ms: 0.21241
+  type: 'test'
+  ...
+1..810
+# tests 810
+# suites 0
+# pass 810
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 10990.774751

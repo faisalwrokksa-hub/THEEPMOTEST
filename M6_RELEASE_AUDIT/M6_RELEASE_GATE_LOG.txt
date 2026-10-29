@@ -1,0 +1,11 @@
+PASS API container receives explicit Stripe config
+PASS Web container cannot receive Stripe secrets
+PASS Test/reference payment adapter disabled for deployed API
+PASS API header authentication disabled
+PASS Production API listens only on internal network
+PASS API boot checks Stripe staging/live mode
+PASS Stripe settlement checks deployment mode
+PASS CI migrates and checks financial RLS
+PASS CI runs full typecheck and web build
+RC1 release preflight: 9/9 checks passed
+Offline only: does not build, contact Stripe, execute database migrations or prove production readiness.

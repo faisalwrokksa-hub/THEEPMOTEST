@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { executiveException, executiveSummary } from './decision-cockpit.ts';
+const base = { projectId:'p',code:'P1',name:'Example',gateSeq:2,health:'on_track',criteriaTotal:2,criteriaUnmet:0,approversTotal:1,accountableTotal:1,approvalsPending:0,approvalsRejected:0,raidBlockers:0,priorUnapproved:0,criticalRaid:0,overdueRaid:0 };
+test('critical RAID takes priority and cites actual source record',()=>{const r=executiveException({...base,criticalRaid:2});assert.equal(r.severity,'critical');assert.equal(r.source,'/governance/p');assert.equal(r.reasons.at(0).count,2);});
+test('blocked gate suggests evidence completion',()=>{const r=executiveException({...base,criteriaUnmet:2});assert.equal(r.severity,'high');assert.match(r.recommendation,/criteria/);});
+test('no gate links to register',()=>assert.equal(executiveException({...base,gateSeq:null,overdueRaid:1}).source,'/raid'));
+test('returned-window totals clearly distinguished',()=>{const s=executiveSummary([{...base,totalAttention:76,criticalRaid:1}]);assert.deepEqual([s.shown,s.total,s.critical],[1,76,1]);});
+test('no fabricated numbers for empty portfolio',()=>{const s=executiveSummary([]);assert.deepEqual([s.shown,s.total,s.high,s.critical],[0,0,0,0]);});
+test('explanations omit financial amounts and sensitive account data',()=>{const r=executiveException({...base,health:'at_risk',budget:50000,token:'secret'});assert.doesNotMatch(JSON.stringify(r),/50000|secret/);});
