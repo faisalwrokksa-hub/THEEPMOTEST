@@ -46,7 +46,7 @@ jobs:
       ALLOW_HEADER_AUTH: 'false'
       LOGIN_RATE_LIMIT: '500'
       NODE_ENV: test
-      EPMO_EVIDENCE_DIR: ${{ runner.temp }}/epmo-evidence
+      EPMO_EVIDENCE_DIR: /tmp/epmo-evidence
       PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
     steps:
       - uses: actions/checkout@v4
@@ -179,7 +179,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: epmo-ci-acceptance-${{ github.run_id }}
-          path: ${{ runner.temp }}/epmo-evidence/*.json
+          path: /tmp/epmo-evidence/*.json
           if-no-files-found: warn
           retention-days: 14
   audit:
