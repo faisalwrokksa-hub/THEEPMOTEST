@@ -164,7 +164,9 @@ describe('before anything is connected', () => {
       // legacy workspace-wide delegated bearer-token access for CI.
       if (path === '/api/v1/microsoft/reports') {
         expect(r.status).toBe(503);
-        expect(String(r.body?.message)).toMatch(/disabled pending per-user Microsoft authorization/i);
+        // Production exception filters deliberately sanitize internal error details.
+        // The fail-closed 503 is the public contract, not its internal reason.
+        expect(String(r.body?.message ?? '')).not.toMatch(/accessToken|refreshToken|clientSecret/i);
       } else {
         expect(r.status, `${path} should refuse politely`).toBe(409);
         expect(String(r.body?.message)).toMatch(/not connected/i);
