@@ -1,79 +1,195 @@
-name: EPMO CI build and RLS verification
+name: CI
 on:
-  push:
-    branches: [main]
-    paths-ignore: ['**/*.md']
+  push: { branches: [main] }
   pull_request:
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
-  build-and-db:
+  source-guards:
+    name: Dependency-free source checks
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_DB: epmo_ci
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres_ci_only
-        ports: ['5432:5432']
-        options: >-
-          --health-cmd "pg_isready -U postgres -d epmo_ci"
-          --health-interval 10s --health-timeout 5s --health-retries 10
-      redis:
-        image: redis:7
-        ports: ['6379:6379']
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s --health-timeout 5s --health-retries 10
-    env:
-      NODE_ENV: test
-      CI: 'true'
-      PGHOST: 127.0.0.1
-      PGPORT: '5432'
-      PGUSER: postgres
-      PGDATABASE: epmo_ci
-      PGPASSWORD: postgres_ci_only
-      DATABASE_URL: postgresql://pmo_app:pmo_ci_app_password_only@127.0.0.1:5432/epmo_ci
-      DATABASE_URL_ADMIN: postgresql://postgres:postgres_ci_only@127.0.0.1:5432/epmo_ci
-      PHASE15_ACCEPT_DISPOSABLE_DB: YES_RESEED_DISPOSABLE_TEST_DATABASE
-      REDIS_URL: redis://127.0.0.1:6379
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
+        with: { node-version: 22 }
+      - run: node scripts/verify-ci-safety.mjs
+      - run: node scripts/verify-release-static.mjs
+      - run: node scripts/verify-migration-chain.mjs
+      - run: node scripts/rc1-release-gate.mjs
+      - run: npm run test:offline
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: pmo
+        ports: ['5433:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d pmo"
+          --health-interval 5s --health-timeout 5s --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports: ['6380:6379']
+        options: --health-cmd "redis-cli ping" --health-interval 5s --health-retries 12
+    env:
+      DATABASE_URL: postgres://pmo_app:ci_test_only_secure_password_2026@localhost:5433/pmo
+      DATABASE_URL_ADMIN: postgres://postgres:postgres@localhost:5433/pmo
+      REDIS_URL: redis://localhost:6380
+      API_PORT: '4000'
+      WEB_ORIGIN: http://localhost:3000
+      ALLOW_HEADER_AUTH: 'false'
+      LOGIN_RATE_LIMIT: '500'
+      NODE_ENV: test
+      EPMO_EVIDENCE_DIR: ${{ runner.temp }}/epmo-evidence
+      PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
+    steps:
+      - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
-        with:
-          version: '10.17.0'
-      - name: Install locked dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Validate static release and migration chain
+        with: { version: 10.17.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - name: Validate disposable CI service targets and readiness
+        run: node scripts/verify-ci-services.mjs
+      - run: pnpm install --frozen-lockfile
+      - name: Install PostgreSQL client for integration assertions
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+      - run: pnpm build:packages
+      - name: Verify compiled workspace packages
+        run: node scripts/verify-build-artifacts.mjs --scope packages
+      - name: Record compiled packages evidence
+        run: node scripts/phase15e-release-evidence.mjs record packages_build
+      - name: Provision restricted CI application role
         run: |
-          pnpm verify:static
-          pnpm verify:migrations
-      - name: Build and TypeScript check
+          PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -d pmo -v ON_ERROR_STOP=1 -c "CREATE ROLE pmo_app LOGIN PASSWORD 'ci_test_only_secure_password_2026'"
+      - name: Apply production-equivalent SQL-ledger migrations
+        run: bash scripts/apply-sql-migrations.sh
+        env:
+          PGHOST: localhost
+          PGPORT: '5433'
+          PGUSER: postgres
+          PGDATABASE: pmo
+          PGPASSWORD: postgres
+      - name: Apply RLS policies
         run: |
-          pnpm build
-          pnpm typecheck
-      - name: Provision CI-only restricted PostgreSQL role
+          PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -d pmo -v ON_ERROR_STOP=1 -f packages/db/sql/rls.sql
+      - name: Assert financial RLS policies on real PostgreSQL
         run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client
-          psql -X -v ON_ERROR_STOP=1 <<'SQL'
-          CREATE ROLE pmo_app LOGIN PASSWORD 'pmo_ci_app_password_only' NOBYPASSRLS NOSUPERUSER NOCREATEDB NOCREATEROLE;
-          SQL
-      - name: Apply SQL migrations to disposable PostgreSQL
-        run: pnpm db:migrate
-      - name: Enforce RLS policies on disposable PostgreSQL
-        run: psql -X -v ON_ERROR_STOP=1 -f packages/db/sql/rls.sql
-      - name: Synchronize module catalogue for disposable database
+          PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -d pmo -v ON_ERROR_STOP=1 -f packages/db/sql/assert-financial-rls.sql
+      - name: Verify least-privilege global account access on PostgreSQL
+        run: |
+          PGPASSWORD=postgres psql -h localhost -p 5433 -U postgres -d pmo -v ON_ERROR_STOP=1 -f packages/db/sql/assert-global-role-privileges.sql
+      - name: Record database migrations and RLS evidence
+        run: node scripts/phase15e-release-evidence.mjs record migrations_rls
+      - name: Synchronize module catalogue before demo seed
         run: pnpm db:modules
-      - name: Seed explicitly acknowledged disposable test database
+      - name: Seed disposable tenant fixtures
         run: pnpm db:seed
-      - name: Verify PostgreSQL row-level security
+      - name: Restore seeded PostgreSQL into an isolated CI database
+        run: node scripts/verify-ci-database-restore.mjs
+      - name: Record PostgreSQL restore evidence
+        run: node scripts/phase15e-release-evidence.mjs record db_restore
+      - name: Types
+        run: pnpm typecheck
+      - name: Record typecheck evidence
+        run: node scripts/phase15e-release-evidence.mjs record types
+      - name: Tenant isolation must hold
         run: pnpm verify:rls
-      - name: Run offline regression suite
-        run: pnpm test:offline
+      - name: Data integrity
+        run: pnpm check:data
+      - name: Record tenant isolation and data integrity evidence
+        run: node scripts/phase15e-release-evidence.mjs record tenant_isolation
+      - name: Start API
+        run: |
+          pnpm --filter @pmo/api build
+          node scripts/verify-build-artifacts.mjs --scope api
+          node apps/api/dist/main.js > /tmp/epmo-api.log 2>&1 &
+          echo $! > /tmp/epmo-api.pid
+          ready=0
+          for i in $(seq 1 40); do
+            if curl --fail --silent localhost:4000/health >/dev/null 2>&1; then ready=1; break; fi
+            if ! kill -0 "$(cat /tmp/epmo-api.pid)" 2>/dev/null; then cat /tmp/epmo-api.log; exit 1; fi
+            sleep 2
+          done
+          if [ "$ready" -ne 1 ]; then cat /tmp/epmo-api.log; exit 1; fi
+      - name: Live authenticated billing and tenant isolation
+        run: pnpm exec vitest run tests/phase15-billing-isolation.test.ts
+        env:
+          PHASE15_BILLING_ACCEPTANCE: 'true'
+          PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
+      - name: Record billing API isolation evidence
+        run: node scripts/phase15e-release-evidence.mjs record billing_api
+      - name: Live financial PostgreSQL RLS visibility
+        run: bash scripts/phase15c-run-financial-rls.sh
+        env:
+          PHASE15_BILLING_ACCEPTANCE: 'true'
+          PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
+      - name: Record financial RLS visibility evidence
+        run: node scripts/phase15e-release-evidence.mjs record financial_rls
+      - name: Tests
+        run: pnpm test
+      - name: Record integration test evidence
+        run: node scripts/phase15e-release-evidence.mjs record integration_tests
+      - name: Live password recovery, token replay and session revocation
+        run: pnpm exec vitest run tests/password-recovery.test.ts
+        env:
+          P0_RECOVERY_LIVE_ACCEPTANCE: 'true'
+          PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
+          TEST_API: http://localhost:4000
+      - name: Record live password recovery API evidence
+        run: node scripts/phase15e-release-evidence.mjs record recovery_api
+      - name: Live update-feed viewer and contributor authorization
+        run: pnpm exec vitest run tests/update-write-authorization.test.ts
+        env:
+          P0_UPDATES_LIVE_ACCEPTANCE: 'true'
+          PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
+          TEST_API: http://localhost:4000
+      - name: Production build
+        run: pnpm --filter @pmo/web build
+        env:
+          NODE_ENV: production
+          NEXT_PUBLIC_API_URL: http://localhost:4000
+      - name: Verify deployable API and Next.js standalone artifacts
+        run: node scripts/verify-build-artifacts.mjs --scope all
+      - name: Build production API Docker image
+        run: docker build --file apps/api/Dockerfile --tag epmo-api:ci .
+      - name: Build production web Docker image
+        run: docker build --file apps/web/Dockerfile --tag epmo-web:ci .
+      - name: Verify API and web image runtime identity
+        run: bash scripts/verify-ci-docker-images.sh
+      - name: Record production artifact evidence
+        run: node scripts/phase15e-release-evidence.mjs record production_build
+      - name: Live Next.js bilingual and authentication smoke
+        run: bash scripts/phase15d-run-web-smoke.sh
+      - name: Record compiled-web runtime evidence
+        run: node scripts/phase15e-release-evidence.mjs record web_runtime
+      - name: Enforce current-run CI acceptance evidence
+        if: always()
+        run: node scripts/phase15e-release-evidence.mjs verify ci
+      - name: Publish commercial release status to workflow summary
+        if: always()
+        run: node scripts/p0-ci-summary.mjs
+      - name: Publish sanitized CI acceptance evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epmo-ci-acceptance-${{ github.run_id }}
+          path: ${{ runner.temp }}/epmo-evidence/*.json
+          if-no-files-found: warn
+          retention-days: 14
+  audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.17.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm audit --audit-level high
