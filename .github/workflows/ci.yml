@@ -1,0 +1,59 @@
+name: EPMO CI build and RLS verification
+on:
+  push:
+    branches: [main]
+    paths-ignore: ['**/*.md']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-and-db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: epmo_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_ci_only
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U postgres -d epmo_ci"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+      redis:
+        image: redis:7
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s --health-timeout 5s --health-retries 10
+    env:
+      NODE_ENV: test
+      CI: 'true'
+      DATABASE_URL: postgresql://postgres:postgres_ci_only@127.0.0.1:5432/epmo_ci
+      REDIS_URL: redis://127.0.0.1:6379
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: '10.17.0'
+      - name: Install locked dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Validate static release and migration chain
+        run: |
+          pnpm verify:static
+          pnpm verify:migrations
+      - name: Build and TypeScript check
+        run: |
+          pnpm build
+          pnpm typecheck
+      - name: Apply SQL migrations to disposable PostgreSQL
+        run: pnpm db:migrate
+      - name: Verify PostgreSQL row-level security
+        run: pnpm verify:rls
+      - name: Run offline regression suite
+        run: pnpm test:offline
