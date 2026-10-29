@@ -77,7 +77,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
         method: 'POST', body: new FormData(form), headers: { accept: 'application/json' },
       });
       const j = await res.json().catch(() => ({}));
-      if (!isCreateSuccess(res.status, j)) {
+      if (!isCreateSuccess(res.status, j, window.location.origin)) {
         // Field paths come from the server; only render those present in this form.
         const validNames = new Set(fields.map(field => field.name));
         const issues: Record<string, string> = {};
