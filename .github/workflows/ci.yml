@@ -31,6 +31,11 @@ jobs:
     env:
       NODE_ENV: test
       CI: 'true'
+      PGHOST: 127.0.0.1
+      PGPORT: '5432'
+      PGUSER: postgres
+      PGDATABASE: epmo_ci
+      PGPASSWORD: postgres_ci_only
       DATABASE_URL: postgresql://postgres:postgres_ci_only@127.0.0.1:5432/epmo_ci
       REDIS_URL: redis://127.0.0.1:6379
     steps:
