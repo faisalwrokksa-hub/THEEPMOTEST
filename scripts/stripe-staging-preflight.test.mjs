@@ -28,3 +28,22 @@ test('production designation fails staging check',()=>assert.ok(blocked({...good
 test('private IP callback URL fails',()=>assert.ok(blocked({...good,STRIPE_WEBHOOK_PUBLIC_URL:'https://192.168.1.15/api/v1/billing/stripe-webhook'}).length));
 test('IP localhost callback URL fails',()=>assert.ok(blocked({...good,STRIPE_WEBHOOK_PUBLIC_URL:'https://[::1]/api/v1/billing/stripe-webhook'}).length));
 test('private internal DNS callback URL fails',()=>assert.ok(blocked({...good,STRIPE_WEBHOOK_PUBLIC_URL:'https://api-staging.internal/api/v1/billing/stripe-webhook'}).length));
+
+test('single-label and nonstandard port staging origins fail', () => {
+  for (const origin of ['https://internal', 'https://staging.theepmo.com:8443']) {
+    assert.ok(blocked({...good,WEB_ORIGIN:origin}).includes('Public HTTPS web origin'), origin);
+  }
+});
+test('database URL must include credentials and a database name', () => {
+  for (const url of ['postgresql://example.com/epmo', 'postgresql://user@example.com/epmo', 'postgresql://user:password@example.com', 'not-a-url']) {
+    assert.ok(blocked({...good,DATABASE_URL:url}).includes('Application PostgreSQL URL present'), url);
+  }
+});
+test('database URL rejects placeholder passwords', () => {
+  assert.ok(blocked({...good,DATABASE_URL:'postgresql://user:placeholder@example.com/epmo'}).includes('Application PostgreSQL URL present'));
+});
+test('webhook rejects credentials and query parameters', () => {
+  for (const url of ['https://user:pass@api-staging.theepmo.com/api/v1/billing/stripe-webhook','https://api-staging.theepmo.com/api/v1/billing/stripe-webhook?token=bad']) {
+    assert.ok(blocked({...good,STRIPE_WEBHOOK_PUBLIC_URL:url}).includes('Public HTTPS Stripe webhook URL'),url);
+  }
+});
