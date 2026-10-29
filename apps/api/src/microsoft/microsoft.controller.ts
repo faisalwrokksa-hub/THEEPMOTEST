@@ -35,7 +35,7 @@ export class MicrosoftCallbackController {
 
     // The person pressed Cancel on Microsoft's consent screen, or their
     // administrator has blocked the app. Both come back here, not as failures.
-    if (error) return back({ error: errorDescription || error });
+    if (error) return back({ error: 'Microsoft authorization was cancelled or denied. Please try again or contact your administrator.' });
     if (!code || !state) return back({ error: 'Microsoft did not return a sign-in code.' });
 
     try {
@@ -44,7 +44,7 @@ export class MicrosoftCallbackController {
       u.searchParams.set('connected', 'microsoft');
       return res.redirect(303, u.toString());
     } catch (e: any) {
-      return back({ error: e?.message ?? 'The connection could not be completed.' });
+      return back({ error: 'The Microsoft connection could not be completed. Please try again or contact your administrator.' });
     }
   }
 }
