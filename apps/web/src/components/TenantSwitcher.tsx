@@ -1,6 +1,7 @@
 'use client';
 import { translator, type Lang } from '@/lib/i18n-dict';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { focusWrapTarget } from '@/lib/focus-trap.mjs';
 import { usePathname } from 'next/navigation';
 
 export type SignedInSession = {
@@ -17,13 +18,36 @@ export type SignedInSession = {
 export function TenantSwitcher({ session, lang }: {session: SignedInSession; lang?: Lang }) {
   const tx = translator(lang ?? 'en');
   const [open, setOpen] = useState(false);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const sheet = useRef<HTMLDivElement>(null);
+
+  function closeMenu() {
+    setOpen(false);
+    trigger.current?.focus();
+  }
+
+  useEffect(() => {
+    if (!open) return;
+    const controls = () => Array.from(sheet.current?.querySelectorAll<HTMLElement>(
+      'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+    ) ?? []).filter(el => el.getClientRects().length > 0);
+    controls()[0]?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.preventDefault(); closeMenu(); return; }
+      if (e.key !== 'Tab') return;
+      const target = focusWrapTarget(document.activeElement, controls(), e.shiftKey);
+      if (target) { e.preventDefault(); target.focus(); }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [open]);
   const path = usePathname();
   const initials = session.displayName.split(' ').map((s) => s[0]).slice(0, 2).join('');
 
   return (
     <div className="switcher">
-      <button className="orgchip" onClick={() => setOpen((v) => !v)}
-              aria-expanded={open} aria-haspopup="menu">
+      <button ref={trigger} type="button" className="orgchip" onClick={() => setOpen((v) => !v)}
+              aria-expanded={open} aria-haspopup="dialog">
         <span className="av sm">{initials}</span>
         <span className="who">
           <b dir="auto">{session.tenantName}</b>
@@ -36,8 +60,9 @@ export function TenantSwitcher({ session, lang }: {session: SignedInSession; lan
 
       {open && (
         <>
-          <div className="sheet-backdrop" onClick={() => setOpen(false)} />
-          <div className="sheet" role="menu">
+          <div className="sheet-backdrop" onClick={closeMenu} />
+          <div ref={sheet} className="sheet" role="dialog" aria-modal="true"
+               aria-label={lang === 'ar' ? 'الحساب ومساحة العمل' : 'Account and workspace'}>
             <header>{session.email}<small>{new Intl.NumberFormat(lang === 'ar' ? 'ar-SA' : 'en-US').format(session.capabilities.length)} {tx('capabilities')}</small></header>
             <section>
               <h4>{tx(session.tenants.length > 1 ? 'Switch workspace' : 'Workspace')}</h4>
@@ -53,7 +78,7 @@ export function TenantSwitcher({ session, lang }: {session: SignedInSession; lan
                   <form method="post" action="/api/session/tenant" key={t.tenantId}>
                     <input type="hidden" name="tenantId" value={t.tenantId} />
                     <input type="hidden" name="returnTo" value={path} />
-                    <button className="ident" type="submit" role="menuitem">
+                    <button className="ident" type="submit">
                       <span className="av">{t.name.slice(0, 2).toUpperCase()}</span>
                       <span className="nm"><b dir="auto">{t.name}</b><em>{tx(t.role.replace(/_/g, ' '))}</em></span>
                     </button>
@@ -63,13 +88,13 @@ export function TenantSwitcher({ session, lang }: {session: SignedInSession; lan
             </section>
             <section>
               <form method="post" action="/api/session/logout-all">
-                <button className="ident danger" type="submit" role="menuitem">
+                <button className="ident danger" type="submit">
                   <span className="av" aria-hidden="true">⏻</span>
                   <span className="nm"><b>{tx('Sign out all devices')}</b><em>{tx('revoke every active session')}</em></span>
                 </button>
               </form>
               <form method="post" action="/api/session/logout">
-                <button className="ident danger" type="submit" role="menuitem">
+                <button className="ident danger" type="submit">
                   <span className="av">⏻</span>
                   <span className="nm"><b>{tx('Sign out')}</b><em>{tx('end this session')}</em></span>
                 </button>
