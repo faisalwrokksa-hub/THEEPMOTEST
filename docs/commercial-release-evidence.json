@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "candidateSha": null,
+  "decision": "NO-GO",
+  "description": "Evidence placeholders only. No gate is passed until current candidate SHA has real executed and independently reviewed artifacts.",
+  "gates": {
+    "dependency_security": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null
+    },
+    "ci_build_tests": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null
+    },
+    "tenant_rls": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null
+    },
+    "microsoft_per_user_oauth": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null
+    },
+    "stripe_test_billing": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null,
+      "mode": "test"
+    },
+    "frontend_customer_journeys": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null
+    },
+    "staging_smoke": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null
+    },
+    "backup_restore_rollback": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null
+    },
+    "support_legal": {
+      "status": "PENDING",
+      "commitSha": null,
+      "artifactUrl": null,
+      "executedAtUtc": null,
+      "environment": null,
+      "reviewer": null,
+      "testResult": null
+    }
+  }
+}
