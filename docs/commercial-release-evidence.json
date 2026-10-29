@@ -48,7 +48,58 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "mode": "test"
+      "mode": "test",
+      "scenarios": {
+        "first_customer_subscription_checkout": {
+          "status": "PENDING",
+          "commitSha": null,
+          "artifactUrl": null,
+          "executedAtUtc": null,
+          "testResult": null
+        },
+        "webhook_signature_verified": {
+          "status": "PENDING",
+          "commitSha": null,
+          "artifactUrl": null,
+          "executedAtUtc": null,
+          "testResult": null
+        },
+        "webhook_replay_idempotent": {
+          "status": "PENDING",
+          "commitSha": null,
+          "artifactUrl": null,
+          "executedAtUtc": null,
+          "testResult": null
+        },
+        "entitlement_activation": {
+          "status": "PENDING",
+          "commitSha": null,
+          "artifactUrl": null,
+          "executedAtUtc": null,
+          "testResult": null
+        },
+        "failed_payment_access_policy": {
+          "status": "PENDING",
+          "commitSha": null,
+          "artifactUrl": null,
+          "executedAtUtc": null,
+          "testResult": null
+        },
+        "subscription_cancellation": {
+          "status": "PENDING",
+          "commitSha": null,
+          "artifactUrl": null,
+          "executedAtUtc": null,
+          "testResult": null
+        },
+        "cross_tenant_billing_isolation": {
+          "status": "PENDING",
+          "commitSha": null,
+          "artifactUrl": null,
+          "executedAtUtc": null,
+          "testResult": null
+        }
+      }
     },
     "frontend_customer_journeys": {
       "status": "PENDING",
