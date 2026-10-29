@@ -7,7 +7,7 @@ function httpsEndpoint(raw, expectedPath = '') {
   try {
     const url = new URL(raw);
     return url.protocol === 'https:' && !url.username && !url.password &&
-      !url.search && !url.hash && url.hostname.includes('.') && url.hostname !== 'localhost' && !url.hostname.endsWith('.localhost') &&
+      !url.search && !url.hash && (url.port === '' || url.port === '443') && url.hostname.includes('.') && url.hostname !== 'localhost' && !url.hostname.endsWith('.localhost') &&
       !url.hostname.endsWith('.local') && !url.hostname.endsWith('.internal') &&
       !isIP(url.hostname.replace(/^\[|\]$/g, '')) &&
       (expectedPath ? url.pathname === expectedPath && url.origin + url.pathname === raw : url.origin === raw);
