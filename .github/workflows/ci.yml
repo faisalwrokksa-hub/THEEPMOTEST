@@ -206,7 +206,14 @@ jobs:
           pnpm update --recursive --latest --lockfile-only
           # Isolated candidate only: force patched transitive versions for audit evaluation.
           # These overrides are NOT committed to application manifests.
-          pnpm pkg set 'pnpm.overrides.image-size=^2.0.3' 'pnpm.overrides.vite=^8.2.4' 'pnpm.overrides.typescript=~5.9.3'
+          # pnpm 10 reads workspace overrides from pnpm-workspace.yaml, not package.json#pnpm.
+          # This edit is isolated to the candidate runner and never committed to main.
+          cat >> pnpm-workspace.yaml <<'OVERRIDES'
+          overrides:
+            image-size: '^2.0.3'
+            vite: '^8.2.4'
+            typescript: '~5.9.3'
+          OVERRIDES
           pnpm install --lockfile-only
           pnpm update vite --recursive --lockfile-only
           # Verify the resolved candidate before installing; avoid silently auditing an older Vite.
