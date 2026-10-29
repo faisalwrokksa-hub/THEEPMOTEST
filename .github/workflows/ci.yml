@@ -209,6 +209,7 @@ jobs:
           pnpm pkg set 'pnpm.overrides.image-size=^2.0.3' 'pnpm.overrides.vite=^8.2.4' 'pnpm.overrides.typescript=~5.9.3'
           pnpm install --lockfile-only
           pnpm install --frozen-lockfile
+          pnpm build:packages
           pnpm --filter @pmo/api build
           pnpm test
       - name: Audit candidate without weakening security gate
