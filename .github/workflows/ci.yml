@@ -69,6 +69,8 @@ jobs:
         run: pnpm db:migrate
       - name: Enforce RLS policies on disposable PostgreSQL
         run: psql -X -v ON_ERROR_STOP=1 -f packages/db/sql/rls.sql
+      - name: Synchronize module catalogue for disposable database
+        run: pnpm db:modules
       - name: Seed explicitly acknowledged disposable test database
         run: pnpm db:seed
       - name: Verify PostgreSQL row-level security
