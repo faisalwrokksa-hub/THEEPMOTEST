@@ -27,3 +27,15 @@ test('rejects non-2xx statuses and fractional status values', () => {
   assert.equal(isCreateSuccess(302, { ok: true, redirect: '/projects' }), false);
   assert.equal(isCreateSuccess(200.5, { ok: true, redirect: '/projects' }), false);
 });
+
+test('accepts only same-origin redirects when the browser origin is supplied', () => {
+  const origin = 'https://epmo.example';
+  assert.equal(isCreateSuccess(200, { ok: true, redirect: '/projects?done=project' }, origin), true);
+  assert.equal(isCreateSuccess(200, { ok: true, redirect: 'https://epmo.example/governance/123' }, origin), true);
+  assert.equal(isCreateSuccess(200, { ok: true, redirect: 'https://attacker.example/login' }, origin), false);
+  assert.equal(isCreateSuccess(200, { ok: true, redirect: '//attacker.example/login' }, origin), false);
+  assert.equal(isCreateSuccess(200, { ok: true, redirect: 'javascript:alert(1)' }, origin), false);
+  assert.equal(isCreateSuccess(200, { ok: true, redirect: 'https://epmo.example.attacker.example/' }, origin), false);
+  assert.equal(isCreateSuccess(200, { ok: true, redirect: 'https://user@epmo.example/' }, origin), false);
+  assert.equal(isCreateSuccess(200, { ok: true, redirect: '/projects' }, 'not a valid origin'), false);
+});
