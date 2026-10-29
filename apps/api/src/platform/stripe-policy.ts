@@ -225,7 +225,7 @@ export function assertStripePaymentInvoiceMatch(session: StripeCheckoutSession, 
       session.mode !== 'payment' || session.status !== 'complete' || session.payment_status !== 'paid' ||
       typeof session.payment_intent !== 'string' || !/^pi_[A-Za-z0-9]+$/.test(session.payment_intent) ||
       invoice.id !== record.invoiceId || invoice.tenantId !== record.tenantId ||
-      !Number.isSafeInteger(session.amount_total) || session.amount_total <= 0 ||
+      (typeof session.amount_total !== 'number' || !Number.isSafeInteger(session.amount_total) || session.amount_total <= 0) ||
       session.amount_total !== invoice.amountMinor ||
       session.currency?.toUpperCase() !== invoice.currency)
     throw new Error('Stripe captured payment cannot be linked to the recorded invoice');
