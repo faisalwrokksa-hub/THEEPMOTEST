@@ -1,21 +1,23 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { REQUIRED_GATES, evaluateCommercialEvidence } from './commercial-release-gate.mjs';
+import { REQUIRED_GATES, REQUIRED_STRIPE_SCENARIOS, evaluateCommercialEvidence } from './commercial-release-gate.mjs';
 
 const sha = 'a'.repeat(40);
 const gate = {
   status: 'PASS',
   commitSha: sha,
   artifactUrl: 'https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/123',
-  executedAtUtc: '2026-10-29T18:00:00Z',
+  executedAtUtc: new Date().toISOString(),
   environment: 'staging',
   reviewer: 'release-reviewer',
   testResult: 'passed',
 };
 const valid = () => ({
+  schemaVersion: 1,
+  decision: 'NO-GO',
   candidateSha: sha,
   gates: Object.fromEntries(REQUIRED_GATES.map(id => [id, {
-    ...gate, ...(id === 'stripe_test_billing' ? { mode: 'test' } : {}),
+    ...gate, ...(id === 'stripe_test_billing' ? { mode: 'test', scenarios: Object.fromEntries(REQUIRED_STRIPE_SCENARIOS.map(scenario => [scenario, { ...gate, status: 'PASS' }])) } : {}),
   }])),
 });
 
@@ -64,4 +66,39 @@ test('rejects missing candidate SHA even with individually passed gates', () => 
   const manifest = valid();
   manifest.candidateSha = null;
   assert.equal(evaluateCommercialEvidence(manifest).readyForHumanReview, false);
+});
+
+
+test('rejects Stripe blanket PASS without individual lifecycle proofs', () => {
+  const manifest = valid();
+  delete manifest.gates.stripe_test_billing.scenarios;
+  assert.match(evaluateCommercialEvidence(manifest).issues.join('\\n'), /missing detailed Stripe lifecycle scenarios/);
+});
+
+test('rejects incomplete first-customer, webhook and cancellation evidence', () => {
+  const manifest = valid();
+  delete manifest.gates.stripe_test_billing.scenarios.first_customer_subscription_checkout;
+  manifest.gates.stripe_test_billing.scenarios.webhook_replay_idempotent.status = 'PENDING';
+  manifest.gates.stripe_test_billing.scenarios.subscription_cancellation.commitSha = 'b'.repeat(40);
+  const issues = evaluateCommercialEvidence(manifest).issues.join('\\n');
+  assert.match(issues, /first_customer_subscription_checkout: not passed/);
+  assert.match(issues, /webhook_replay_idempotent: not passed/);
+  assert.match(issues, /subscription_cancellation: candidate SHA mismatch/);
+});
+
+test('rejects future-dated evidence and self-authorized GO', () => {
+  const manifest = valid();
+  manifest.decision = 'GO';
+  manifest.gates.stripe_test_billing.scenarios.entitlement_activation.executedAtUtc = '2099-01-01T00:00:00Z';
+  manifest.gates.ci_build_tests.executedAtUtc = '2099-01-01T00:00:00Z';
+  const issues = evaluateCommercialEvidence(manifest).issues.join('\\n');
+  assert.match(issues, /cannot self-authorize/);
+  assert.match(issues, /entitlement_activation: invalid execution timestamp/);
+  assert.match(issues, /ci_build_tests: execution timestamp is in the future/);
+});
+
+test('rejects unsupported schema version', () => {
+  const manifest = valid();
+  manifest.schemaVersion = 99;
+  assert.match(evaluateCommercialEvidence(manifest).issues.join('\\n'), /Unsupported evidence schema version/);
 });
