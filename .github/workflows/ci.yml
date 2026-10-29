@@ -206,7 +206,7 @@ jobs:
           pnpm update --recursive --latest --lockfile-only
           # Isolated candidate only: force patched transitive versions for audit evaluation.
           # These overrides are NOT committed to application manifests.
-          pnpm pkg set 'pnpm.overrides.image-size=^2.0.3' 'pnpm.overrides.vite=^8.2.4' 'pnpm.overrides.typescript=^6.0.0'
+          pnpm pkg set 'pnpm.overrides.image-size=^2.0.3' 'pnpm.overrides.vite=^8.2.4' 'pnpm.overrides.typescript=~5.9.3'
           pnpm install --lockfile-only
           pnpm install --frozen-lockfile
           pnpm --filter @pmo/api build
