@@ -211,13 +211,15 @@ jobs:
           cat >> pnpm-workspace.yaml <<'OVERRIDES'
           overrides:
             image-size: '^2.0.3'
-            vite: '^8.2.4'
+            vite: '8.3.3'
             typescript: '~5.9.3'
           OVERRIDES
-          pnpm install --lockfile-only
-          pnpm update vite --recursive --lockfile-only
-          # Verify the resolved candidate before installing; avoid silently auditing an older Vite.
+          # Vitest's auto-installed peer remained at 8.2.2 after an override-only
+          # lockfile refresh. Explicitly resolve a patched root peer in this
+          # disposable candidate, then assert its actual installed version.
+          pnpm add --workspace-root --save-dev vite@8.3.3 --lockfile-only
           pnpm install --frozen-lockfile
+          node -e "const v=require('./node_modules/vite/package.json').version; if(v!=='8.3.3') throw Error('Candidate Vite version is '+v+', expected 8.3.3')"
           pnpm why vite
           # Expose the exact resolved lockfile version used by the candidate audit.
           pnpm list vite --recursive --depth 20
@@ -235,6 +237,7 @@ jobs:
           name: dependency-remediation-candidate-${{ github.run_id }}
           path: |
             pnpm-lock.yaml
+            pnpm-workspace.yaml
             package.json
             apps/*/package.json
             packages/*/package.json
