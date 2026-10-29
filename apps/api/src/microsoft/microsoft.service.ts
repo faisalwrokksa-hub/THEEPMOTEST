@@ -173,7 +173,7 @@ export class MicrosoftService {
     try {
       tok = await exchangeCode(cfg, code, resource);
     } catch (e) {
-      const msg = e instanceof MsAuthError ? e.message : String(e);
+      const msg = 'Microsoft authorization failed. Reconnect and try again.';
       await withTenant(tenantId, async (tx) => {
         await tx.execute(sql`
           UPDATE integration_connections SET status = 'error', last_error = ${msg}, updated_at = now()
@@ -285,7 +285,7 @@ export class MicrosoftService {
             ? 'Power BI has not been approved for this workspace yet. Connect Power BI to grant it.'
             : 'Microsoft needs to be connected again to grant this permission.');
       }
-      const msg = e instanceof Error ? e.message : String(e);
+      const msg = 'Microsoft credentials are invalid or have expired. Reconnect the account.';
       await withTenant(tenantId, async (tx) => {
         await tx.execute(sql`
           UPDATE integration_connections SET status = 'error', last_error = ${msg}, updated_at = now()
@@ -293,7 +293,7 @@ export class MicrosoftService {
       });
       throw new ConflictException(
         'The Microsoft connection is no longer valid — it may have been revoked, or the ' +
-        `password changed. Connect it again. (${msg})`);
+        'password changed. Connect it again.');
     }
 
     // Microsoft rotates refresh tokens; the old one stops working, so the new
