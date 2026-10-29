@@ -5,22 +5,26 @@
   "description": "Evidence placeholders only. No gate is passed until current candidate SHA has real executed and independently reviewed artifacts.",
   "gates": {
     "dependency_security": {
-      "status": "PENDING",
+      "status": "BLOCKED",
       "commitSha": null,
       "artifactUrl": null,
       "executedAtUtc": null,
       "environment": null,
       "reviewer": null,
-      "testResult": null
+      "testResult": null,
+      "blockingReason": "GitHub Actions 40950851574 audit failed: 65 vulnerabilities (2 critical, 25 high, 29 moderate, 9 low).",
+      "unblockAction": "Engineering remediate vulnerable dependency graph without relaxing audit threshold; rerun pnpm audit --audit-level high on integrated release candidate."
     },
     "ci_build_tests": {
-      "status": "PENDING",
+      "status": "BLOCKED",
       "commitSha": null,
       "artifactUrl": null,
       "executedAtUtc": null,
       "environment": null,
       "reviewer": null,
-      "testResult": null
+      "testResult": null,
+      "blockingReason": "GitHub Actions 40950851574 verify failed: 64 integration tests failed, 45 passed, 20 skipped; source-only checks 843/843 passed. Current-run CI acceptance evidence step also failed.",
+      "unblockAction": "Engineering investigate subscription/entitlement test fixtures and unexpected 403 responses; preserve authorization boundaries, fix underlying cause, rerun integrated CI and evidence enforcement."
     },
     "tenant_rls": {
       "status": "PENDING",
@@ -41,7 +45,7 @@
       "testResult": null
     },
     "stripe_test_billing": {
-      "status": "PENDING",
+      "status": "BLOCKED",
       "commitSha": null,
       "artifactUrl": null,
       "executedAtUtc": null,
@@ -99,7 +103,9 @@
           "executedAtUtc": null,
           "testResult": null
         }
-      }
+      },
+      "blockingReason": "First-customer subscription-mode checkout, verified TEST webhook, replay, failed-payment, cancellation and tenant isolation have no executed staging evidence; existing payment-mode invoice renewal is insufficient.",
+      "unblockAction": "Engineering implement and verify server-side subscription-mode Checkout; authorized staging administrator provision restricted Stripe TEST keys, whsec secret and public HTTPS endpoint; Commercial execute all seven disposable-tenant scenarios."
     },
     "frontend_customer_journeys": {
       "status": "PENDING",
@@ -137,5 +143,28 @@
       "reviewer": null,
       "testResult": null
     }
+  },
+  "lastObservedFailure": {
+    "observedAtUtc": "2026-10-29T20:40:48Z",
+    "branch": "feat/commercial-release-evidence-20261029",
+    "commitSha": "c601b8644e2fcebd3408d7023ce31dd83ff0af5f",
+    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/40950851574",
+    "sourceChecks": {
+      "passed": 843,
+      "failed": 0
+    },
+    "integrationTests": {
+      "passed": 45,
+      "failed": 64,
+      "skipped": 20
+    },
+    "dependencyAudit": {
+      "total": 65,
+      "critical": 2,
+      "high": 25,
+      "moderate": 29,
+      "low": 9
+    },
+    "qualification": "Historical branch-level failure observation only; not release candidate PASS evidence. candidateSha remains null; release decision remains NO-GO."
   }
 }
