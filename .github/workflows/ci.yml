@@ -209,8 +209,8 @@ jobs:
           pnpm pkg set 'pnpm.overrides.image-size=^2.0.3' 'pnpm.overrides.vite=^8.2.4' 'pnpm.overrides.typescript=~5.9.3'
           pnpm install --lockfile-only
           # Verify the resolved candidate before installing; avoid silently auditing an older Vite.
-          pnpm why vite
           pnpm install --frozen-lockfile
+          pnpm why vite
           pnpm build:packages
           pnpm --filter @pmo/api build
           # Run database-independent regression checks; full integration tests stay in verify.
