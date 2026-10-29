@@ -659,6 +659,23 @@ async function main() {
       lastSyncAt: hoursAgo(4) },
   ]);
 
+  // Explicit subscriptions for disposable demo tenants; no production bypass.
+  const demoPlanCode = 'demo-fixtures-nonbillable';
+  await db.insert(s.subscriptionPlans).values({
+    code: demoPlanCode, name: 'Nonbillable demo fixtures', priceMinor: 0,
+    isActive: false,
+  }).onConflictDoNothing();
+  const demoPlan = await db.query.subscriptionPlans.findFirst({
+    where: eq(s.subscriptionPlans.code, demoPlanCode),
+  });
+  if (!demoPlan) throw new Error('Missing demo fixture plan');
+  const periodStartsAt = new Date(Date.now() - 60_000);
+  const periodEndsAt = new Date(Date.now() + 30 * 86400_000);
+  await db.insert(s.tenantSubscriptions).values([
+    { tenantId: acme.id, planId: demoPlan.id, status: 'active', periodStartsAt, periodEndsAt },
+    { tenantId: nexa.id, planId: demoPlan.id, status: 'active', periodStartsAt, periodEndsAt },
+  ]);
+
   /* Entitlements. Al-Nakheel takes the full built suite; Nexa is on a
      PMO-only plan, which makes the licensing boundary visible in the UI. */
   // Al-Nakheel is the full-suite demo; Nexa is deliberately on a PMO-only
