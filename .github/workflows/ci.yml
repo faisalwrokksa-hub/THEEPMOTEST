@@ -46,7 +46,6 @@ jobs:
       ALLOW_HEADER_AUTH: 'false'
       LOGIN_RATE_LIMIT: '500'
       NODE_ENV: test
-      EPMO_EVIDENCE_DIR: /tmp/epmo-evidence
       PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
     steps:
       - uses: actions/checkout@v4
@@ -54,6 +53,8 @@ jobs:
         with: { version: 10.17.0 }
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: pnpm }
+      - name: Initialize isolated CI evidence directory
+        run: echo "EPMO_EVIDENCE_DIR=$RUNNER_TEMP/epmo-evidence" >> "$GITHUB_ENV"
       - name: Validate disposable CI service targets and readiness
         run: node scripts/verify-ci-services.mjs
       - run: pnpm install --frozen-lockfile
@@ -179,7 +180,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: epmo-ci-acceptance-${{ github.run_id }}
-          path: /tmp/epmo-evidence/*.json
+          path: ${{ runner.temp }}/epmo-evidence/*.json
           if-no-files-found: warn
           retention-days: 14
   audit:
