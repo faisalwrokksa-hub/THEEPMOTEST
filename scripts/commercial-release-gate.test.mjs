@@ -102,3 +102,30 @@ test('rejects unsupported schema version', () => {
   manifest.schemaVersion = 99;
   assert.match(evaluateCommercialEvidence(manifest).issues.join('\\n'), /Unsupported evidence schema version/);
 });
+
+test('rejects stale release evidence even if a gate claims PASS', () => {
+  const manifest = valid();
+  const stale = new Date(Date.now() - 96 * 60 * 60 * 1000).toISOString();
+  manifest.gates.ci_build_tests.executedAtUtc = stale;
+  manifest.gates.stripe_test_billing.scenarios.webhook_signature_verified.executedAtUtc = stale;
+  const issues = evaluateCommercialEvidence(manifest).issues.join('\n');
+  assert.match(issues, /ci_build_tests: evidence older than 72 hours/);
+  assert.match(issues, /webhook_signature_verified: evidence older than 72 hours/);
+});
+
+test('rejects calendar-invalid timestamps rather than normalizing them', () => {
+  const manifest = valid();
+  manifest.gates.staging_smoke.executedAtUtc = '2026-02-30T12:00:00Z';
+  assert.match(evaluateCommercialEvidence(manifest).issues.join('\n'), /staging_smoke: invalid UTC execution timestamp/);
+});
+
+test('rejects artifact URLs containing embedded credentials, fragments or sensitive query keys', () => {
+  const manifest = valid();
+  manifest.gates.ci_build_tests.artifactUrl = 'https://username:password@github.com/example/actions/runs/1';
+  manifest.gates.stripe_test_billing.scenarios.entitlement_activation.artifactUrl = 'https://github.com/example/actions/runs/1?token=abc';
+  manifest.gates.staging_smoke.artifactUrl = 'https://github.com/example/actions/runs/1#private';
+  const issues = evaluateCommercialEvidence(manifest).issues.join('\n');
+  assert.match(issues, /ci_build_tests: missing safe HTTPS evidence artifact URL/);
+  assert.match(issues, /entitlement_activation: missing safe HTTPS artifact URL/);
+  assert.match(issues, /staging_smoke: missing safe HTTPS evidence artifact URL/);
+});
