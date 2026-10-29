@@ -67,3 +67,20 @@ The Stripe record also requires `"mode": "test"`. This example illustrates shape
 ## Stripe scenario-level evidence required before review-ready
 
 A single paid-invoice test does **not** prove the recurring paid-customer lifecycle. The `stripe_test_billing` gate must contain a `scenarios` object with evidence for each of these exact scenario IDs: `first_customer_subscription_checkout`, `webhook_signature_verified`, `webhook_replay_idempotent`, `entitlement_activation`, `failed_payment_access_policy`, `subscription_cancellation`, `cross_tenant_billing_isolation`. Each scenario needs `status: PASS`, the same candidate `commitSha`, an HTTPS `artifactUrl`, real UTC `executedAtUtc`, and `testResult: passed`. The gate must retain `mode: test`. The manifest must retain `decision: NO-GO`; this validator only makes it review-ready and cannot authorize release. No fabricated event IDs, tests, or artifacts.
+
+## Time-bounded acceptance and precise external unblock actions
+
+The release validator rejects evidence older than **72 hours**, invalid calendar dates, or artifact URLs that embed URL credentials, fragments, or sensitive query parameters. This reduces accidental reuse of stale proofs and credential leakage. It is **not** proof that a linked artifact is authentic: a human must open the run and verify its SHA, environment, timestamp and passing steps. If evidence expires before signoff, rerun the affected test rather than changing its timestamp.
+
+| Blocked/Pending gate | Exact safe action to unblock | Responsible owner |
+| --- | --- | --- |
+| Stripe TEST account | Provision restricted `sk_test_` and `whsec_` in a secret store for isolated staging only; verify dashboard endpoint is TEST and events reach public HTTPS API. Never paste values into GitHub or this document. | Authorized Stripe administrator + Engineering |
+| First-customer recurring checkout | Implement server-side `subscription`-mode Checkout using authenticated tenant and server-owned plan/price, plus tenant-bound return and webhook fulfillment. Verify first subscription, failure, cancellation and replay against test Stripe. Invoice `payment` mode does not satisfy this gate. | Engineering backend + Frontend UI |
+| Tenant isolation | Provision two disposable tenants and non-admin customer identities; run cross-tenant negative reads/writes and billing receipt replay on actual PostgreSQL restricted role. | Engineering / staging administrator |
+| Microsoft per-user OAuth | Provision test Entra app and two distinct test users; exercise consent, token refresh/revocation and cross-user denial without granting consent for a real customer. | Engineering / Entra test administrator |
+| Staging customer journey | Provide public staging HTTPS origins, DNS/TLS, test email delivery, and disposable test account; execute login → workspace → project → dashboard/report → logout on desktop/mobile. | Staging administrator + Frontend |
+| Recovery | Provide disposable database snapshot and isolated restore target; record recovery/rollback commands and outcomes without touching production data. | Engineering / operations |
+| Legal and support | Confirm actual pricing currency, taxes, cancellation/refund policy, privacy/terms URLs and a staffed support route. | Business/legal owner |
+| Integrated release candidate | Choose a single candidate SHA after coordinated PR review; rerun all required checks on that exact SHA and attach immutable GitHub run URLs plus staging artifacts. | Release owner |
+
+**Stop conditions:** Missing external keys, unapproved tenant consent, unavailable staging or real customer data must never be bypassed. Continue safe documentation and contract tests; mark dependent scenarios BLOCKED, and leave the overall decision NO-GO. Do not merge, deploy, or enable live payments under this contract.
