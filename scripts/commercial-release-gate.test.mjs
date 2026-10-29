@@ -22,7 +22,7 @@ const valid = () => ({
 });
 
 test('rejects incomplete manifest with NO-GO', () => {
-  const result = evaluateCommercialEvidence({ candidateSha: sha, gates: {} });
+  const result = evaluateCommercialEvidence({ schemaVersion: 1, decision: 'NO-GO', candidateSha: sha, gates: {} });
   assert.equal(result.readyForHumanReview, false);
   assert.equal(result.issues.length, REQUIRED_GATES.length);
 });
