@@ -46,6 +46,11 @@ jobs:
       ALLOW_HEADER_AUTH: 'false'
       LOGIN_RATE_LIMIT: '500'
       NODE_ENV: test
+      # Nonfunctional CI-only OAuth identity; no customer consent or credentials.
+      MS_CLIENT_ID: '00000000-0000-4000-8000-000000000001'
+      MS_CLIENT_SECRET: 'ci-placeholder-not-a-real-client-secret'
+      MS_REDIRECT_URI: 'http://localhost:4000/integrations/microsoft/callback'
+      MS_TOKEN_KEY: 'dGVzdC1rZXktbm90LXRoZS1vbmUtcHJvZHVjdGlvbi11c2Vz'
       PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
     steps:
       - uses: actions/checkout@v4
