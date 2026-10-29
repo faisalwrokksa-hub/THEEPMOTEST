@@ -118,14 +118,14 @@ jobs:
             sleep 2
           done
           if [ "$ready" -ne 1 ]; then cat /tmp/epmo-api.log; exit 1; fi
-      - name: Live authenticated billing and tenant isolation
+      - name: Live authenticated billing, project and workspace-switch isolation
         run: pnpm exec vitest run tests/phase15-billing-isolation.test.ts
         env:
           PHASE15_BILLING_ACCEPTANCE: 'true'
           PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
       - name: Record billing API isolation evidence
         run: node scripts/phase15e-release-evidence.mjs record billing_api
-      - name: Live financial PostgreSQL RLS visibility
+      - name: Live financial PostgreSQL RLS tenant-visibility acceptance
         run: bash scripts/phase15c-run-financial-rls.sh
         env:
           PHASE15_BILLING_ACCEPTANCE: 'true'
