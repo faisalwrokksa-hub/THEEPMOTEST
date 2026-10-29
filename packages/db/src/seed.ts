@@ -674,6 +674,23 @@ async function main() {
       tenantId: nexa.id, moduleId: id, enabled: true, tier: 'standard', enabledAt: new Date(),
     }).onConflictDoNothing();
 
+  // Demo-only subscription fixtures: enabled modules alone do not grant access.
+  // The production API requires an active subscription; keep that fail-closed
+  // enforcement intact while exercising the two explicit disposable tenants.
+  const [demoPlan] = await db.insert(s.subscriptionPlans).values({
+    code: 'demo_seed_test_only', name: 'Disposable demo subscription',
+    priceMinor: 0, currency: 'SAR', billingInterval: 'monthly', trialDays: 0,
+  }).onConflictDoUpdate({
+    target: s.subscriptionPlans.code,
+    set: { name: 'Disposable demo subscription' },
+  }).returning();
+  const periodStartsAt = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const periodEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  await db.insert(s.tenantSubscriptions).values([
+    { tenantId: acme.id, planId: demoPlan.id, status: 'active', periodStartsAt, periodEndsAt },
+    { tenantId: nexa.id, planId: demoPlan.id, status: 'active', periodStartsAt, periodEndsAt },
+  ]);
+
   writeDevEnv(acme.id, fatima.id);
   console.log(`
 Demo accounts (password: ${DEV_PASSWORD})`);
