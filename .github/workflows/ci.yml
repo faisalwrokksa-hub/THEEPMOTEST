@@ -211,7 +211,8 @@ jobs:
           pnpm install --frozen-lockfile
           pnpm build:packages
           pnpm --filter @pmo/api build
-          pnpm test
+          # Run database-independent regression checks; full integration tests stay in verify.
+          pnpm test:offline
       - name: Audit candidate without weakening security gate
         if: always() && github.event_name == 'pull_request'
         run: pnpm audit --audit-level high
