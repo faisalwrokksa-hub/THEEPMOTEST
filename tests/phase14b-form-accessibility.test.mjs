@@ -20,7 +20,7 @@ test('form input is preserved when API refuses save', () => {
   // A 2xx status alone is insufficient: require the API's explicit create acknowledgement.
   assert.match(form, /if \(!isCreateSuccess\(res\.status, j, window\.location\.origin\)\)/);
   assert.match(form, /window\.location\.assign\(j\.redirect\)/);
-  assert.ok(form.indexOf('window.location.assign(j.redirect)') > form.indexOf('if (!isCreateSuccess(res.status, j))'));
+  assert.ok(form.indexOf('window.location.assign(j.redirect)') > form.indexOf('if (!isCreateSuccess(res.status, j, window.location.origin))'));
   assert.match(form, /setError\(/);
   assert.match(form, /return;\s*}\s*\/\/ Navigate only after confirmed success/);
 });
