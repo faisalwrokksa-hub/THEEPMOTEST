@@ -188,6 +188,36 @@ jobs:
           path: ${{ runner.temp }}/epmo-evidence/*.json
           if-no-files-found: warn
           retention-days: 14
+  dependency-remediation-candidate:
+    name: Generate dependency remediation candidate (non-deploying)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.17.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - name: Generate isolated latest-compatible dependency candidate
+        run: |
+          pnpm update --recursive --latest --lockfile-only
+          pnpm install --frozen-lockfile
+      - name: Audit candidate without weakening security gate
+        run: pnpm audit --audit-level high
+      - name: Preserve candidate manifests and lockfile for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-remediation-candidate-${{ github.run_id }}
+          path: |
+            pnpm-lock.yaml
+            package.json
+            apps/*/package.json
+            packages/*/package.json
+          retention-days: 7
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 20
