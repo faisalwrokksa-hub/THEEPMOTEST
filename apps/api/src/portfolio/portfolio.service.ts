@@ -61,7 +61,7 @@ export class PortfolioService {
 
   async createProject(input: CreateProject) {
     requireCapability('pmoa_manage_projects');
-    const dateError = projectDateError(input.startDate?.toISOString() ?? null, input.endDate?.toISOString() ?? null);
+    const dateError = projectDateError(input.startDate, input.endDate);
     if (dateError) throw new BadRequestException(dateError);
     return withTenant(this.tenant(), async (tx) => {
       if (input.programId) {
