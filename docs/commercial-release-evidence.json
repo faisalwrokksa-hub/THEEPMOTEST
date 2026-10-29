@@ -12,7 +12,7 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "GitHub Actions 40950851574 audit failed: 65 vulnerabilities (2 critical, 25 high, 29 moderate, 9 low).",
+      "blockingReason": "CI #40960169716 (commercial branch SHA 5b3b50e) failed pnpm audit: 65 findings (2 critical, 25 high, 29 moderate, 9 low); critical advisories include proxy-addr and Next.js. This is historical branch-level evidence, not integrated candidate evidence.",
       "unblockAction": "Engineering remediate vulnerable dependency graph without relaxing audit threshold; rerun pnpm audit --audit-level high on integrated release candidate."
     },
     "ci_build_tests": {
@@ -23,8 +23,8 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "GitHub Actions 40950851574 verify failed: 64 integration tests failed, 45 passed, 20 skipped; source-only checks 843/843 passed. Current-run CI acceptance evidence step also failed.",
-      "unblockAction": "Engineering investigate subscription/entitlement test fixtures and unexpected 403 responses; preserve authorization boundaries, fix underlying cause, rerun integrated CI and evidence enforcement."
+      "blockingReason": "CI #40960169716 verify failed: 64 integration failures, 45 passed, 20 skipped; source checks 843/843 passed. Repeated unexpected 403 subscription/entitlement responses and Microsoft test 503 unconfigured response; CI evidence enforcement also failed. No current integrated candidate PASS.",
+      "unblockAction": "Engineering reproduce authorization/entitlement fixtures and Microsoft test configuration; investigate unexpected 403/503 without weakening access controls; remediate CI acceptance evidence step and rerun all tests on the same integrated candidate SHA."
     },
     "tenant_rls": {
       "status": "PENDING",
@@ -145,10 +145,10 @@
     }
   },
   "lastObservedFailure": {
-    "observedAtUtc": "2026-10-29T20:40:48Z",
+    "observedAtUtc": "2026-10-29T21:45:28Z",
     "branch": "feat/commercial-release-evidence-20261029",
-    "commitSha": "c601b8644e2fcebd3408d7023ce31dd83ff0af5f",
-    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/40950851574",
+    "commitSha": "5b3b50e94abb68fb967c4f14509b25744df01830",
+    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/40960169716",
     "sourceChecks": {
       "passed": 843,
       "failed": 0
@@ -165,6 +165,22 @@
       "moderate": 29,
       "low": 9
     },
-    "qualification": "Historical branch-level failure observation only; not release candidate PASS evidence. candidateSha remains null; release decision remains NO-GO."
+    "qualification": "Completed historical branch CI observation; source PASS does not override failed audit or integration tests. candidateSha remains null and decision NO-GO."
+  },
+  "lastCommercialDecision": {
+    "decision": "NO-GO",
+    "reason": "Audit and integration CI blocked; seven Stripe TEST lifecycle scenarios and staging evidence unverified; no unified candidate SHA.",
+    "safeChanges": [
+      {
+        "sha": "c83e58e53eb739814b7b53d8242066a5eedb521c",
+        "description": "Reject signed or credential-bearing URL query aliases in evidence validator"
+      },
+      {
+        "sha": "f2ce4e2c4898d03c88b0ca410dbd80b9bdb72546",
+        "description": "Add regression tests for signed URL aliases"
+      }
+    ],
+    "verification": "New changes committed; no successful GitHub Actions result observed for new SHA; prior 843 source tests passed on earlier SHA.",
+    "tradeoff": "Signed expiring artifact URLs are intentionally rejected; use stable non-secret HTTPS evidence links for human review."
   }
 }
