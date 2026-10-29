@@ -204,7 +204,13 @@ jobs:
       - name: Generate isolated latest-compatible dependency candidate
         run: |
           pnpm update --recursive --latest --lockfile-only
+          # Isolated candidate only: force patched transitive versions for audit evaluation.
+          # These overrides are NOT committed to application manifests.
+          pnpm pkg set 'pnpm.overrides.image-size=^2.0.3' 'pnpm.overrides.vite=^8.2.4'
+          pnpm install --lockfile-only
           pnpm install --frozen-lockfile
+          pnpm --filter @pmo/api build
+          pnpm test
       - name: Audit candidate without weakening security gate
         run: pnpm audit --audit-level high
       - name: Preserve candidate manifests and lockfile for review
