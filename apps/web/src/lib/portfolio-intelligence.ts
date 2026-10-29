@@ -20,7 +20,7 @@ export function portfolioSignals(input:unknown):{signals:Signal[];sampleDays:num
   const sufficient=unique.length>=7&&span>=6;
   const signals:Signal[]=measures.map(m=>{
     const base={key:m.key,from:first?.onDate??null,to:last?.onDate??null,source:'/analytics' as const};
-    if(!sufficient) return {...base,direction:'unavailable' as const,change:null,explanation:'Insufficient dated snapshots; no direction or forecast inferred.'};
+    if(!sufficient || !first || !last) return {...base,direction:'unavailable' as const,change:null,explanation:'Insufficient dated snapshots; no direction or forecast inferred.'};
     const change=Number((last[m.field]-first[m.field]).toFixed(2));
     const direction:Signal['direction']=change===0?'stable':(change>0)===m.inverse?'deteriorating':'improving';
     return {...base,direction,change,explanation:`Observed ${m.key.toLowerCase()} moved from ${first[m.field]} to ${last[m.field]} over ${span} calendar days. This is historical change, not a future forecast.`};
