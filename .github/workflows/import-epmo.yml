@@ -40,14 +40,14 @@ jobs:
                   if p.parts[0] == ".git" or e.filename == "EPMO_GITHUB_UPLOAD_KIT.zip":
                       sys.exit("Disallowed archive path: " + e.filename)
               for e in entries:
-                  if e.is_dir(): continue
+                  if e.is_dir() or e.filename == ".github/workflows/ci.yml": continue
                   path=dest / e.filename
                   path.parent.mkdir(parents=True,exist_ok=True)
                   with z.open(e) as inp, path.open("wb") as out:
                       shutil.copyfileobj(inp,out)
-          for required in [".github/workflows/ci.yml","pnpm-lock.yaml","package.json"]:
+          for required in ["pnpm-lock.yaml","package.json"]:
               if not Path(required).is_file(): sys.exit("Missing essential file: "+required)
-          print("EPMO source extracted and required CI files verified")
+          print("EPMO source extracted. CI workflow will be installed separately through an authorized GitHub connection.")
           PY
       - name: Commit organized source
         shell: bash
