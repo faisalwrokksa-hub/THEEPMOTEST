@@ -46,6 +46,11 @@ jobs:
       ALLOW_HEADER_AUTH: 'false'
       LOGIN_RATE_LIMIT: '500'
       NODE_ENV: test
+      # Nonfunctional CI-only OAuth identity; no customer consent or credentials.
+      MS_CLIENT_ID: '00000000-0000-4000-8000-000000000001'
+      MS_CLIENT_SECRET: 'ci-placeholder-not-a-real-client-secret'
+      MS_REDIRECT_URI: 'http://localhost:4000/integrations/microsoft/callback'
+      MS_TOKEN_KEY: 'dGVzdC1rZXktbm90LXRoZS1vbmUtcHJvZHVjdGlvbi11c2Vz'
       PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
     steps:
       - uses: actions/checkout@v4
@@ -183,6 +188,71 @@ jobs:
           path: ${{ runner.temp }}/epmo-evidence/*.json
           if-no-files-found: warn
           retention-days: 14
+  dependency-remediation-candidate:
+    name: Generate dependency remediation candidate (non-deploying)
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10.17.0 }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: pnpm }
+      - name: Generate isolated latest-compatible dependency candidate
+        run: |
+          pnpm update --recursive --latest --lockfile-only
+          # Isolated candidate only: force patched transitive versions for audit evaluation.
+          # These overrides are NOT committed to application manifests.
+          # pnpm 10 reads workspace overrides from pnpm-workspace.yaml, not package.json#pnpm.
+          # This edit is isolated to the candidate runner and never committed to main.
+          cat >> pnpm-workspace.yaml <<'OVERRIDES'
+          overrides:
+            image-size: '^2.0.3'
+            vite: '8.3.3'
+            typescript: '~5.9.3'
+          OVERRIDES
+          # Vitest's auto-installed peer remained at 8.2.2 after an override-only
+          # lockfile refresh. Explicitly resolve a patched root peer in this
+          # disposable candidate, then assert its actual installed version.
+          pnpm add --workspace-root --save-dev vite@8.3.3 --lockfile-only
+          # pnpm's override resolves TS 5.9.3 even when --latest writes TS 7
+          # manifest ranges. Normalize all four workspace manifests so the
+          # uploaded candidate is directly reproducible with a frozen lockfile.
+          node -e "const fs=require('node:fs'); for (const p of ['apps/api/package.json','apps/web/package.json','packages/contracts/package.json','packages/db/package.json']) { const pkg=JSON.parse(fs.readFileSync(p,'utf8')); if (!pkg.devDependencies?.typescript) throw Error('Missing TypeScript dependency in '+p); pkg.devDependencies.typescript='~5.9.3'; fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\\n'); }"
+          pnpm install --lockfile-only
+          pnpm install --frozen-lockfile
+          node -e "const v=require('./node_modules/vite/package.json').version; if(v!=='8.3.3') throw Error('Candidate Vite version is '+v+', expected 8.3.3')"
+          pnpm why vite
+          # Expose the exact resolved lockfile version used by the candidate audit.
+          pnpm list vite --recursive --depth 20
+          pnpm build:packages
+          pnpm --filter @pmo/api build
+          # A clean security audit alone does not establish compatibility with
+          # Next.js, NestJS, Drizzle and TypeScript major-version upgrades.
+          # Validate the complete candidate workspace before considering promotion.
+          pnpm typecheck
+          NODE_ENV=production NEXT_PUBLIC_API_URL=http://localhost:4000 pnpm --filter @pmo/web build
+          node scripts/verify-build-artifacts.mjs --scope all
+          # Run database-independent regression checks; full integration tests stay in verify.
+          pnpm test:offline
+      - name: Audit candidate without weakening security gate
+        if: always() && github.event_name == 'pull_request'
+        run: pnpm audit --audit-level high
+      - name: Preserve candidate manifests and lockfile for review
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-remediation-candidate-${{ github.run_id }}
+          path: |
+            pnpm-lock.yaml
+            pnpm-workspace.yaml
+            package.json
+            apps/*/package.json
+            packages/*/package.json
+          retention-days: 7
   audit:
     runs-on: ubuntu-latest
     timeout-minutes: 20
