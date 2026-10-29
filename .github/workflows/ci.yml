@@ -213,6 +213,7 @@ jobs:
           pnpm --filter @pmo/api build
           pnpm test
       - name: Audit candidate without weakening security gate
+        if: always() && github.event_name == 'pull_request'
         run: pnpm audit --audit-level high
       - name: Preserve candidate manifests and lockfile for review
         if: always()
