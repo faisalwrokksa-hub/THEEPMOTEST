@@ -18,6 +18,16 @@ export const REQUIRED_GATES = Object.freeze([
   'support_legal',
 ]);
 
+export const REQUIRED_STRIPE_SCENARIOS = Object.freeze([
+  "first_customer_subscription_checkout",
+  "webhook_signature_verified",
+  "webhook_replay_idempotent",
+  "entitlement_activation",
+  "failed_payment_access_policy",
+  "subscription_cancellation",
+  "cross_tenant_billing_isolation"
+]);
+
 const SHA = /^[a-f0-9]{40}$/i;
 const HTTPS = /^https:\/\/[^\s/?#]+\/[^\s]+$/i;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
@@ -31,6 +41,8 @@ export function evaluateCommercialEvidence(manifest) {
   if (/sk_(?:live|test)_[A-Za-z0-9]+|whsec_[A-Za-z0-9]+|pmo_session=|Bearer\s+[A-Za-z0-9._-]+/i.test(serialized)) {
     return { readyForHumanReview: false, issues: ['Secret-like content detected; remove credentials from evidence'] };
   }
+  if (manifest.schemaVersion !== 1) issues.push('Unsupported evidence schema version');
+  if (manifest.decision !== 'NO-GO') issues.push('Manifest cannot self-authorize a release');
   const sha = manifest.candidateSha;
   if (typeof sha !== 'string' || !SHA.test(sha)) issues.push('Missing valid 40-character candidate SHA');
   const gates = manifest.gates;
@@ -45,10 +57,31 @@ export function evaluateCommercialEvidence(manifest) {
     if (!SHA.test(g.commitSha || '') || g.commitSha !== sha) issues.push(id + ': not verified on candidate SHA');
     if (!HTTPS.test(g.artifactUrl || '')) issues.push(id + ': missing HTTPS evidence artifact URL');
     if (!ISO.test(g.executedAtUtc || '') || !Number.isFinite(Date.parse(g.executedAtUtc))) issues.push(id + ': invalid UTC execution timestamp');
+    else if (Date.parse(g.executedAtUtc) > Date.now() + 300000) issues.push(id + ': execution timestamp is in the future');
     if (typeof g.environment !== 'string' || !g.environment.trim()) issues.push(id + ': missing environment');
     if (typeof g.reviewer !== 'string' || !g.reviewer.trim()) issues.push(id + ': missing reviewer');
     if (typeof g.testResult !== 'string' || g.testResult !== 'passed') issues.push(id + ': missing passing test result');
-    if (id === 'stripe_test_billing' && g.mode !== 'test') issues.push(id + ': Stripe TEST mode not evidenced');
+    if (id === 'stripe_test_billing') {
+      if (g.mode !== 'test') issues.push(id + ': Stripe TEST mode not evidenced');
+      const scenarios = g.scenarios;
+      if (!scenarios || typeof scenarios !== 'object' || Array.isArray(scenarios)) {
+        issues.push(id + ': missing detailed Stripe lifecycle scenarios');
+      } else {
+        for (const scenarioId of REQUIRED_STRIPE_SCENARIOS) {
+          const evidence = scenarios[scenarioId];
+          const prefix = id + '.' + scenarioId;
+          if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence) || evidence.status !== 'PASS') {
+            issues.push(prefix + ': not passed');
+            continue;
+          }
+          if (!SHA.test(evidence.commitSha || '') || evidence.commitSha !== sha) issues.push(prefix + ': candidate SHA mismatch');
+          if (!HTTPS.test(evidence.artifactUrl || '')) issues.push(prefix + ': missing HTTPS artifact URL');
+          if (!ISO.test(evidence.executedAtUtc || '') || !Number.isFinite(Date.parse(evidence.executedAtUtc)) ||
+              Date.parse(evidence.executedAtUtc) > Date.now() + 300000) issues.push(prefix + ': invalid execution timestamp');
+          if (evidence.testResult !== 'passed') issues.push(prefix + ': missing passing test result');
+        }
+      }
+    }
   }
   return { readyForHumanReview: issues.length === 0, issues };
 }
