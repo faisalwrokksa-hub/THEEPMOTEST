@@ -17,9 +17,12 @@ test('rapid duplicate submissions are prevented', () => {
   assert.match(form, /finally \{\s*busyGuard\.current = false/);
 });
 test('form input is preserved when API refuses save', () => {
-  assert.match(form, /if \(!res\.ok \|\| j\?\.error\)/);
-  assert.match(form, /window\.location\.assign/);
-  assert.ok(form.indexOf('window.location.assign') > form.indexOf('if (!res.ok || j?.error)'));
+  // A 2xx status alone is insufficient: require the API's explicit create acknowledgement.
+  assert.match(form, /if \(!isCreateSuccess\(res\.status, j\)\)/);
+  assert.match(form, /window\.location\.assign\(j\.redirect\)/);
+  assert.ok(form.indexOf('window.location.assign(j.redirect)') > form.indexOf('if (!isCreateSuccess(res.status, j))'));
+  assert.match(form, /setError\(/);
+  assert.match(form, /return;\s*}\s*\/\/ Navigate only after confirmed success/);
 });
 test('API route preserves structured field-level validation issues', () => {
   assert.match(route, /issues: Array\.isArray\(j\?\.issues\) \? j\.issues : \[\]/);
