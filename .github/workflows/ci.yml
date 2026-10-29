@@ -225,6 +225,12 @@ jobs:
           pnpm list vite --recursive --depth 20
           pnpm build:packages
           pnpm --filter @pmo/api build
+          # A clean security audit alone does not establish compatibility with
+          # Next.js, NestJS, Drizzle and TypeScript major-version upgrades.
+          # Validate the complete candidate workspace before considering promotion.
+          pnpm typecheck
+          NODE_ENV=production NEXT_PUBLIC_API_URL=http://localhost:4000 pnpm --filter @pmo/web build
+          node scripts/verify-build-artifacts.mjs --scope all
           # Run database-independent regression checks; full integration tests stay in verify.
           pnpm test:offline
       - name: Audit candidate without weakening security gate
