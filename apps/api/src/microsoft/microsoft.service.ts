@@ -272,6 +272,7 @@ export class MicrosoftService {
     const [row] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
       SELECT refresh_token FROM integration_connections WHERE provider = ${PROVIDER}`)));
     if (!row?.refresh_token) {
+      this.tokens.delete(cacheKey);
       throw new ConflictException('Microsoft is not connected to this workspace yet.');
     }
 
@@ -285,6 +286,7 @@ export class MicrosoftService {
             ? 'Power BI has not been approved for this workspace yet. Connect Power BI to grant it.'
             : 'Microsoft needs to be connected again to grant this permission.');
       }
+      this.tokens.delete(cacheKey);
       const msg = 'Microsoft credentials are invalid or have expired. Reconnect the account.';
       await withTenant(tenantId, async (tx) => {
         await tx.execute(sql`
