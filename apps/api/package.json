@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "nest start --watch",
-    "build": "nest build",
+    "build": "nest build && node -e \"const fs=require('node:fs');fs.mkdirSync('dist/excel',{recursive:true});fs.copyFileSync('src/excel/import-preflight.mjs','dist/excel/import-preflight.mjs')\"",
     "start": "node dist/main.js",
     "typecheck": "tsc --noEmit"
   },
