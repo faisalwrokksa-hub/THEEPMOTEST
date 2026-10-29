@@ -659,23 +659,6 @@ async function main() {
       lastSyncAt: hoursAgo(4) },
   ]);
 
-  // Explicit subscriptions for disposable demo tenants; no production bypass.
-  const demoPlanCode = 'demo-fixtures-nonbillable';
-  await db.insert(s.subscriptionPlans).values({
-    code: demoPlanCode, name: 'Nonbillable demo fixtures', priceMinor: 0,
-    isActive: false,
-  }).onConflictDoNothing();
-  const demoPlan = await db.query.subscriptionPlans.findFirst({
-    where: eq(s.subscriptionPlans.code, demoPlanCode),
-  });
-  if (!demoPlan) throw new Error('Missing demo fixture plan');
-  const periodStartsAt = new Date(Date.now() - 60_000);
-  const periodEndsAt = new Date(Date.now() + 30 * 86400_000);
-  await db.insert(s.tenantSubscriptions).values([
-    { tenantId: acme.id, planId: demoPlan.id, status: 'active', periodStartsAt, periodEndsAt },
-    { tenantId: nexa.id, planId: demoPlan.id, status: 'active', periodStartsAt, periodEndsAt },
-  ]);
-
   /* Entitlements. Al-Nakheel takes the full built suite; Nexa is on a
      PMO-only plan, which makes the licensing boundary visible in the UI. */
   // Al-Nakheel is the full-suite demo; Nexa is deliberately on a PMO-only
@@ -690,6 +673,23 @@ async function main() {
     await db.insert(s.tenantModules).values({
       tenantId: nexa.id, moduleId: id, enabled: true, tier: 'standard', enabledAt: new Date(),
     }).onConflictDoNothing();
+
+  // Demo-only subscription fixtures: enabled modules alone do not grant access.
+  // The production API requires an active subscription; keep that fail-closed
+  // enforcement intact while exercising the two explicit disposable tenants.
+  const [demoPlan] = await db.insert(s.subscriptionPlans).values({
+    code: 'demo_seed_test_only', name: 'Disposable demo subscription',
+    priceMinor: 0, currency: 'SAR', billingInterval: 'monthly', trialDays: 0,
+  }).onConflictDoUpdate({
+    target: s.subscriptionPlans.code,
+    set: { name: 'Disposable demo subscription' },
+  }).returning();
+  const periodStartsAt = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const periodEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  await db.insert(s.tenantSubscriptions).values([
+    { tenantId: acme.id, planId: demoPlan.id, status: 'active', periodStartsAt, periodEndsAt },
+    { tenantId: nexa.id, planId: demoPlan.id, status: 'active', periodStartsAt, periodEndsAt },
+  ]);
 
   writeDevEnv(acme.id, fatima.id);
   console.log(`
