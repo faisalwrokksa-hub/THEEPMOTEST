@@ -159,8 +159,16 @@ describe('before anything is connected', () => {
     for (const path of ['/api/v1/microsoft/places', '/api/v1/microsoft/files',
                         '/api/v1/microsoft/reports']) {
       const r = await get(path, fatima);
-      expect(r.status, `${path} should refuse politely`).toBe(409);
-      expect(String(r.body?.message)).toMatch(/not connected/i);
+      // Power BI report enumeration is intentionally fail-closed until
+      // per-user Microsoft authorization is implemented. Do not enable
+      // legacy workspace-wide delegated bearer-token access for CI.
+      if (path === '/api/v1/microsoft/reports') {
+        expect(r.status).toBe(503);
+        expect(String(r.body?.message)).toMatch(/disabled pending per-user Microsoft authorization/i);
+      } else {
+        expect(r.status, `${path} should refuse politely`).toBe(409);
+        expect(String(r.body?.message)).toMatch(/not connected/i);
+      }
     }
   });
 
