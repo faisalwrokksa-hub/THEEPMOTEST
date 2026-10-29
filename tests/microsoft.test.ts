@@ -116,13 +116,15 @@ describe('finishing the handshake', () => {
   it('turns a cancelled consent screen into a message, not an error page', async () => {
     const r = await callback({ error: 'access_denied', error_description: 'The user declined' });
     expect(r.status).toBe(303);
-    expect(r.message).toBe('The user declined');
+    expect(r.message).toMatch(/Microsoft authorization was cancelled or denied/i);
+    // Untrusted identity-provider descriptions must never reach the browser.
+    expect(r.message).not.toContain('The user declined');
   });
 
   it('refuses a state it never issued', async () => {
     const r = await callback({ code: 'pretend-code', state: 'not-a-state-we-made' });
     expect(r.status).toBe(303);
-    expect(r.message).toMatch(/expired|already been used/i);
+    expect(r.message).toMatch(/Microsoft connection could not be completed/i);
     expect(Number(psql(
       `SELECT count(*) FROM integration_connections WHERE provider = 'microsoft'`))).toBe(0);
   });
@@ -133,7 +135,7 @@ describe('finishing the handshake', () => {
     psql(`UPDATE oauth_states SET expires_at = now() - interval '1 minute' WHERE state = '${state}'`);
 
     const cb = await callback({ code: 'pretend-code', state });
-    expect(cb.message).toMatch(/expired|already been used/i);
+    expect(cb.message).toMatch(/Microsoft connection could not be completed/i);
   });
 
   it('will not accept the same state twice', async () => {
@@ -143,14 +145,14 @@ describe('finishing the handshake', () => {
     // The first use fails at Microsoft, because the code is invented — but it
     // must still consume the state, or a captured callback URL stays live.
     const first = await callback({ code: 'pretend-code', state });
-    // It fails at Microsoft, because the code is invented — the message has to
-    // say that rather than that the link was already used, or the state was
-    // never found in the first place.
-    expect(first.message).toMatch(/Microsoft refused/i);
+    // The public callback deliberately uses a generic, non-leaking failure message.
+    // The consumed state below, not an exposed provider error, proves replay safety.
+    expect(first.message).toMatch(/Microsoft connection could not be completed/i);
+    expect(first.message).not.toContain('pretend-code');
     expect(Number(psql(`SELECT count(*) FROM oauth_states WHERE state = '${state}'`))).toBe(0);
 
     const second = await callback({ code: 'pretend-code', state });
-    expect(second.message).toMatch(/expired|already been used/i);
+    expect(second.message).toMatch(/Microsoft connection could not be completed/i);
   });
 });
 
