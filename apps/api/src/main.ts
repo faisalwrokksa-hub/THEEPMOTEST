@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import { Logger } from '@nestjs/common';
 import cookieParser from 'cookie-parser';
+import type { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
@@ -24,7 +25,7 @@ async function bootstrap() {
   const allowedOrigins = env.WEB_ORIGIN.split(',').map((s) => s.trim());
   // Reject cross-site browser mutations before auth/controllers execute.
   // No Origin and no Fetch Metadata is permitted for internal Next.js proxy calls.
-  app.use((req, res, next) => {
+  app.use((req: Request, res: Response, next: NextFunction) => {
     const origin = req.headers.origin;
     const fetchSite = req.headers['sec-fetch-site'];
     if (!isAllowedWriteRequest(req.method, origin, typeof fetchSite === 'string' ? fetchSite : undefined, allowedOrigins)) {
