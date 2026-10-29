@@ -38,7 +38,7 @@ function isSafeEvidenceUrl(value) {
     const url = new URL(value);
     return url.protocol === 'https:' && url.hostname.includes('.') &&
       url.pathname.length > 1 && !url.username && !url.password && !url.hash &&
-      ![...url.searchParams.keys()].some(key => /^(token|secret|password|key|signature|session|code|authorization)$/i.test(key));
+      ![...url.searchParams.keys()].some(key => /^(?:token|secret|password|key|signature|sig|session|code|authorization|credential|auth)$|(?:access[_-]?token|api[_-]?key|client[_-]?secret|auth[_-]?token|awsaccesskeyid|x[-_]amz[-_](?:signature|credential)|x[-_]goog[-_](?:signature|credential)|sharedaccesssignature)/i.test(key));
   } catch { return false; }
 }
 
