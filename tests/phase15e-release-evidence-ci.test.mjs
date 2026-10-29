@@ -34,7 +34,8 @@ test('CI runs every required live check before recording corresponding evidence'
 test('CI fails closed when any evidence is missing and always publishes partial diagnostics', () => {
   assert.match(ci, /Enforce current-run CI acceptance evidence\n\s+if: always\(\)\n\s+run: node scripts\/phase15e-release-evidence\.mjs verify ci/);
   assert.match(ci, /Publish sanitized CI acceptance evidence\n\s+if: always\(\)/);
-  assert.match(ci, /EPMO_EVIDENCE_DIR: \$\{\{ runner\.temp \}\}\/epmo-evidence/);
+  assert.match(ci, /EPMO_EVIDENCE_DIR=\$RUNNER_TEMP\/epmo-evidence/);
+  assert.match(ci, /Initialize isolated CI evidence directory/);
 });
 test('CI cannot silently claim live Stripe, SES, or browser acceptance', () => {
   for (const gate of LAUNCH_GATES.filter(g => !CI_GATES.includes(g)))
