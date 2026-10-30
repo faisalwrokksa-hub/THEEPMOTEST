@@ -28,6 +28,13 @@ export const REQUIRED_STRIPE_SCENARIOS = Object.freeze([
   "cross_tenant_billing_isolation"
 ]);
 
+const STAGING_GATES = new Set([
+  'microsoft_per_user_oauth',
+  'stripe_test_billing',
+  'frontend_customer_journeys',
+  'staging_smoke',
+  'backup_restore_rollback',
+]);
 const SHA = /^[a-f0-9]{40}$/i;
 const MAX_EVIDENCE_AGE_MS = 72 * 60 * 60 * 1000;
 const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z$/;
@@ -80,6 +87,9 @@ export function evaluateCommercialEvidence(manifest) {
     else if (gateTimeIssue === 'future') issues.push(id + ': execution timestamp is in the future');
     else if (gateTimeIssue === 'stale') issues.push(id + ': evidence older than 72 hours');
     if (typeof g.environment !== 'string' || !g.environment.trim()) issues.push(id + ': missing environment');
+    else if (STAGING_GATES.has(id) && !['staging', 'isolated-staging'].includes(g.environment)) {
+      issues.push(id + ': acceptance requires staging or isolated-staging environment');
+    }
     if (typeof g.reviewer !== 'string' || !g.reviewer.trim()) issues.push(id + ': missing reviewer');
     if (typeof g.testResult !== 'string' || g.testResult !== 'passed') issues.push(id + ': missing passing test result');
     if (id === 'stripe_test_billing') {
