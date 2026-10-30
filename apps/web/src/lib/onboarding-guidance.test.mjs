@@ -4,7 +4,7 @@ import { onboardingActionHref, onboardingActionLicensed } from './onboarding-gui
 
 test('actions use only internal, known destinations', () => {
   assert.deepEqual(['workspace','team','portfolio','program','project'].map(onboardingActionHref), [
-    '/settings','/settings','/portfolios?new=portfolio','/portfolios?new=program','/projects?new=project',
+    '/settings','/settings','/portfolios?new=portfolio','/programs?new=program','/projects?new=project',
   ]);
 });
 test('unlicensed workspaces cannot follow commercial create actions', () => {
