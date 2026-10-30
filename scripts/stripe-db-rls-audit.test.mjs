@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {FINANCIAL_TABLES, validateStripeDbAuditConfig, inspectFinancialSchema, verifyVisibleRows, auditStripeDbRls} from './stripe-db-rls-audit.mjs';
+import {FINANCIAL_TABLES, validateStripeDbAuditConfig, inspectFinancialSchema, verifyVisibleRows, auditStripeDbRls,safeStripeDbFailure,resolvePostgresClientFactory} from './stripe-db-rls-audit.mjs';
 const A='11111111-1111-4111-8111-111111111111';
 const B='22222222-2222-4222-8222-222222222222';
 const env={DEPLOYMENT_ENV:'staging',DATABASE_URL:'postgresql://pmo_app:secret@db.example.test:5432/pmo',STRIPE_DB_TENANT_A_ID:A,STRIPE_DB_TENANT_B_ID:B};
@@ -64,4 +64,31 @@ test('aggregated counts are not limited to one row',()=>{
 });
 test('rejects invalid aggregation counts',()=>{
  assert.throws(()=>verifyVisibleRows([{tenantId:A,rowCount:-1}],A,'billing_invoices'),/Invalid/);
+});
+
+test('safe audit diagnostics show SQLSTATE without leaking credentials',()=>{
+ const output=safeStripeDbFailure(Object.assign(new Error('postgres://pmo_app:secret@private.example/pmo'),{code:'42501'}),'read-only RLS acceptance');
+ assert.match(output,/42501/);
+ assert.doesNotMatch(output,/secret|private.example|postgres:\/\//);
+});
+test('unknown audit error codes are redacted',()=>{
+ const output=safeStripeDbFailure(Object.assign(new Error('password=topsecret'),{code:'CUSTOM_SECRET'}),'driver');
+ assert.match(output,/UNCLASSIFIED/);
+ assert.doesNotMatch(output,/topsecret|CUSTOM_SECRET/);
+});
+
+// Regression for PostgreSQL driver major-version export interop. No DB required.
+test('accepts callable CommonJS postgres export',()=>{
+ const factory=()=>({});
+ assert.equal(resolvePostgresClientFactory(factory),factory);
+});
+test('accepts ESM namespace default postgres export',()=>{
+ const factory=()=>({});
+ assert.equal(resolvePostgresClientFactory({default:factory}),factory);
+});
+test('fails closed on unexpected driver export without logging its content',()=>{
+ assert.throws(()=>resolvePostgresClientFactory({default:'sensitive-data'}),/no callable factory/);
+ const output=safeStripeDbFailure(new Error('PostgreSQL client module has no callable factory'),'driver');
+ assert.match(output,/incompatible database driver export/);
+ assert.doesNotMatch(output,/sensitive-data|postgres:\/\//);
 });

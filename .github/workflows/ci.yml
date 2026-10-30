@@ -203,6 +203,9 @@ jobs:
         with: { node-version: 22, cache: pnpm }
       - name: Generate isolated latest-compatible dependency candidate
         run: |
+          # An already-promoted secure graph must not receive a second overrides key.
+          # Still run the same frozen install, audit, builds and tests below.
+          if ! grep -q '^overrides:' pnpm-workspace.yaml; then
           pnpm update --recursive --latest --lockfile-only
           # Isolated candidate only: force patched transitive versions for audit evaluation.
           # These overrides are NOT committed to application manifests.
@@ -223,6 +226,7 @@ jobs:
           # uploaded candidate is directly reproducible with a frozen lockfile.
           node -e "const fs=require('node:fs'); for (const p of ['apps/api/package.json','apps/web/package.json','packages/contracts/package.json','packages/db/package.json']) { const pkg=JSON.parse(fs.readFileSync(p,'utf8')); if (!pkg.devDependencies?.typescript) throw Error('Missing TypeScript dependency in '+p); pkg.devDependencies.typescript='~5.9.3'; fs.writeFileSync(p,JSON.stringify(pkg,null,2)+'\\n'); }"
           pnpm install --lockfile-only
+          fi
           pnpm install --frozen-lockfile
           node -e "const v=require('./node_modules/vite/package.json').version; if(v!=='8.3.3') throw Error('Candidate Vite version is '+v+', expected 8.3.3')"
           pnpm why vite
