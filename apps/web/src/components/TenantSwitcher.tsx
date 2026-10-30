@@ -47,7 +47,8 @@ export function TenantSwitcher({ session, lang }: {session: SignedInSession; lan
   return (
     <div className="switcher">
       <button ref={trigger} type="button" className="orgchip" onClick={() => setOpen((v) => !v)}
-              aria-expanded={open} aria-haspopup="dialog">
+              aria-expanded={open} aria-haspopup="dialog"
+              aria-label={lang === 'ar' ? `الحساب ومساحة العمل: ${session.tenantName}` : `Account and workspace: ${session.tenantName}`}>
         <span className="av sm">{initials}</span>
         <span className="who">
           <b dir="auto">{session.tenantName}</b>

@@ -27,9 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
      * being dumped on a login screen for no visible reason.
      */
     const ended = Boolean(jar.get(SESSION_COOKIE));
-    redirect(ended
-      ? `/login?error=${encodeURIComponent('You were signed out after a period of inactivity. Please sign in again.')}`
-      : '/login');
+    redirect(ended ? '/login?error=expired' : '/login');
   }
 
   const ar = jar.get('pmo_lang')?.value === 'ar';

@@ -19,10 +19,11 @@ export async function POST(req: NextRequest) {
   const form = await req.formData();
   const identifier = String(form.get('identifier') ?? form.get('email') ?? '').trim();
   const password = String(form.get('password') ?? '');
-  const back = (msg: string) =>
-    NextResponse.redirect(publicUrl(req, `/login?error=${encodeURIComponent(msg)}`), 303);
+  type LoginErrorCode = 'missing' | 'invalid' | 'unavailable' | 'rate_limited' | 'session_missing';
+  const back = (code: LoginErrorCode) =>
+    NextResponse.redirect(publicUrl(req, `/login?error=${code}`), 303);
 
-  if (!identifier || !password) return back('Enter your username and password.');
+  if (!identifier || !password) return back('missing');
 
   let res: Response;
   try {
@@ -33,17 +34,17 @@ export async function POST(req: NextRequest) {
       cache: 'no-store',
     });
   } catch {
-    return back('Cannot reach the server. Is the API running?');
+    return back('unavailable');
   }
 
   if (!res.ok) {
-    const body = await res.json().catch(() => ({} as any));
-    return back(body?.message ?? 'Those credentials are not recognised.');
+    // API errors can include internal details. Never put them into redirect URLs.
+    return back(res.status === 429 ? 'rate_limited' : res.status >= 500 ? 'unavailable' : 'invalid');
   }
 
   const line = (res.headers.getSetCookie?.() ?? []).find((c) => c.startsWith(`${SESSION}=`));
   const token = line?.split(';')[0]?.split('=')[1];
-  if (!token) return back('Signed in, but no session was returned.');
+  if (!token) return back('session_missing');
 
   const out = NextResponse.redirect(publicUrl(req, '/'), 303);
   out.cookies.set(SESSION, token, {
