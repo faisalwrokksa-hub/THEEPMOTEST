@@ -14,3 +14,14 @@ export function projectPageHref(cursor: string | null, program?: string, health?
   const query = params.toString();
   return query ? `/projects?${query}` : '/projects';
 }
+
+/** Ignore invalid URL health values instead of silently hiding every project. */
+export function validProjectHealth(value: unknown): string | undefined {
+  return value === 'on_track' || value === 'at_risk' || value === 'critical'
+    ? value : undefined;
+}
+
+/** A programme project row must open that project's governance record. */
+export function projectGovernanceHref(projectId: string): string {
+  return `/governance/${encodeURIComponent(projectId)}`;
+}
