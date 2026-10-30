@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRuntimeDeployment, assertRuntimeDeploymentTenant } from '../apps/api/src/tenancy/deployment-runtime';
+import { parseRuntimeDeployment, assertRuntimeDeploymentTenant, deploymentAllowsTenant } from '../apps/api/src/tenancy/deployment-runtime';
 const a='11111111-1111-4111-8111-111111111111';
 const b='22222222-2222-4222-8222-222222222222';
 const deployment='33333333-3333-4333-8333-333333333333';
@@ -41,6 +41,17 @@ describe('E12 runtime deployment boundary',()=>{
     expect(()=>parseRuntimeDeployment({...env([record(a)]),EPMO_DEPLOYMENT_BINDINGS_JSON:'bad-json'})).toThrow();
     expect(()=>parseRuntimeDeployment({EPMO_DEPLOYMENT_ID:deployment})).toThrow();
     expect(()=>parseRuntimeDeployment({...env([record(a)]),EPMO_DEPLOYMENT_PROFILE:'government'})).toThrow();
+  });
+  it('limits public auth login/session/switch paths to server-assigned tenants',()=>{
+    const shared = parseRuntimeDeployment(env([record(a),record(b)]));
+    expect(deploymentAllowsTenant(shared, a)).toBe(true);
+    expect(deploymentAllowsTenant(shared, b)).toBe(true);
+    expect(deploymentAllowsTenant(shared, deployment)).toBe(false);
+    const dedicated = parseRuntimeDeployment(env([record(a,'dedicated')],'dedicated'));
+    expect(deploymentAllowsTenant(dedicated, a)).toBe(true);
+    expect(deploymentAllowsTenant(dedicated, b)).toBe(false);
+    // Without a configured runtime, preserve existing shared installations.
+    expect(deploymentAllowsTenant(null, b)).toBe(true);
   });
   it('keeps legacy shared mode explicit and does not treat it as dedicated validation',()=>{
     expect(parseRuntimeDeployment({DEPLOYMENT_ENV:'development'})).toBeNull();
