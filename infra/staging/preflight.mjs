@@ -83,7 +83,7 @@ export function tlsMaterialChecks(env, root = repoRoot, now = Date.now()) {
       Date.parse(cert.validTo) > now + 24 * 60 * 60 * 1000 });
   checks.push({ name: 'TLS private key matches the certificate',
     passed: cert.publicKey.export({ type: 'spki', format: 'der' }).equals(
-      key.export({ type: 'spki', format: 'der' })) });
+      createPublicKey(key).export({ type: 'spki', format: 'der' })) });
   return checks;
 }
 
