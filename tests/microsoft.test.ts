@@ -193,8 +193,9 @@ describe('the connection row', () => {
     // Written directly, because reaching a connected state needs Microsoft.
     // What is being checked is the tenant boundary, not the handshake.
     const nakheel = psql(`SELECT id FROM tenants WHERE slug = 'al-nakheel'`);
-    psql(`INSERT INTO integration_connections (tenant_id, provider, status, account_email)
-          VALUES ('${nakheel}', 'microsoft', 'connected', 'someone@al-nakheel.example')`);
+    const consentingUser = psql(`SELECT id FROM users WHERE email = 'fatima@al-nakheel.test'`);
+    psql(`INSERT INTO integration_connections (tenant_id, provider, status, account_email, connected_by)
+          VALUES ('${nakheel}', 'microsoft', 'connected', 'someone@al-nakheel.example', '${consentingUser}')`);
 
     const theirs = await get('/api/v1/microsoft/status', fatima);
     expect(theirs.body.connection?.accountEmail).toBe('someone@al-nakheel.example');
@@ -219,9 +220,10 @@ describe('workspace delegated Microsoft token boundary', () => {
   it('does not expose the connected Microsoft account or provider errors in non-admin status', async () => {
     const tenant = psql("SELECT id FROM tenants WHERE slug = 'al-nakheel'");
     psql(`DELETE FROM integration_connections WHERE provider = 'microsoft'`);
-    psql(`INSERT INTO integration_connections (tenant_id, provider, status, account_email, account_name, scopes, last_error)
+    const consentingUser = psql(`SELECT id FROM users WHERE email = 'fatima@al-nakheel.test'`);
+    psql(`INSERT INTO integration_connections (tenant_id, provider, status, account_email, account_name, scopes, last_error, connected_by)
           VALUES ('${tenant}', 'microsoft', 'connected', 'private-admin@al-nakheel.test',
-                  'Private Administrator', 'Report.Read.All', 'do not expose provider diagnostics')`);
+                  'Private Administrator', 'Report.Read.All', 'do not expose provider diagnostics', '${consentingUser}')`);
     try {
       const customer = await get('/api/v1/microsoft/status', viewer);
       const administrator = await get('/api/v1/microsoft/status', fatima);
