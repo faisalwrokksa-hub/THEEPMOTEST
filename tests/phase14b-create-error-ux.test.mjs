@@ -23,3 +23,10 @@ test('create failure recovery has Arabic copy and rate-limit guidance', () => {
   assert.match(source, /res\.status === 429/);
   assert.match(source, /عدد المحاولات كبير/);
 });
+
+
+test('query-string flash errors cannot echo arbitrary API details in either locale', () => {
+  assert.doesNotMatch(source, /: t\(error\)/);
+  assert.match(source, /That could not be saved\. Check your information and try again\./);
+  assert.match(source, /تعذّر الحفظ\. تحقق من البيانات وحاول مجددًا\./);
+});

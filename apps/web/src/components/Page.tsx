@@ -23,7 +23,9 @@ export async function Loaded<T>({ load, children, empty }:
   let data: T;
   try { data = await load(); }
   catch (e) {
-    const err = e as { status?: number; detail?: string; message: string; isNotLicensed?: boolean };
+    const err = (e !== null && typeof e === 'object' ? e : {}) as {
+      status?: number; detail?: string; isNotLicensed?: boolean
+    };
     // A module this workspace has not licensed is a normal state, not a fault.
     if (err.isNotLicensed || (err.status === 403 && /not enabled|subscription expired/i.test(err.detail ?? ''))) {
       return (

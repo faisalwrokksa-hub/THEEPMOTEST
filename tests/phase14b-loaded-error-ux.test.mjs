@@ -29,3 +29,9 @@ test('forbidden and unlicensed states do not render raw API details', () => {
   assert.match(loaded, /هذه الوحدة غير متاحة/);
   assert.match(loaded, /ليس لديك إذن للوصول/);
 });
+
+
+test('non-Error thrown values do not crash the loading fallback', () => {
+  assert.match(loaded, /e !== null && typeof e === 'object' \? e : \{\}/);
+  assert.doesNotMatch(loaded, /const err = e as/);
+});

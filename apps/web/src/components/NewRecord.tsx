@@ -196,7 +196,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
 
 export function Flash({ error, done, lang }: { error?: string; done?: string; lang?: Lang }) {
   const t = translator(lang ?? 'en');
-  if (error) return <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{lang === 'ar' ? 'تعذّر الحفظ. تحقق من البيانات وحاول مجددًا.' : t(error)}</p>;
+  if (error) return <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>{lang === 'ar' ? 'تعذّر الحفظ. تحقق من البيانات وحاول مجددًا.' : 'That could not be saved. Check your information and try again.'}</p>;
   if (done) return <p className="okmsg" role="status" style={{ marginBlockEnd: 16 }}>
     {t('Created')}: {t(done)}</p>;
   return null;
