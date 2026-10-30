@@ -1,4 +1,5 @@
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
+import { logoutFailureResponse } from '@/lib/logout-recovery';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -17,9 +18,8 @@ export async function POST(req: NextRequest) {
       });
       if (!result.ok) throw new Error('Session revocation failed');
     } catch {
-      // Do not claim logout succeeded while the server-side session remains valid.
-      return NextResponse.json({ error: 'Sign-out could not be confirmed. Please try again.' },
-        { status: 503, headers: { 'cache-control': 'no-store' } });
+      // Do not claim success or clear the cookie if revocation is unconfirmed.
+      return logoutFailureResponse(req, false);
     }
   }
   const out = NextResponse.redirect(publicUrl(req, '/login'), 303);
