@@ -35,16 +35,24 @@ export function evaluateCiEvidence(run, jobsPayload, expectedSha) {
   if (!run || run.head_sha !== expectedSha) issues.push('Workflow head SHA does not match expected candidate');
   if (run?.status !== 'completed' || run?.conclusion !== 'success')
     issues.push('Workflow not completed successfully');
+  const runId = run?.id;
+  if (!Number.isSafeInteger(runId) || runId <= 0)
+    issues.push('Missing valid workflow run ID');
   const jobs = jobsPayload?.jobs;
   if (!Array.isArray(jobs)) return { passed: false, issues: [...issues, 'Missing jobs array'] };
-  if (jobsPayload.total_count !== undefined && jobsPayload.total_count > jobs.length)
+  if (!Number.isSafeInteger(jobsPayload.total_count) || jobsPayload.total_count !== jobs.length)
     issues.push('Jobs response is paginated/incomplete');
   const byName = new Map();
   for (const job of jobs) {
+    if (!job || typeof job !== 'object' || typeof job.name !== 'string' || !job.name) {
+      issues.push('Invalid job record');
+      continue;
+    }
     if (byName.has(job.name)) issues.push('Duplicate job name: ' + job.name);
     byName.set(job.name, job);
-    if (run?.id && job.run_id !== undefined && job.run_id !== run.id)
-      issues.push('Job belongs to another workflow run: ' + job.name);
+    // The GitHub jobs API includes run_id. Absence is not evidence of provenance.
+    if (!Number.isSafeInteger(job.run_id) || job.run_id !== runId)
+      issues.push('Job missing or mismatching workflow run ID: ' + job.name);
   }
   for (const name of REQUIRED_JOBS) {
     const job = byName.get(name);
@@ -53,14 +61,14 @@ export function evaluateCiEvidence(run, jobsPayload, expectedSha) {
       issues.push('Required job not successful: ' + name);
     if (!Array.isArray(job.steps)) { issues.push('Missing steps for job: ' + name); continue; }
     for (const step of job.steps) {
-      if (step.conclusion !== 'success') issues.push('Non-success step in ' + name + ': ' + step.name);
+      if (!step || step.conclusion !== 'success') issues.push('Non-success step in ' + name + ': ' + (step?.name || '<unknown>'));
     }
     const requiredSteps = name === 'verify' ? REQUIRED_VERIFY_STEPS
       : name === 'audit' ? ['Run pnpm install --frozen-lockfile', 'Run pnpm audit --audit-level high']
       : name === 'Dependency-free source checks' ? ['Run npm run test:offline']
       : [];
     for (const stepName of requiredSteps) {
-      const matches = job.steps.filter(step => step.name === stepName);
+      const matches = job.steps.filter(step => step?.name === stepName);
       if (matches.length !== 1 || matches[0].conclusion !== 'success')
         issues.push('Missing or unsuccessful required step in ' + name + ': ' + stepName);
     }
