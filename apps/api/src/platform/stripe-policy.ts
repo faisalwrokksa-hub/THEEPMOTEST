@@ -119,11 +119,22 @@ export function stripeCheckoutParams(invoice: { id: string; tenantId: string; am
   if (!UUID.test(invoice.id) || !UUID.test(invoice.tenantId) ||
       !Number.isSafeInteger(invoice.amountMinor) || invoice.amountMinor <= 0 ||
       !/^[A-Z]{3}$/.test(invoice.currency)) throw new Error('Invalid invoice for checkout');
-  for (const address of [successUrl, cancelUrl]) {
-    const url = new URL(address);
-    if (!['https:', 'http:'].includes(url.protocol) || url.username || url.password)
+  // Stripe sends the customer back to these URLs. Do not allow an arbitrary
+  // external origin or a non-loopback HTTP callback via user-controlled input.
+  let success: URL, cancel: URL;
+  try {
+    success = new URL(successUrl);
+    cancel = new URL(cancelUrl);
+  } catch { throw new Error('Invalid Checkout redirect URL'); }
+  for (const url of [success, cancel]) {
+    const localHttp = url.protocol === 'http:' &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    if (!(url.protocol === 'https:' || localHttp) || url.username || url.password ||
+        url.hash || !url.hostname || url.origin === 'null')
       throw new Error('Invalid Checkout redirect URL');
   }
+  if (success.origin !== cancel.origin)
+    throw new Error('Checkout redirects must have the same trusted origin');
   return new URLSearchParams({
     mode: 'payment',
     client_reference_id: invoice.id,
