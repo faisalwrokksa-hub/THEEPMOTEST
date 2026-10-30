@@ -12,8 +12,8 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "Completed commercial branch CI #40981167387 on f7643247ea4120fd2939c6cd030941cd98e59c40 failed pnpm audit --audit-level high: 65 vulnerabilities (2 critical, 25 high, 29 moderate, 9 low). Engineering PR #2 CI #40976507451 verified build/tests but its base audit still failed; a non-deploying dependency-remediation candidate reported 2 vulnerabilities and is not an accepted lockfile fix. Branch-only evidence.",
-      "unblockAction": "Engineering integrate a reviewed lockfile/package remediation into a candidate branch, retain the high-severity audit threshold, and run audit plus frozen-lockfile CI on the exact same release SHA. Do not substitute a generated remediation artifact for an applied and tested fix."
+      "blockingReason": "Commercial PR #4 CI #40987064159 (SHA 3fb7ee02f63059efd4133e56240ced9cf53945f7) audit FAIL: 65 advisories (2 critical, 25 high, 29 moderate, 9 low). Separate Engineering dependency remediation draft PR #5 at SHA 9b126c6075e36e78cd06c0098a5acf2832a688be had audit PASS in CI #40989608884 but verify FAIL at live financial PostgreSQL RLS driver audit. Neither result qualifies an integrated candidate.",
+      "unblockAction": "Engineering diagnose PR #5 driver/financial RLS failure without disabling RLS; rerun frozen-lockfile install, high-severity audit, restricted-role tenant tests, full integration/build on one immutable integrated candidate SHA. Record the candidate audit only after all checks complete on that same SHA."
     },
     "ci_build_tests": {
       "status": "BLOCKED",
@@ -23,8 +23,8 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "Commercial CI #40981167387 on f7643247ea4120fd2939c6cd030941cd98e59c40: 844/844 source tests passed, 5/5 API build artifact checks passed, 13/13 targeted billing-isolation tests passed, but integration 101 passed / 8 failed / 20 skipped (seven Microsoft assertions, one finance permission assertion), and verification receipt enforcement failed. Separately Engineering CI #40976507451 on 68489f8ccae66d4956ecb712e48226b6b03d9db6 passed verification including 109 integration tests and production build, but audit failed. These are different SHAs and not integrated release proof.",
-      "unblockAction": "Engineering and Frontend coordinate an immutable integrated candidate, run frozen-lockfile CI, typecheck, 109+ integration tests, production build, security audit and customer journey smoke on that same SHA. Do not transfer green receipts from Engineering PR #2 to Commercial PR #4."
+      "blockingReason": "Latest commercial head 3fb7ee02f63059efd4133e56240ced9cf53945f7 CI #40987064159: source 845/845 PASS, billing isolation 13/13 PASS, API build artifacts 5/5 PASS, but integration 101 PASS/8 FAIL/20 SKIP (seven Microsoft config/assertion failures and one financial 400-vs-403 assertion), receipt enforcement FAIL; audit FAIL. Separate PR #5 dependency candidate SHA 9b126c6 audit PASS but financial RLS driver FAIL. No single SHA passes all.",
+      "unblockAction": "Engineering reconcile Microsoft test-only OAuth configuration and finance authorization assertion on integrated branch; diagnose PR #5 restricted-role financial RLS driver error; run CI, audit, typecheck, production build, recovery and tenant isolation on one frozen SHA, retaining strict deny-by-default controls."
     },
     "tenant_rls": {
       "status": "PENDING",
@@ -33,7 +33,9 @@
       "executedAtUtc": null,
       "environment": null,
       "reviewer": null,
-      "testResult": null
+      "testResult": null,
+      "blockingReason": "Only branch-local PostgreSQL catalog, restricted-role and 13 billing-isolation test passes observed; not independently reviewed on an integrated staging candidate.",
+      "unblockAction": "Engineering provision two disposable tenants with restricted pmo_app role, execute positive/negative cross-tenant SQL and billing replay checks on integrated candidate SHA, publish sanitized artifact and independent reviewer."
     },
     "microsoft_per_user_oauth": {
       "status": "PENDING",
@@ -42,7 +44,9 @@
       "executedAtUtc": null,
       "environment": null,
       "reviewer": null,
-      "testResult": null
+      "testResult": null,
+      "blockingReason": "No real Entra staging test-user consent/refresh/revoke or cross-user-denial artifact on candidate SHA; branch-local Microsoft CI assertions have failed.",
+      "unblockAction": "Authorized Entra test administrator provision isolated test app and two test identities; Engineering execute consent, refresh, revoke, cross-user denial in staging, preserving no external customer consent, and attach candidate-SHA evidence."
     },
     "stripe_test_billing": {
       "status": "BLOCKED",
@@ -104,8 +108,8 @@
           "testResult": null
         }
       },
-      "blockingReason": "First-customer subscription-mode checkout, verified TEST webhook, replay, failed-payment, cancellation and tenant isolation have no executed staging evidence; existing payment-mode invoice renewal is insufficient.",
-      "unblockAction": "Engineering implement and verify server-side subscription-mode Checkout; authorized staging administrator provision restricted Stripe TEST keys, whsec secret and public HTTPS endpoint; Commercial execute all seven disposable-tenant scenarios."
+      "blockingReason": "No executed recurring subscription-mode first-customer checkout or seven Stripe TEST staging scenario proofs. Existing invoice renewal in payment mode is not recurring-subscription acceptance. Restricted test keys, whsec, public HTTPS webhook and disposable tenants not yet verified.",
+      "unblockAction": "Authorized Stripe test administrator provision restricted sk_test and whsec in staging secret store, register reachable HTTPS webhook and verify TEST delivery; Engineering implement server-owned subscription-mode checkout and signature/idempotency/tenant-bound entitlements; Commercial run all seven scenarios with disposable customers on one integrated candidate SHA. Do not commit secrets or use live keys."
     },
     "frontend_customer_journeys": {
       "status": "PENDING",
@@ -114,7 +118,9 @@
       "executedAtUtc": null,
       "environment": null,
       "reviewer": null,
-      "testResult": null
+      "testResult": null,
+      "blockingReason": "Frontend PR #3 SHA 2b28d492ed883a15ce32d82caa8f69271b8df577 CI #40991672433 failed audit and verification; browser UAT for paid-customer lifecycle on integrated candidate absent.",
+      "unblockAction": "Frontend run desktop/375px mobile and Arabic RTL browser journeys on integrated staging candidate: pricing, signup, activation, checkout pending/declined/cancelled, account, support, onboarding/project/dashboard/report/logout; attach sanitized traces/screenshots."
     },
     "staging_smoke": {
       "status": "PENDING",
@@ -123,7 +129,9 @@
       "executedAtUtc": null,
       "environment": null,
       "reviewer": null,
-      "testResult": null
+      "testResult": null,
+      "blockingReason": "No approved public HTTPS staging origin and independently reviewed integrated candidate smoke artifact.",
+      "unblockAction": "Staging administrator provision isolated HTTPS web/API domains, DNS/TLS, test email, health endpoints and disposable identities; Engineering/Frontend execute smoke on immutable candidate and record run."
     },
     "backup_restore_rollback": {
       "status": "PENDING",
@@ -132,7 +140,9 @@
       "executedAtUtc": null,
       "environment": null,
       "reviewer": null,
-      "testResult": null
+      "testResult": null,
+      "blockingReason": "No isolated staging restore and rollback receipt tied to integrated candidate.",
+      "unblockAction": "Operations create disposable encrypted database snapshot and isolated restore target, execute restore/rollback drill, verify tenant integrity and attach redacted recovery evidence; never touch production data."
     },
     "support_legal": {
       "status": "PENDING",
@@ -141,16 +151,18 @@
       "executedAtUtc": null,
       "environment": null,
       "reviewer": null,
-      "testResult": null
+      "testResult": null,
+      "blockingReason": "No confirmed published pricing/currency/taxes/trial terms, cancellation/refund/privacy URLs, staffed support contact or business/legal signoff.",
+      "unblockAction": "Business/legal owner approve real plan pricing and billing interval, tax disclosures, cancellation/refund policy, privacy/terms URLs and working staffed support route; Frontend verify links in both locales on candidate."
     }
   },
   "lastObservedFailure": {
-    "observedAtUtc": "2026-10-30T00:42:13Z",
+    "observedAtUtc": "2026-10-30T01:40:45Z",
     "branch": "feat/commercial-release-evidence-20261029",
-    "commitSha": "f7643247ea4120fd2939c6cd030941cd98e59c40",
-    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/40981167387",
+    "commitSha": "3fb7ee02f63059efd4133e56240ced9cf53945f7",
+    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/40987064159",
     "sourceChecks": {
-      "passed": 844,
+      "passed": 845,
       "failed": 0
     },
     "buildArtifactChecks": {
@@ -173,23 +185,18 @@
       "moderate": 29,
       "low": 9
     },
-    "qualification": "Completed commercial-branch CI only. Not integrated candidate acceptance; seven Microsoft and one finance permission assertion failed; audit failed. No real Stripe TEST lifecycle evidence."
+    "qualification": "Latest commercial branch SHA only. Audit and verify failed; no same-SHA staging or real Stripe TEST lifecycle proof."
   },
   "lastCommercialDecision": {
     "decision": "NO-GO",
-    "reason": "Latest commercial CI fails 8 integration assertions and security audit reports 65 vulnerabilities. Stripe subscription-mode checkout and all seven real TEST lifecycle scenarios remain unverified. No integrated release candidate SHA or independent staging/UAT signoff.",
+    "reason": "PR #5 security candidate passes dependency audit but fails restricted-role financial RLS driver gate; commercial head fails audit and eight integration assertions. No unified SHA, recurring Stripe TEST staging acceptance, UAT or recovery signoff.",
     "safeChanges": [
       {
-        "sha": "20f3584ead5139e0f4fd93e011dd6728314b19d0",
-        "description": "Require staging/isolated-staging evidence for Microsoft, Stripe, frontend, smoke and recovery gates"
-      },
-      {
-        "sha": "ad7939e9489b61b99ff54af213fa72a357bf1515",
-        "description": "Add negative tests rejecting local/production-only acceptance evidence"
+        "description": "Reconciled latest completed PR #4 and PR #5 CI observations without transferring PASS across SHAs; populated exact unblock actions for all pending gates"
       }
     ],
-    "verification": "New commercial gate changes committed but not yet observed passing in GitHub Actions; prior commercial branch source checks 844/844 passed, verification and audit failed. Engineering branch independently had green verification, audit red.",
-    "tradeoff": "Strengthen release manifest validation without touching checkout UI/backend or inventing staging receipts. Allow isolated-staging for recovery. Keep candidateSha=null and all Stripe scenarios PENDING. No merge/deploy/live payments."
+    "verification": "Inspected GitHub Actions job conclusions and logs for PR #4 run 40987064159, PR #5 run 40989608884, and Frontend PR #3 run 40991672433. No local tests executed for this evidence-only edit; new commit CI is pending.",
+    "tradeoff": "Keep candidateSha null and every release gate non-PASS; distinguish audit improvement on dependency branch from regression in financial RLS driver. Preserve separate file ownership and never merge/deploy."
   },
   "lastEngineeringObservation": {
     "branch": "fix/p0-ci-assertions-20261029",
@@ -199,5 +206,14 @@
     "audit": "FAIL: dependency audit still blocked",
     "remediationCandidate": "Non-deploying dependency candidate artifact generated; 2 vulnerabilities reported in candidate, not a merged or validated remediation",
     "qualification": "Independent Engineering branch; cannot satisfy Commercial branch or unified candidate SHA."
+  },
+  "lastSecurityCandidateObservation": {
+    "branch": "Engineering draft PR #5 (base PR #2 branch)",
+    "commitSha": "9b126c6075e36e78cd06c0098a5acf2832a688be",
+    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/40989608884",
+    "audit": "PASS (high-severity threshold)",
+    "sourceChecks": "PASS",
+    "verify": "FAIL: live financial PostgreSQL RLS audit [driver; UNCLASSIFIED], followed by missing current-run receipts; downstream integration/build steps not completed",
+    "qualification": "Isolated dependency remediation candidate only; cannot combine with commercial branch checks or claim release readiness."
   }
 }
