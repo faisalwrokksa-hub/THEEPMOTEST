@@ -72,7 +72,7 @@ export function tlsMaterialChecks(env, root = repoRoot, now = Date.now()) {
   }
   // Modern TLS clients require SANs. checkHost() alone may fall back to a
   // legacy CN wildcard when SAN is missing, giving false deployment readiness.
-  const sanNames = new Set((cert.subjectAltName || '').split(/,\\s*/));
+  const sanNames = new Set((cert.subjectAltName || '').split(/,\s*/));
   checks.push({ name: 'TLS certificate matches both staging hostnames',
     passed: sanNames.has('DNS:staging.theepmo.com') &&
       sanNames.has('DNS:api-staging.theepmo.com') &&
