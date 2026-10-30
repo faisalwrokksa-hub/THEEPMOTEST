@@ -5,12 +5,13 @@ import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { ProjectsTable } from './ProjectsTable';
 import { getLang, tr } from '@/lib/i18n';
-import { validProjectCursor, projectPageHref } from '@/lib/projects-pagination';
+import { validProjectCursor, validProjectHealth, projectPageHref } from '@/lib/projects-pagination';
 
 export default async function ProjectsPage({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string; health?: string; program?: string; cursor?: string; new?: string }> }) {
   const { error, done, health, program, cursor, new: openForm } = await searchParams;
   const pageCursor = validProjectCursor(cursor);
+  const healthFilter = validProjectHealth(health);
   const programFilter = program && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(program) ? program : undefined;
   const lang = await getLang();
   const t = await tr();
@@ -71,28 +72,28 @@ export default async function ProjectsPage({ searchParams }:
                 ? (lang === 'ar' ? 'لا توجد مشاريع إضافية في هذه الصفحة' : 'No more projects on this page')
                 : (lang === 'ar' ? 'لا توجد مشاريع بعد' : 'No projects yet')}</strong>
                 <p>{pageCursor
-                  ? <Link href={projectPageHref(null, programFilter, health)}>{lang === 'ar' ? 'العودة إلى الصفحة الأولى' : 'Back to first page'}</Link>
+                  ? <Link href={projectPageHref(null, programFilter, healthFilter)}>{lang === 'ar' ? 'العودة إلى الصفحة الأولى' : 'Back to first page'}</Link>
                   : mayCreate
                     ? (lang === 'ar' ? 'أنشئ مشروعك الأول أعلاه مع بوابات الحوكمة.' : 'Create your first project above with its governance gates.')
                     : (lang === 'ar' ? 'اطلب من مسؤول مخوّل إنشاء أول مشروع.' : 'Ask an authorized administrator to create the first project.')}</p></div>
             ) : (
               <>
-                {health && (
+                {healthFilter && (
                   <p className="filtered">
-                    {t('Showing only')} <strong>{t(health.replace(/_/g, ' '))}</strong> {t('projects')} {lang === 'ar' ? 'في هذه الصفحة فقط' : 'on this page only'}.{' '}
+                    {t('Showing only')} <strong>{t(healthFilter.replace(/_/g, ' '))}</strong> {t('projects')} {lang === 'ar' ? 'في هذه الصفحة فقط' : 'on this page only'}.{' '}
                     <a href="/projects">{t('Show all')}</a>
                   </p>
                 )}
                 <ProjectsTable lang={lang}
-                  rows={(health
-                    ? (d.items as any[]).filter((p) => p.health === health)
+                  rows={(healthFilter
+                    ? (d.items as any[]).filter((p) => p.health === healthFilter)
                     : (d.items as any[]))} />
                 {(pageCursor || d.nextCursor) && <nav aria-label={lang === 'ar' ? 'صفحات المشاريع' : 'Project pages'}
                   style={{ display: 'flex', gap: 16, marginBlockStart: 18, flexWrap: 'wrap' }}>
-                  {pageCursor && <Link href={projectPageHref(null, programFilter, health)}>
+                  {pageCursor && <Link href={projectPageHref(null, programFilter, healthFilter)}>
                     {lang === 'ar' ? 'الصفحة الأولى' : 'First page'}
                   </Link>}
-                  {d.nextCursor && <Link href={projectPageHref(d.nextCursor, programFilter, health)}>
+                  {d.nextCursor && <Link href={projectPageHref(d.nextCursor, programFilter, healthFilter)}>
                     {lang === 'ar' ? 'المشاريع التالية' : 'Next projects'}
                   </Link>}
                 </nav>}
