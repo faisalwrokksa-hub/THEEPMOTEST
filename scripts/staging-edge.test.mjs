@@ -153,3 +153,12 @@ test('staging compose overrides parse and preserve private API and loopback edge
   assert.equal(config.services.api.image, 'epmo-staging-api:sha-' + shaA);
   assert.equal(config.services.web.image, 'epmo-staging-web:sha-' + shaA);
 });
+
+test('staging image build sends only immutable tracked files to Docker', () => {
+  const script = read('infra/staging/build-images.sh');
+  assert.match(script, /git archive --format=tar/);
+  assert.match(script, /tracked secret-like file in immutable build context/);
+  assert.match(script, /docker build --file "\$context\/apps\/api\/Dockerfile"/);
+  assert.match(script, /docker build --file "\$context\/apps\/web\/Dockerfile"/);
+  assert.doesNotMatch(script, /--tag "\$api_image" \./);
+});
