@@ -1,7 +1,7 @@
 # Review-only staging TLS edge; NOT included in infra/deploy.sh.
 # Requires separately approved staging provisioning and certificate mounts.
 # Run only after approval with:
-# docker compose -f docker-compose.prod.yml -f infra/staging/edge.compose.yml -p pmo-staging --env-file .env.staging config
+# docker compose -f docker-compose.prod.yml -f infra/staging/edge.compose.yml -p pmo-staging --env-file .env.staging config --quiet
 services:
   staging-edge:
     image: nginx:1.28-alpine # Pin an approved patched digest before deployment.
