@@ -21,7 +21,7 @@ export type OnboardingTask = {
 
 function safeCount(value: unknown): number {
   // Database count(*) can be returned as a string by some PostgreSQL drivers.
-  const n = typeof value === 'number' ? value : (typeof value === 'string' && /^\\d+$/.test(value) ? Number(value) : NaN);
+  const n = typeof value === 'number' ? value : (typeof value === 'string' && /^\d+$/.test(value) ? Number(value) : NaN);
   return Number.isSafeInteger(n) && n >= 0 ? n : 0;
 }
 
