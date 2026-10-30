@@ -5,7 +5,7 @@ import { verifyStripeSignature, parsePaidStripeEvent } from './stripe-policy.ts'
 const secret = 'whsec_12345678901234567890123456789012';
 const now = 1761436800000;
 const timestamp = Math.floor(now / 1000);
-const session = { id:'cs_test_ABC123', object:'checkout.session', mode:'payment', status:'complete', payment_status:'paid' };
+const session = { id:'cs_test_ABC123', object:'checkout.session', livemode:false, mode:'payment', status:'complete', payment_status:'paid' };
 const event = (payment_status='paid') => Buffer.from(JSON.stringify({ id:'evt_ABC123', type:'checkout.session.completed', livemode:false, data:{object:{...session,payment_status}} }));
 const signed = body => 't=' + timestamp + ',v1=' + createHmac('sha256',secret).update(String(timestamp)).update('.').update(body).digest('hex');
 test('signed Stripe payload is accepted; malformed signature headers are rejected', () => {
