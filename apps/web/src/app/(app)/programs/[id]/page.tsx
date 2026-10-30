@@ -4,6 +4,7 @@ import { api, getSession } from '@/lib/api';
 import { can, type Capability, type Program } from '@pmo/contracts';
 import { Page } from '@/components/Page';
 import { getLang } from '@/lib/i18n';
+import { projectGovernanceHref } from '@/lib/projects-pagination';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -46,7 +47,7 @@ export default async function ProgramDetails({ params }: {
         : <div style={{ overflowX: 'auto' }}><table>
           <thead><tr><th>{ar ? 'المشروع' : 'Project'}</th><th>{ar ? 'الحالة' : 'Health'}</th></tr></thead>
           <tbody>{projects.items.map(project => <tr key={project.id}>
-            <td><Link href={`/projects?program=${encodeURIComponent(program.id)}`}>{project.name}</Link></td>
+            <td><Link href={projectGovernanceHref(project.id)}>{project.name}</Link></td>
             <td><span className={`pill ${project.health}`}>{healthLabel(project.health)}</span></td>
           </tr>)}</tbody>
         </table></div>}
