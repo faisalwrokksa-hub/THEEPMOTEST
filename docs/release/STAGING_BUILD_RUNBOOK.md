@@ -87,8 +87,12 @@ EPMO_BUILD_SHA=<EXACT_SHA> infra/staging/build-images.sh --plan
 #   infra/staging/build-images.sh --build
 ```
 
-The two local images are tagged `epmo-staging-api:sha-<SHA>` and
-`epmo-staging-web:sha-<SHA>` with OCI revision labels. A future approved
+The build script uses `git archive` at the exact SHA to create a temporary,
+tracked-only Docker context, excluding ignored `.env.staging`, local secrets,
+backups and untracked files. It refuses tracked private-key and backup-like
+files, and removes the temporary context on exit. The two local images are
+tagged `epmo-staging-api:sha-<SHA>` and `epmo-staging-web:sha-<SHA>` with OCI
+revision labels. A future approved
 staging cutover should select these with `images.compose.yml` and
 `--no-build --pull never`. This is **not wired into** the existing deploy
 script; review Compose override merge behavior before any actual cutover.
