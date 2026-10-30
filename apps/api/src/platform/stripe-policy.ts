@@ -25,6 +25,8 @@ export function verifyStripeSignature(rawBody: Buffer | undefined, header: unkno
       typeof secret !== 'string' || !/^whsec_[A-Za-z0-9]+$/.test(secret) ||
       typeof header !== 'string' || header.length > 2048) return false;
   const pieces = header.split(',').map(s => s.trim());
+  // Reject malformed comma-separated headers even if one valid signature is present.
+  if (pieces.some(piece => piece === '')) return false;
   const tsParts = pieces.filter(p => /^t=\d+$/.test(p));
   const sigParts = pieces.filter(p => /^v1=[a-fA-F0-9]{64}$/.test(p));
   if (tsParts.length !== 1 || !sigParts.length) return false;
