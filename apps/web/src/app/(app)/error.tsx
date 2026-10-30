@@ -1,29 +1,41 @@
 'use client';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
-/** Catches a render or fetch failure inside the app shell without blanking
- *  the whole page, and offers the one action that usually helps. */
+/** Recover from a page render/fetch failure without exposing developer commands. */
 export default function ErrorBoundary({ error, reset }:
   { error: Error & { digest?: string }; reset: () => void }) {
-  useEffect(() => { console.error(error); }, [error]);
-  const unreachable = /fetch failed|ECONNREFUSED|Cannot reach/i.test(error.message);
+  const [ar, setAr] = useState(false);
+  useEffect(() => {
+    // Root layout owns the document language. Read it after hydration so the
+    // server and client initially render identical markup.
+    setAr(document.documentElement.lang.toLowerCase().startsWith('ar'));
+    console.error(error);
+  }, [error]);
+  // Next normally supplies an Error, but unusual thrown values can reach the fallback.
+  const message = typeof error?.message === 'string' ? error.message : '';
+  const digest = typeof error?.digest === 'string' ? error.digest : '';
+  const unreachable = /fetch failed|ECONNREFUSED|Cannot reach/i.test(message);
   return (
-    <div className="panel" style={{ maxWidth: '62ch' }}>
+    <div className="panel" role="alert" style={{ maxWidth: '62ch' }}>
       <span className="tag" style={{ background: 'var(--crit-soft)', color: 'var(--crit)' }}>
-        Something went wrong
+        {ar ? 'حدث خطأ' : 'Something went wrong'}
       </span>
       <h1 style={{ fontSize: 'var(--fs-xl)', margin: '14px 0 8px' }}>
-        {unreachable ? 'The server is not responding' : 'This page could not be loaded'}
+        {unreachable
+          ? (ar ? 'الخادم لا يستجيب' : 'The server is not responding')
+          : (ar ? 'تعذّر تحميل هذه الصفحة' : 'This page could not be loaded')}
       </h1>
       <p className="dim">
         {unreachable
-          ? 'The API is not reachable. If you are running locally, start it with pnpm dev and check pnpm smoke.'
-          : 'The error has been logged. Try again, and if it persists quote the reference below.'}
+          ? (ar ? 'الخدمة غير متاحة مؤقتًا. يرجى المحاولة مجددًا بعد قليل.'
+                : 'The service is temporarily unavailable. Please try again shortly.')
+          : (ar ? 'يرجى المحاولة مجددًا، وإذا استمرت المشكلة فتواصل مع الدعم.'
+                : 'Try again. If the problem continues, contact support.')}
       </p>
-      {error.digest && <p className="dim">Reference: <code>{error.digest}</code></p>}
-      <div style={{ display: 'flex', gap: 10, marginBlockStart: 16 }}>
-        <button className="btn" onClick={reset}>Try again</button>
-        <a className="btn ghost" href="/">Back to overview</a>
+      {digest && <p className="dim">{ar ? 'المرجع' : 'Reference'}: <code>{digest}</code></p>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, marginBlockStart: 16 }}>
+        <button type="button" className="btn" onClick={reset}>{ar ? 'إعادة المحاولة' : 'Try again'}</button>
+        <a className="btn ghost" href="/">{ar ? 'العودة إلى النظرة العامة' : 'Back to overview'}</a>
       </div>
     </div>
   );
