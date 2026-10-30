@@ -43,15 +43,15 @@ export default async function LoginPage({ searchParams }:
         <form className="authform" method="post" action="/api/session">
           <label>
             {ar ? 'اسم المستخدم أو البريد الإلكتروني' : 'Username or email'}
-            <input name="identifier" type="text" autoComplete="username" required autoFocus
+            <input name="identifier" type="text" autoComplete="username" required autoFocus aria-invalid={Boolean(safeError)} aria-describedby={safeError ? "login-error" : undefined}
                    placeholder={ar ? 'اسم المستخدم أو you@company.com' : 'username or you@company.com'} />
           </label>
           <label>
             {ar ? 'كلمة المرور' : 'Password'}
-            <input name="password" type="password" autoComplete="current-password" required
+            <input name="password" type="password" autoComplete="current-password" required aria-invalid={Boolean(safeError)} aria-describedby={safeError ? "login-error" : undefined}
                    placeholder="••••••••" />
           </label>
-          {safeError && <p className="formerr" role="alert">{ar ? safeError.ar : safeError.en}</p>}
+          {safeError && <p id="login-error" className="formerr" role="alert">{ar ? safeError.ar : safeError.en}</p>}
           <button className="btn wide" type="submit">{ar ? 'تسجيل الدخول' : 'Sign in'}</button>
           <Link href="/forgot-password">{ar ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</Link>
         </form>
