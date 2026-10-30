@@ -118,3 +118,38 @@ test('staging rollback and image build deny execution without action-specific co
   const archive = run('infra/staging/verify-backup.sh', ['staging', '/tmp/production.dump']);
   assert.equal(archive.status, 2);
 });
+
+const dockerCompose = spawnSync('docker', ['compose', 'version'], { encoding: 'utf8', timeout: 5000 });
+test('staging compose overrides parse and preserve private API and loopback edge', {
+  skip: dockerCompose.status !== 0,
+}, () => {
+  const result = spawnSync('docker', [
+    'compose', '-f', 'docker-compose.prod.yml',
+    '-f', 'infra/staging/images.compose.yml',
+    '-f', 'infra/staging/edge.compose.yml',
+    '-p', 'pmo-staging', 'config', '--format', 'json',
+  ], {
+    cwd: root, encoding: 'utf8', timeout: 15000,
+    env: {
+      ...process.env, PG_USER: 'ci_admin', PG_PASSWORD: 'ci_placeholder_only',
+      PG_DB: 'pmo', REDIS_PASSWORD: 'ci_placeholder_only',
+      DATABASE_URL: 'postgres://pmo_app:ci_placeholder_only@postgres:5432/pmo',
+      REDIS_URL: 'redis://:ci_placeholder_only@redis:6379',
+      WEB_ORIGIN: 'https://staging.theepmo.com',
+      PUBLIC_API_URL: 'https://api-staging.theepmo.com',
+      WEB_BIND: '127.0.0.1', WEB_PORT: '3001',
+      STAGING_EDGE_BIND: '127.0.0.1', STAGING_EDGE_HTTPS_PORT: '8443',
+      STAGING_TLS_CERT_PATH: '/tmp/epmo-ci-staging.crt',
+      STAGING_TLS_KEY_PATH: '/tmp/epmo-ci-staging.key',
+      EPMO_DEPLOY_SHA: shaA,
+    },
+  });
+  assert.equal(result.status, 0, result.stderr);
+  const config = JSON.parse(result.stdout);
+  assert.equal(config.services.api.ports, undefined, 'API must remain Docker-private');
+  assert.equal(config.services.web.ports[0].host_ip, '127.0.0.1');
+  assert.equal(config.services['staging-edge'].ports[0].host_ip, '127.0.0.1');
+  assert.equal(config.services['staging-edge'].ports[0].published, '8443');
+  assert.equal(config.services.api.image, 'epmo-staging-api:sha-' + shaA);
+  assert.equal(config.services.web.image, 'epmo-staging-web:sha-' + shaA);
+});
