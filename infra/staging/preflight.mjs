@@ -4,7 +4,7 @@
  * Stripe, Microsoft, PostgreSQL, or any network. Never prints secret values.
  */
 import { readFileSync, realpathSync, statSync } from 'node:fs';
-import { X509Certificate, createPublicKey } from 'node:crypto';
+import { X509Certificate, createPrivateKey, createPublicKey } from 'node:crypto';
 import { resolve, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSimpleEnvFile } from '../../scripts/rc1-release-gate.mjs';
@@ -59,7 +59,9 @@ export function tlsMaterialChecks(env, root = repoRoot, now = Date.now()) {
     if ((keyStat.mode & 0o077) !== 0) throw new Error('Private key must be owner-readable only');
     checks.push({ name: 'TLS files exist outside the checkout with private key permissions', passed: true });
     cert = new X509Certificate(readFileSync(certResolved));
-    key = createPublicKey(readFileSync(keyResolved));
+    // A matching public key is not a deployable TLS private key. Require an
+    // actual parseable private key before comparing its derived public half.
+    key = createPrivateKey(readFileSync(keyResolved));
   } catch {
     return [
       { name: 'TLS files exist outside the checkout with private key permissions', passed: false },
@@ -68,15 +70,20 @@ export function tlsMaterialChecks(env, root = repoRoot, now = Date.now()) {
       { name: 'TLS private key matches the certificate', passed: false },
     ];
   }
+  // Modern TLS clients require SANs. checkHost() alone may fall back to a
+  // legacy CN wildcard when SAN is missing, giving false deployment readiness.
+  const sanNames = new Set((cert.subjectAltName || '').split(/,\s*/));
   checks.push({ name: 'TLS certificate matches both staging hostnames',
-    passed: Boolean(cert.checkHost('staging.theepmo.com')) &&
+    passed: sanNames.has('DNS:staging.theepmo.com') &&
+      sanNames.has('DNS:api-staging.theepmo.com') &&
+      Boolean(cert.checkHost('staging.theepmo.com')) &&
       Boolean(cert.checkHost('api-staging.theepmo.com')) });
   checks.push({ name: 'TLS certificate is valid for at least 24 hours',
     passed: Date.parse(cert.validFrom) <= now &&
       Date.parse(cert.validTo) > now + 24 * 60 * 60 * 1000 });
   checks.push({ name: 'TLS private key matches the certificate',
     passed: cert.publicKey.export({ type: 'spki', format: 'der' }).equals(
-      key.export({ type: 'spki', format: 'der' })) });
+      createPublicKey(key).export({ type: 'spki', format: 'der' })) });
   return checks;
 }
 
