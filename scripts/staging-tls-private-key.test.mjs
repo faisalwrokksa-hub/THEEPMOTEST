@@ -49,3 +49,21 @@ test('S11 staging TLS preflight accepts private key, rejects public-key substitu
     rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('S11 staging TLS preflight rejects legacy CN-only wildcard without DNS SAN', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'epmo-s11-cn-'));
+  const cert = join(dir, 'legacy.crt');
+  const key = join(dir, 'legacy.key');
+  try {
+    openssl('req', '-x509', '-newkey', 'rsa:2048', '-nodes',
+      '-keyout', key, '-out', cert, '-days', '3',
+      '-subj', '/CN=*.theepmo.com');
+    chmodSync(key, 0o600);
+    const checks = tlsMaterialChecks({
+      STAGING_TLS_CERT_PATH: cert, STAGING_TLS_KEY_PATH: key,
+    }, root);
+    assert.equal(checks.find(check => check.name === 'TLS certificate matches both staging hostnames')?.passed, false);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+});
