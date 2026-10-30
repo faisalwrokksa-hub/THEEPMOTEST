@@ -6,7 +6,7 @@ export function onboardingActionHref(key: GuidedTask): string {
     case 'workspace':
     case 'team': return '/settings';
     case 'portfolio': return '/portfolios?new=portfolio';
-    case 'program': return '/portfolios?new=program';
+    case 'program': return '/programs?new=program';
     case 'project': return '/projects?new=project';
   }
 }
