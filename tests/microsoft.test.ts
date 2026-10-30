@@ -200,6 +200,13 @@ describe('the connection row', () => {
     const theirs = await get('/api/v1/microsoft/status', fatima);
     expect(theirs.body.connection?.accountEmail).toBe('someone@al-nakheel.example');
 
+    // Legacy rows without a consenting user must not expose delegated identity
+    // metadata to an otherwise authorized workspace administrator.
+    psql(`UPDATE integration_connections SET connected_by = NULL WHERE tenant_id = '${nakheel}' AND provider = 'microsoft'`);
+    const legacy = await get('/api/v1/microsoft/status', fatima);
+    expect(legacy.body.connection?.status).toBe('connected');
+    expect(legacy.body.connection?.accountEmail).toBeNull();
+
     const khalid = (await login('khalid@nexa.test')).token!;
     const other = await get('/api/v1/microsoft/status', khalid);
     expect(other.body.connection).toBeNull();
