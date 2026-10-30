@@ -12,7 +12,7 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "Completed commercial branch CI #40967539309 on SHA 0c3d683b3ffc311aa0e330bb01380f3f2d98e226 failed pnpm audit --audit-level high: 65 advisories (2 critical, 25 high, 29 moderate, 9 low), including proxy-addr and Next.js critical findings. Historical branch evidence only; integrated candidate not established.",
+      "blockingReason": "Completed commercial PR CI #40975144127 on SHA 365854b021b7dc7ba41108b021499510e41940ab failed pnpm audit --audit-level high: 65 vulnerabilities (2 critical, 25 high, 29 moderate, 9 low), including critical proxy-addr and Next.js advisories. Branch evidence only, not a release candidate.",
       "unblockAction": "Engineering remediate vulnerable dependency graph without relaxing audit threshold; rerun pnpm audit --audit-level high on integrated release candidate."
     },
     "ci_build_tests": {
@@ -23,7 +23,7 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "Completed commercial branch CI #40967539309 on SHA 0c3d683b3ffc311aa0e330bb01380f3f2d98e226: source checks 844/844 PASS, integration 101 PASS / 8 FAIL / 20 SKIP, and current-run CI evidence enforcement FAIL due to missing integration receipt. Failing integration tests include Microsoft unconfigured 503 instead of expected 409 and invalid handshake URLs, and finance permission test 400 instead of expected 403. No integrated same-SHA PASS.",
+      "blockingReason": "Completed commercial PR CI #40975144127 on SHA 365854b021b7dc7ba41108b021499510e41940ab: dependency-free source tests 844/844 PASS, build artifact gate 5/5 PASS, billing-isolation targeted tests 13/13 PASS; general integration 101 PASS / 8 FAIL / 20 SKIP, so integration receipt enforcement failed. Seven Microsoft handshake/configuration assertions returned 503/invalid URL; one finance permission assertion returned 400 instead of 403. Integrated same-SHA CI remains BLOCKED.",
       "unblockAction": "Engineering inspect Microsoft test configuration and finance permission test fixture/response, without bypassing authorization; restore integration receipt only after actual test pass; rerun frozen-lockfile install, production build/typecheck, full integration and CI evidence enforcement on one integrated candidate SHA."
     },
     "tenant_rls": {
@@ -145,12 +145,20 @@
     }
   },
   "lastObservedFailure": {
-    "observedAtUtc": "2026-10-29T22:41:52Z",
+    "observedAtUtc": "2026-10-29T23:45:50Z",
     "branch": "feat/commercial-release-evidence-20261029",
-    "commitSha": "0c3d683b3ffc311aa0e330bb01380f3f2d98e226",
-    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/40967539309",
+    "commitSha": "365854b021b7dc7ba41108b021499510e41940ab",
+    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/40975144127",
     "sourceChecks": {
       "passed": 844,
+      "failed": 0
+    },
+    "buildArtifactChecks": {
+      "passed": 5,
+      "failed": 0
+    },
+    "targetedBillingIsolationTests": {
+      "passed": 13,
       "failed": 0
     },
     "integrationTests": {
@@ -165,22 +173,18 @@
       "moderate": 29,
       "low": 9
     },
-    "qualification": "Completed historical commercial-branch CI. Source tests passed but integration and audit failed. Not integrated candidate evidence; candidateSha remains null and decision NO-GO."
+    "qualification": "Completed commercial-branch run only. Build artifact checks and isolated billing tests passed; general integration and audit failed. Not recurring Stripe subscription or live staging acceptance. candidateSha remains null and decision NO-GO."
   },
   "lastCommercialDecision": {
     "decision": "NO-GO",
-    "reason": "Commercial branch CI #40967539309 failed audit (65 advisories) and integration (8 failures), with CI evidence enforcement blocked; seven Stripe TEST scenarios and staging acceptance remain unverified; no integrated candidate SHA.",
+    "reason": "CI #40975144127 failed dependency audit and integration; first-customer subscription mode, Stripe TEST webhook/replay/entitlement/payment failure/cancellation/tenant isolation and integrated candidate SHA remain unverified.",
     "safeChanges": [
       {
-        "sha": "0c3d683b3ffc311aa0e330bb01380f3f2d98e226",
-        "description": "Earlier evidence register and safe-URL checks, now CI-observed"
-      },
-      {
-        "sha": "c83e58e53eb739814b7b53d8242066a5eedb521c",
-        "description": "Reject signed or credential-bearing evidence URL query aliases"
+        "sha": "365854b021b7dc7ba41108b021499510e41940ab",
+        "description": "Earlier commercial evidence-only update; now CI-observed"
       }
     ],
-    "verification": "GitHub Actions #40967539309: 844 source checks passed; 8 integration failures; dependency audit failed; commercial evidence register refreshed using completed logs. This documentation-only change requires its own CI; no same-SHA acceptance.",
-    "tradeoff": "Do not mark integration as PASS from improved failure counts; do not fabricate missing Stripe or staging artifacts. Continue contract and evidence work independently while Engineering resolves CI and dependency graph."
+    "verification": "CI #40975144127: 844 source checks PASS, 5/5 build artifact checks PASS, 13/13 isolated billing tests PASS; 8 general integration failures and 65 audit findings. Partial positives cannot substitute for full release acceptance.",
+    "tradeoff": "Preserve positive targeted test evidence without upgrading gates to PASS; retain candidateSha=null; do not weaken security or integration assertions. Continue contract handoff and safe evidence work while Engineering repairs underlying failures."
   }
 }
