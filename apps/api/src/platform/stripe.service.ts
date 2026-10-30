@@ -100,6 +100,7 @@ export class StripeBillingService {
       try { parsedUrl = new URL(url); }
       catch { throw new BadGatewayException('Stripe Checkout returned an invalid URL'); }
       if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== CHECKOUT_HOST ||
+          session.livemode !== config.liveMode ||
           typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id) ||
           (config.liveMode && !session.id.startsWith('cs_live_')) ||
           (!config.liveMode && !session.id.startsWith('cs_test_')) ||

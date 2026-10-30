@@ -8,7 +8,7 @@ export const STRIPE_EVENTS = new Set(['checkout.session.completed', 'checkout.se
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 export type StripeCheckoutSession = {
-  id: string; object: string; mode: string; status: string; payment_status: string;
+  id: string; object: string; livemode: boolean; mode: string; status: string; payment_status: string;
   amount_total: number | null; currency: string | null;
   payment_intent: string | null; client_reference_id: string | null;
   metadata?: { tenantId?: string; invoiceId?: string } | null;
@@ -55,6 +55,8 @@ export function parsePaidStripeEvent(rawBody: Buffer, liveMode: boolean):
   if (!session || typeof session !== 'object' || session.object !== 'checkout.session' ||
       typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id))
     throw new Error('Stripe Checkout session is missing or invalid');
+  if (session.livemode !== liveMode)
+    throw new Error('Stripe Checkout session mode mismatch');
   if (session.mode !== 'payment' || session.status !== 'complete' || session.payment_status !== 'paid')
     return null; // Never grant on an unpaid/async-pending checkout.
   return { eventId: event.id, session };

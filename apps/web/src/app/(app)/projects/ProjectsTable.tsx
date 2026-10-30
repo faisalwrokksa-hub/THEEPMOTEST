@@ -6,8 +6,19 @@ import Link from 'next/link';
 
 type Row = {
   id: string; code: string; name: string; status: string; health: string;
-  progressPct: number; budgetAmount: string | number | null; endDate: string | null;
+  progressPct: number; budgetAmount?: string | number | null;
+  budget?: { amount: number; currency: string } | null; endDate: string | Date | null;
 };
+
+const projectBudget = (r: Row): number | null => {
+  const value = r.budgetAmount ?? r.budget?.amount;
+  if (value == null) return null;
+  const number = Number(value);
+  return Number.isFinite(number) ? number : null;
+};
+
+const projectEndDate = (r: Row): string | null =>
+  r.endDate instanceof Date ? r.endDate.toISOString() : r.endDate;
 
 const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
   { key: 'code', head: 'Code', value: (r) => r.code,
@@ -30,15 +41,15 @@ const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
       </>
     ) },
   { key: 'budget', head: 'Budget', align: 'end',
-    value: (r) => Number(r.budgetAmount ?? 0),
-    cell: (r) => <span className="num">{money(Number(r.budgetAmount ?? 0) || null)}</span> },
-  { key: 'end', head: 'Due', align: 'end', value: (r) => r.endDate ?? '',
-    cell: (r) => <span className="num">{when(r.endDate, lang)}</span> },
+    value: (r) => projectBudget(r),
+    cell: (r) => <span className="num">{money(projectBudget(r))}</span> },
+  { key: 'end', head: 'Due', align: 'end', value: (r) => projectEndDate(r) ?? '',
+    cell: (r) => <span className="num">{when(projectEndDate(r), lang)}</span> },
 ];
 
-export function ProjectsTable({ rows, lang }: { rows: Row[]; lang?: Lang }) {
+export function ProjectsTable({ rows, lang, empty }: { rows: Row[]; lang?: Lang; empty?: string }) {
   const cols = makeCols(translator(lang ?? 'en'), lang ?? 'en');
   return <DataTable rows={rows} cols={cols} lang={lang}
                     filterPlaceholder={lang === 'ar' ? 'ابحث برمز المشروع أو اسمه أو حالته…' : 'Filter by code, name or status…'}
-                    initialSort={{ key: 'health', dir: 'asc' }} empty={lang === 'ar' ? 'لا توجد مشاريع بعد.' : 'No projects yet.'} />;
+                    initialSort={{ key: 'health', dir: 'asc' }} empty={empty ?? (lang === 'ar' ? 'لا توجد مشاريع بعد.' : 'No projects yet.')} />;
 }

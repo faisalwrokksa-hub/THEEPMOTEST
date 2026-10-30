@@ -1,4 +1,5 @@
 import { Logger } from '@nestjs/common';
+import { microsoftApiUrl } from './url-policy';
 
 /**
  * Talking to Microsoft: one app registration, every customer's own tenant.
@@ -168,8 +169,10 @@ export class MsApiError extends Error {
 export async function call<T>(base: string, accessToken: string, path: string, init: {
   method?: string; body?: string | Uint8Array; headers?: Record<string, string>;
 } = {}): Promise<T> {
-  const url = path.startsWith('http') ? path : `${base}${path}`;
+  const url = microsoftApiUrl(base, path);
   const res = await fetch(url, {
+    // Never forward delegated bearer credentials through an upstream redirect.
+    redirect: 'error',
     method: init.method ?? 'GET',
     headers: {
       authorization: `Bearer ${accessToken}`,
