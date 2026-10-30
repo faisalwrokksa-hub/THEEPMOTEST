@@ -26,11 +26,12 @@ test('the connection owner is checked before any cached Microsoft token is retur
   const cache = access.indexOf('this.tokens.get(cacheKey)');
   assert.ok(read >= 0 && owner > read && cache > owner);
   assert.match(access, /throw new ForbiddenException\(/);
-  assert.match(access, /cacheKey = `${tenantId}:${userId}:${resource}`/);
+  assert.ok(access.includes('cacheKey = `${tenantId}:${userId}:${resource}`'));
 });
 
 test('token rotation and error updates cannot overwrite a different consenting user', () => {
-  assert.match(access, /WHERE provider = ${PROVIDER} AND connected_by = ${userId}\s+AND refresh_token = ${row.refresh_token}/);
+  assert.ok(access.includes('WHERE provider = ${PROVIDER} AND connected_by = ${userId}'));
+  assert.ok(access.includes('AND refresh_token = ${row.refresh_token}'));
   assert.match(access, /RETURNING id/);
   assert.match(access, /if \(!updated.length\)/);
 });
