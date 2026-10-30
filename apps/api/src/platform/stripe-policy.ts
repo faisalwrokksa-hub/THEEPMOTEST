@@ -215,6 +215,14 @@ export function assertStripeExceptionIntent(intent: any, event: StripePaymentExc
   return { tenantId: intent.metadata.tenantId as string, invoiceId: intent.metadata.invoiceId as string };
 }
 
+/** Stripe's charge.refunded amount is cumulative for one charge, not necessarily
+ * the entire paid invoice. A full charge refund must never revoke access if
+ * other captured funds for that invoice remain unrefunded. */
+export function refundCoversPaidInvoice(refundedAmountMinor: number, paidAmountMinor: number): boolean {
+  return Number.isSafeInteger(refundedAmountMinor) && Number.isSafeInteger(paidAmountMinor) &&
+    paidAmountMinor > 0 && refundedAmountMinor === paidAmountMinor;
+}
+
 /** A refund/dispute affects current access only if the paid period is still current. */
 export function shouldPauseOnPaymentException(type: StripePaymentException['type'],
   subscription: { id: string; status: string; periodEndsAt: Date | string },
