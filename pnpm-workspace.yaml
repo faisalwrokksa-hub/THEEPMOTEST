@@ -1,3 +1,7 @@
 packages:
   - "apps/*"
   - "packages/*"
+overrides:
+  image-size: '^2.0.3'
+  vite: '8.3.3'
+  typescript: '~5.9.3'
