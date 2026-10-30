@@ -27,6 +27,8 @@ test('the connection owner is checked before any cached Microsoft token is retur
   assert.ok(read >= 0 && owner > read && cache > owner);
   assert.match(access, /throw new ForbiddenException\(/);
   assert.ok(access.includes('cacheKey = `${tenantId}:${userId}:${resource}`'));
+  assert.ok(access.includes('hit.credential === row.refresh_token'));
+  assert.ok(access.includes('credential = seal(tok.refreshToken)'));
 });
 
 test('token rotation and error updates cannot overwrite a different consenting user', () => {
