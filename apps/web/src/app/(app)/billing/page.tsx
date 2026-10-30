@@ -1,4 +1,5 @@
 import { billingChangeGuidance } from '@/lib/billing-self-service.mjs';
+import { checkoutReturnStatus } from '@/lib/billing-return-status.mjs';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Page, Loaded } from '@/components/Page';
@@ -20,6 +21,7 @@ export default async function BillingPage({ searchParams }: {
   const lang = ar ? 'ar' : 'en';
   const tx = (en: string, arabic: string) => ar ? arabic : en;
   const { error, success, billing, updated } = await searchParams;
+  const checkoutReturn = checkoutReturnStatus(billing);
   const labels: Record<string, string> = {
     active: tx('Active', 'نشط'), trialing: tx('Trial', 'تجريبي'),
     past_due: tx('Past due', 'متأخر السداد'), paused: tx('Paused', 'موقوف مؤقتًا'),
@@ -35,10 +37,10 @@ export default async function BillingPage({ searchParams }: {
       'تعذّر إكمال طلب الفوترة. تحقق من حالة الاشتراك أو تواصل مع المسؤول.')}</p>}
     {success && <p role="status" className="okmsg">{tx('Renewal invoice created or found.', 'تم إنشاء فاتورة التجديد أو العثور عليها.')}</p>}
     {updated && <p role="status" className="okmsg">{tx('Subscription preference updated.', 'تم تحديث إعداد الاشتراك.')}</p>}
-    {billing === 'success' && <p role="status" className="dim">{tx(
+    {checkoutReturn === 'awaiting-webhook' && <p role="status" className="dim">{tx(
       'You returned from Stripe Checkout. Your license renews only after our server verifies Stripe’s payment webhook.',
       'عدت من بوابة Stripe. لا يتجدد الترخيص إلا بعد تحقق الخادم من إشعار الدفع الموقّع.')}</p>}
-    {billing === 'cancel' && <p role="status" className="dim">{tx(
+    {checkoutReturn === 'cancelled' && <p role="status" className="dim">{tx(
       'Stripe Checkout was canceled. No payment confirmation has been received.',
       'تم إلغاء عملية الدفع عبر Stripe. لم يصل تأكيد دفع.')}</p>}
 
