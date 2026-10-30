@@ -39,7 +39,7 @@ cleanup() { [[ -n "${context:-}" && -d "$context" ]] && rm -rf -- "$context"; }
 trap cleanup EXIT
 git archive --format=tar "$sha" | tar -xf - -C "$context"
 if find "$context" -type f \( -name '.env' -o -name '.env.staging' -o -name '.env.prod' \
-  -o -name '*.key' -o -name '*.pem' -o -name '*.dump' \) | grep -q .; then
+  -o -name '*.key' -o -name '*.pem' -o -name '*.dump' \) -print -quit | grep -q .; then
   echo 'BLOCKED: tracked secret-like file in immutable build context' >&2
   exit 1
 fi
