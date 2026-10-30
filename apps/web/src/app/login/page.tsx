@@ -1,7 +1,7 @@
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
 import { getSession } from '@/lib/api';
-import { tr, getLang } from '@/lib/i18n';
+import { getLang } from '@/lib/i18n';
 
 export const metadata = { title: 'Sign in · The EPMO' };
 
@@ -11,8 +11,20 @@ export default async function LoginPage({ searchParams }:
   if (s.authenticated) redirect('/');
 
   const { error } = await searchParams;
-  const t = await tr();
   const ar = (await getLang()) === 'ar';
+  // Never display arbitrary URL parameters or backend-provided error text.
+  const loginErrors = {
+    missing: { en: 'Enter your username and password.', ar: 'أدخل اسم المستخدم وكلمة المرور.' },
+    invalid: { en: 'Those credentials are not recognised.', ar: 'اسم المستخدم أو كلمة المرور غير صحيح.' },
+    unavailable: { en: 'Sign-in is temporarily unavailable. Please try again shortly.', ar: 'تسجيل الدخول غير متاح مؤقتًا. يرجى المحاولة بعد قليل.' },
+    rate_limited: { en: 'Too many attempts. Please wait before trying again.', ar: 'محاولات كثيرة. يرجى الانتظار قبل إعادة المحاولة.' },
+    session_missing: { en: 'We could not start your session. Please try again.', ar: 'تعذّر بدء الجلسة. يرجى المحاولة مجددًا.' },
+    expired: { en: 'Your session expired. Please sign in again.', ar: 'انتهت جلستك. يرجى تسجيل الدخول مجددًا.' },
+  } as const;
+  const safeError = error
+    ? (Object.prototype.hasOwnProperty.call(loginErrors, error)
+        ? loginErrors[error as keyof typeof loginErrors] : loginErrors.invalid)
+    : null;
   const showHint = process.env.NODE_ENV === 'development' &&
     (!process.env.DEPLOYMENT_ENV || process.env.DEPLOYMENT_ENV === 'development');
 
@@ -39,7 +51,7 @@ export default async function LoginPage({ searchParams }:
             <input name="password" type="password" autoComplete="current-password" required
                    placeholder="••••••••" />
           </label>
-          {error && <p className="formerr" role="alert">{t(error)}</p>}
+          {safeError && <p className="formerr" role="alert">{ar ? safeError.ar : safeError.en}</p>}
           <button className="btn wide" type="submit">{ar ? 'تسجيل الدخول' : 'Sign in'}</button>
           <Link href="/forgot-password">{ar ? 'نسيت كلمة المرور؟' : 'Forgot password?'}</Link>
         </form>
