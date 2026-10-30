@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "candidateSha": null,
   "decision": "NO-GO",
-  "description": "2026-10-30 review-only evidence reconciliation: PR #9 documentation integration SHA dd21cdc1 CI #41021780633 PASS 4/4; descendant Engineering PR #10 SHA 706b0ac CI #41023903055 PASS 4/4; descendant Frontend PR #11 SHA 5099ab0 CI #41026501828 PASS 4/4. These are separate exact-SHA branch CI observations, not staging/provider acceptance. No accepted immutable release candidate; nine gates non-PASS; seven Stripe TEST scenarios unverified. NO-GO.",
+  "description": "2026-10-30 10:35 UTC: Commercial PR #9 ecb67fd CI #41027800383 SUCCESS 4/4; Frontend PR #11 5a4a9d8 CI #41040612826 SUCCESS 4/4; Engineering test correction PR #13 2cdb8e1 CI #41037707742 SUCCESS 4/4 after PR #12 failed stale source assertion. PR #11 and PR #13 are divergent branches, not a combined SHA. New Commercial handoff documentation commit 4752200 not yet CI-accepted. No real Stripe TEST, Entra, HTTPS staging, browser UAT, recovery or business/legal acceptance. Nine gates non-PASS; Stripe 0/7; candidateSha null; NO-GO.",
   "gates": {
     "dependency_security": {
       "status": "BLOCKED",
@@ -12,7 +12,7 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "2026-10-30 GitHub Actions source/audit/verify/remediation jobs all SUCCESS on PR #9 dd21cdc1 (run 41021780633), PR #10 706b0ac (run 41023903055), and PR #11 5099ab0 (run 41026501828). Separate branch-local passes do not qualify an immutable accepted release candidate. Prior 2 moderate findings still require disposition.",
+      "blockingReason": "Independently verified 4/4 jobs SUCCESS on Commercial PR #9 SHA ecb67fd (run 41027800383), Frontend PR #11 SHA 5a4a9d8 (run 41040612826), Engineering PR #13 SHA 2cdb8e1 (run 41037707742). Distinct branches; new handoff docs SHA 4752200 unverified. Moderate advisory disposition and final integrated SHA audit remain required.",
       "unblockAction": "Engineering review risk and disposition of 2 moderate advisories, preserve frozen-lockfile dependency graph, independently inspect integrated CI #41000449526 at its exact SHA, and repeat audit on final immutable release candidate if it changes. No downgrading audit threshold."
     },
     "ci_build_tests": {
@@ -23,8 +23,8 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "2026-10-30 PR #9 dd21cdc1 run 41021780633, PR #10 706b0ac run 41023903055 and PR #11 5099ab0 run 41026501828 each completed SUCCESS 4/4 jobs (source, verify, audit, remediation candidate). Latest PR #11 contains upstream changes by ancestry, but this is review-only CI, not complete same-SHA staging/provider/UAT/recovery acceptance.",
-      "unblockAction": "Run full frozen-lockfile CI on documentation integration branch final exact SHA; inspect source/audit/verify, PostgreSQL RLS, tenant isolation and build receipts. Independently reconcile final commit SHA and all external staging/UAT/provider evidence. Do not merge/deploy."
+      "blockingReason": "Commercial #9 ecb67fd CI 41027800383 SUCCESS 4/4; Frontend #11 5a4a9d8 CI 41040612826 SUCCESS 4/4; Engineering #13 2cdb8e1 CI 41037707742 SUCCESS 4/4 (source 893/893 per PR evidence). PR #12 fa16eda CI 41030149871 FAILED stale assertion; #13 corrects it. Frontend and Engineering heads are divergent; no same-SHA integrated release candidate or external acceptance.",
+      "unblockAction": "Review-only integration owner reconcile Frontend #11 and Engineering #13 with Commercial docs; inspect overlap/conflicts and preserve OAuth guards. Pin one new immutable candidate SHA; rerun frozen-lockfile source/audit/verify, real disposable PostgreSQL RLS, build and smoke on it; then staging/Stripe/Entra/UAT/recovery on that identical SHA. Do not merge/deploy."
     },
     "tenant_rls": {
       "status": "PENDING",
@@ -45,7 +45,7 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "Engineering PR #10 SHA 706b0ac run 41023903055 completed SUCCESS 4/4 after adding callback-time membership revalidation and lock; PR #11 descendant SHA 5099ab0 also 4/4 green. These structural/integration checks do not prove two simultaneous per-user Microsoft connections, real Entra consent/refresh/revoke or cross-user isolation in staging.",
+      "blockingReason": "Engineering PR #13 SHA 2cdb8e1 CI 41037707742 SUCCESS 4/4 after source assertion repair; PR #12 parent failed source assertion. This verifies source/CI only. Independent two-user Entra delegated consent, refresh/revoke and cross-user denial on final integrated SHA remain absent; workspace singleton connection storage issue remains unaccepted.",
       "unblockAction": "Engineering design/migrate tenant+user+provider connection storage and test two simultaneous delegated users without sharing refresh tokens; authorized Entra staging administrator provision isolated app and two test identities; run consent, refresh, revoke and cross-user denial with sanitized same-SHA receipts. Preserve fail-closed behavior; no customer tenant consent."
     },
     "stripe_test_billing": {
@@ -108,7 +108,7 @@
           "testResult": null
         }
       },
-      "blockingReason": "Latest green PR #8 CI #41013673810 covers code/build/RLS but does not prove recurring Stripe TEST. Existing checkout path is invoice payment-mode proxy; first-customer subscription-mode Checkout, signed raw-body webhook, replay-safe entitlement provisioning, failed payment and cancellation remain unverified. No verified restricted test key/signing secret, public staging HTTPS webhook or disposable customer tenants. All seven real scenarios PENDING.",
+      "blockingReason": "No real Stripe TEST recurring subscription lifecycle evidence. Existing invoice checkout payment mode is not subscription mode; no verified restricted sk_test/whsec, public HTTPS webhook, test Price ID or two disposable staging tenants. All seven scenarios PENDING. Branch CI 4/4 does not prove provider delivery, signature, idempotency, entitlement, failure or cancellation.",
       "unblockAction": "Engineering implement authenticated server-owned Stripe subscription-mode first-customer checkout, raw-body signature verification, replay-safe idempotency and tenant-bound entitlement state; Frontend wire pending/failed/cancelled UX without trusting success URL; authorized staging administrator provision restricted sk_test/whsec in secret store, public HTTPS endpoint, two disposable tenants and Stripe TEST webhook delivery; Commercial execute and review all seven scenarios on one final SHA."
     },
     "frontend_customer_journeys": {
@@ -119,7 +119,7 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "Frontend PR #11 SHA 5099ab0 run 41026501828 SUCCESS 4/4 after replacing raw API login error messages with allowlisted bilingual error codes. No evidence yet for public signup/activation, recurring Stripe checkout, 375px/desktop Arabic RTL keyboard browser UAT, or working support/legal links.",
+      "blockingReason": "Frontend PR #11 latest SHA 5a4a9d8 CI 41040612826 SUCCESS 4/4, including mobile topbar source regression. No verified public signup, real recurring checkout, 375px/desktop RTL browser screenshots, account/support/pricing acceptance. Frontend #11 does not include Engineering #13 correction on same SHA.",
       "unblockAction": "Engineering/Commercial ratify proposed public signup and subscription API contract in docs/COMMERCIAL-RELEASE-CONTRACT.md; Frontend implement accessible public landing/pricing/signup, checkout/failed/cancelled/account/support UX in its own files, then execute 375px/desktop keyboard/Arabic RTL browser UAT on final same-SHA HTTPS staging candidate."
     },
     "staging_smoke": {
@@ -176,18 +176,21 @@
   },
   "lastCommercialDecision": {
     "decision": "NO-GO",
-    "observedAtUtc": "2026-10-30T08:37:27Z",
-    "reason": "Three successive review-only CI runs #41021780633/#41023903055/#41026501828 green 4/4 at their own SHAs, but no first-customer recurring Stripe TEST or 7 scenario evidence, two-user Entra, isolated HTTPS staging browser UAT, independent recovery, legal/support acceptance or immutable accepted candidate SHA.",
+    "observedAtUtc": "2026-10-30T10:35:00Z",
+    "reason": "Separate 4/4 CI passes for commercial ecb67fd, frontend 5a4a9d8 and engineering 2cdb8e1, but not one integrated SHA; no verified real Stripe TEST subscription, two-user Entra, HTTPS staging, browser UAT, recovery, pricing/legal/support signoff.",
     "safeChanges": [
       {
-        "description": "Inspected GitHub exact PR #9/#10/#11 heads and completed workflow runs and all four job conclusions for each."
+        "description": "Inspected PR #9/#11/#12/#13 exact heads and Actions conclusions; verified #12 failed and #13 correction succeeded."
       },
       {
-        "description": "Updated only Commercial-owned evidence manifest on draft PR #9, preserving fail-closed gate status and external dependency actions."
+        "description": "Added Commercial-owned docs/P0-PAID-CUSTOMER-RELEASE-HANDOFF-20261030.md with final same-SHA checklist, seven real Stripe scenarios, precise external dependencies and non-overlap ownership."
+      },
+      {
+        "description": "Reconciled unified evidence manifest without changing any gate to PASS or inventing artifacts."
       }
     ],
-    "verification": "Connector-fetched GitHub workflow and job conclusions plus manifest and contract; no Stripe/Entra/staging/browser/recovery provider tests executed.",
-    "tradeoff": "Preserve candidateSha:null and all nine gates non-PASS despite green branch CI; avoid touching Engineering/Frontend files or claiming external proof."
+    "verification": "GitHub connector PR metadata, exact-SHA workflow run and job conclusions, Commercial contract/manifest; no live Stripe, Entra, staging, browser or recovery tests executed.",
+    "tradeoff": "New docs/manifest commits need their own CI; preserve divergent Engineering/Frontend branches and fail-closed candidateSha:null instead of fabricating integrated acceptance."
   },
   "lastEngineeringObservation": {
     "branch": "fix/p0-ci-assertions-20261029",
@@ -294,27 +297,41 @@
   "latestReviewOnlyCiObservations": [
     {
       "pullRequest": 9,
-      "commitSha": "dd21cdc1bbb1c0fb74133203dbba85b9eff714e6",
-      "runId": 41021780633,
-      "runUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41021780633",
+      "commitSha": "ecb67fd315e0a0fddc1bc0816c1c8407634fb547",
+      "runId": 41027800383,
+      "runUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41027800383",
       "result": "SUCCESS_4_OF_4",
-      "scope": "Commercial docs on Frontend/Engineering base"
-    },
-    {
-      "pullRequest": 10,
-      "commitSha": "706b0ac550cd9faa1ee536457d456c85c0a3aaee",
-      "runId": 41023903055,
-      "runUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41023903055",
-      "result": "SUCCESS_4_OF_4",
-      "scope": "Engineering Microsoft callback authorization revocation guard; no real Entra acceptance"
+      "scope": "Commercial documentation-only CI; not provider acceptance"
     },
     {
       "pullRequest": 11,
-      "commitSha": "5099ab0048ff4dd6be2015c85738caa3f4ad346a",
-      "runId": 41026501828,
-      "runUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41026501828",
+      "commitSha": "5a4a9d8eab288f69df05596dae61e14ff3a4568f",
+      "runId": 41040612826,
+      "runUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41040612826",
       "result": "SUCCESS_4_OF_4",
-      "scope": "Frontend login error-code safety; no interactive browser UAT"
+      "scope": "Frontend mobile/login safety; not combined with Engineering #13"
+    },
+    {
+      "pullRequest": 12,
+      "commitSha": "fa16edac1db635f1cf72e81d6be228befb823261",
+      "runId": 41030149871,
+      "runUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41030149871",
+      "result": "FAIL",
+      "scope": "Obsolete source assertion; #13 corrects on descendant"
+    },
+    {
+      "pullRequest": 13,
+      "commitSha": "2cdb8e18246c8f863aef0398f6fcf466bce55af6",
+      "runId": 41037707742,
+      "runUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41037707742",
+      "result": "SUCCESS_4_OF_4",
+      "scope": "Engineering refresh-token test correction; not combined with Frontend #11"
     }
-  ]
+  ],
+  "lastCommercialHandoff": {
+    "branch": "integration/commercial-evidence-on-green-20261030",
+    "commitSha": "4752200ab98ecba946eaf94c26de65256961ee8a",
+    "path": "docs/P0-PAID-CUSTOMER-RELEASE-HANDOFF-20261030.md",
+    "status": "DOCUMENTATION_CREATED_CI_NOT_YET_VERIFIED"
+  }
 }
