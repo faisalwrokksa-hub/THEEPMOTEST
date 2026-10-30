@@ -75,7 +75,7 @@ export function runRestoreDrill(env = process.env) {
   try {
     const before = counts(cfg.database);
     if (Number(before.users) < 2 || Number(before.tenants) < 2 ||
-        Number(before.memberships) < 2 || Number(before.migrations) !== 20)
+        Number(before.memberships) < 2 || Number(before.migrations) !== 21)
       throw new Error('Blocked: CI source has not been migrated and seeded with the expected fixtures');
     exec('pg_dump', [...args, '-d', cfg.database, '--format=custom', '--no-owner', '--no-acl', '--file', archive]);
     if (statSync(archive).size < 100) throw new Error('Blocked: database backup is empty');
