@@ -44,3 +44,28 @@ test('rejects partial pagination, wrong-run jobs and missing required jobs', () 
   jobs.jobs.shift();
   assert.equal(evaluateCiEvidence(run, jobs, SHA).passed, false);
 });
+
+test('rejects absent workflow ID, absent job provenance, and missing pagination totals', () => {
+  const { run, jobs } = fixture();
+  delete run.id;
+  assert.equal(evaluateCiEvidence(run, jobs, SHA).passed, false, 'missing run id');
+  run.id = 123;
+  delete jobs.jobs[0].run_id;
+  assert.equal(evaluateCiEvidence(run, jobs, SHA).passed, false, 'missing job run id');
+  jobs.jobs[0].run_id = 123;
+  delete jobs.total_count;
+  assert.equal(evaluateCiEvidence(run, jobs, SHA).passed, false, 'missing total_count');
+  jobs.total_count = 3;
+  assert.equal(evaluateCiEvidence(run, jobs, SHA).passed, false, 'inconsistent total_count');
+});
+
+test('rejects malformed jobs and steps rather than throwing or accepting them', () => {
+  const { run, jobs } = fixture();
+  jobs.jobs.push(null);
+  jobs.total_count = jobs.jobs.length;
+  assert.equal(evaluateCiEvidence(run, jobs, SHA).passed, false, 'null job');
+  jobs.jobs.pop();
+  jobs.total_count = jobs.jobs.length;
+  jobs.jobs[3].steps.push(null);
+  assert.equal(evaluateCiEvidence(run, jobs, SHA).passed, false, 'null step');
+});
