@@ -5,7 +5,7 @@ import { verifyStripeSignature, parsePaidStripeEvent, assertStripeSettlement, st
 const tenantId = '2bb4c19e-ac7d-47a3-8fa1-f917640e127a';
 const invoiceId = 'ae6c076e-c4fe-4cb0-9eda-476ea8d59024';
 const subId = '72c72f05-c371-43c0-9f2a-9eb4b9945805';
-const session = {id:'cs_test_AAA123',object:'checkout.session',mode:'payment',status:'complete',payment_status:'paid',payment_intent:'pi_123TEST',currency:'sar',amount_total:12000,client_reference_id:invoiceId,metadata:{tenantId,invoiceId}};
+const session = {id:'cs_test_AAA123',object:'checkout.session',livemode:false,mode:'payment',status:'complete',payment_status:'paid',payment_intent:'pi_123TEST',currency:'sar',amount_total:12000,client_reference_id:invoiceId,metadata:{tenantId,invoiceId}};
 const invoice = {id:invoiceId,tenantId,subscriptionId:subId,status:'open',amountMinor:12000,currency:'SAR',periodStartsAt:'2026-11-01',periodEndsAt:'2026-12-01'};
 const subscription={id:subId,tenantId,status:'active',periodEndsAt:'2026-11-01',cancelAtPeriodEnd:false};
 const record={stripeSessionId:session.id,tenantId,invoiceId};
@@ -21,6 +21,17 @@ test('missing signature rejected',()=>assert.equal(verifyStripeSignature(body,'t
 test('multiple signatures can include rotated key',()=>assert.equal(verifyStripeSignature(body,`t=${ts},v1=${'0'.repeat(64)},v1=${sig}`,secret,now),true));
 test('valid checkout paid event accepted',()=>assert.equal(parsePaidStripeEvent(body,false)?.session.id,session.id));
 test('livemode mismatch denied',()=>assert.throws(()=>parsePaidStripeEvent(body,true)));
+test('signed event with mismatched Checkout session mode rejected',()=>{
+ const changed = Buffer.from(JSON.stringify({id:'evt_MODE',type:'checkout.session.completed',livemode:false,
+  data:{object:{...session,livemode:true}}}));
+ assert.throws(()=>parsePaidStripeEvent(changed,false));
+});
+test('signed paid event without Checkout session mode rejected',()=>{
+ const {livemode,...withoutMode}=session;
+ const changed=Buffer.from(JSON.stringify({id:'evt_MISSING',type:'checkout.session.completed',livemode:false,
+  data:{object:withoutMode}}));
+ assert.throws(()=>parsePaidStripeEvent(changed,false));
+});
 test('unpaid checkout ignored',()=>assert.equal(parsePaidStripeEvent(Buffer.from(JSON.stringify({id:'evt_NEW',type:'checkout.session.completed',livemode:false,data:{object:{...session,payment_status:'unpaid'}}})),false),null));
 test('ignored unrelated signed events',()=>assert.equal(parsePaidStripeEvent(Buffer.from(JSON.stringify({id:'evt_NEW',type:'charge.refunded',livemode:false,data:{object:{}}})),false),null));
 test('valid settlement gives payment intent',()=>assert.equal(assertStripeSettlement(session,record,invoice,subscription),'pi_123TEST'));
