@@ -8,7 +8,7 @@ permissions:
   contents: write
 jobs:
   promote:
-    if: github.repository == 'faisalwrokksa-hub/THEEPMOTEST' && github.ref == 'refs/heads/fix/p0-dependency-promotion-20261030' && github.event.head_commit.message != 'chore(deps): promote audited CI candidate'
+    if: github.repository == 'faisalwrokksa-hub/THEEPMOTEST' && github.ref == 'refs/heads/fix/p0-dependency-promotion-20261030'
     runs-on: ubuntu-latest
     timeout-minutes: 40
     steps:
