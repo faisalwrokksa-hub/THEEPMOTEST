@@ -1525,3 +1525,16 @@ html.rail-narrow .rail > div + div {
    motion should not be given a chasing ring. */
 @media (pointer: coarse) { .a360-cursor-dot, .a360-cursor-ring { display: none; } }
 @media (prefers-reduced-motion: reduce) { .a360-cursor-dot, .a360-cursor-ring { display: none; } }
+
+/* P0 mobile navigation: keep all five primary controls usable at 375px.
+   Breadcrumbs remain available as the page heading and in the drawer. */
+@media (max-width: 640px) {
+  .topbar { padding-inline: 10px; gap: 6px; }
+  .topbar .crumbs { display: none; }
+  .topbar .kbtn { inline-size: 32px; block-size: 32px; padding: 0; font-size: 0; justify-content: center; flex: none; }
+  .topbar .kbtn kbd { display: none; }
+  .topbar .switcher .who { display: none; }
+  .topbar .switcher .orgchip { padding-inline: 8px; gap: 6px; }
+  .topbar .themeswitch button { padding-inline: 6px; }
+  .topbar .iconbtn { flex: none; }
+}
