@@ -44,7 +44,7 @@ export class MicrosoftService {
    * Cache keys also include the consenting EPMO user; a workspace is not a
    * license to reuse somebody else's delegated Microsoft identity.
    */
-  private readonly tokens = new Map<string, { accessToken: string; expiresAt: number }>();
+  private readonly tokens = new Map<string, { accessToken: string; expiresAt: number; credential: string }>();
 
   private ctx() { return currentContext(); }
 
@@ -290,7 +290,7 @@ export class MicrosoftService {
         'This Microsoft connection belongs to another user. Connect your own Microsoft account.');
     }
     const hit = this.tokens.get(cacheKey);
-    if (hit && hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
+    if (hit && hit.credential === row.refresh_token && hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
 
     let tok;
     try {
@@ -317,10 +317,12 @@ export class MicrosoftService {
 
     // Microsoft rotates refresh tokens; the old one stops working, so the new
     // one has to be written or the connection dies on the next refresh.
+    let credential = row.refresh_token;
     if (tok.refreshToken) {
+      credential = seal(tok.refreshToken);
       const updated = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
           UPDATE integration_connections
-          SET refresh_token = ${seal(tok.refreshToken!)}, status = 'connected',
+          SET refresh_token = ${credential}, status = 'connected',
               last_error = NULL, last_used_at = now(), updated_at = now()
           WHERE provider = ${PROVIDER} AND connected_by = ${userId}
             AND refresh_token = ${row.refresh_token}
@@ -330,7 +332,7 @@ export class MicrosoftService {
         throw new ConflictException('Microsoft connection changed during refresh. Reconnect and retry.');
       }
     }
-    this.tokens.set(cacheKey, { accessToken: tok.accessToken, expiresAt: tok.expiresAt });
+    this.tokens.set(cacheKey, { accessToken: tok.accessToken, expiresAt: tok.expiresAt, credential });
     return tok.accessToken;
   }
 
