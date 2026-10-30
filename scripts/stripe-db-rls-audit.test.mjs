@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {FINANCIAL_TABLES, validateStripeDbAuditConfig, inspectFinancialSchema, verifyVisibleRows, auditStripeDbRls} from './stripe-db-rls-audit.mjs';
+import {FINANCIAL_TABLES, validateStripeDbAuditConfig, inspectFinancialSchema, verifyVisibleRows, auditStripeDbRls,safeStripeDbFailure} from './stripe-db-rls-audit.mjs';
 const A='11111111-1111-4111-8111-111111111111';
 const B='22222222-2222-4222-8222-222222222222';
 const env={DEPLOYMENT_ENV:'staging',DATABASE_URL:'postgresql://pmo_app:secret@db.example.test:5432/pmo',STRIPE_DB_TENANT_A_ID:A,STRIPE_DB_TENANT_B_ID:B};
@@ -64,4 +64,15 @@ test('aggregated counts are not limited to one row',()=>{
 });
 test('rejects invalid aggregation counts',()=>{
  assert.throws(()=>verifyVisibleRows([{tenantId:A,rowCount:-1}],A,'billing_invoices'),/Invalid/);
+});
+
+test('safe audit diagnostics show SQLSTATE without leaking credentials',()=>{
+ const output=safeStripeDbFailure(Object.assign(new Error('postgres://pmo_app:secret@private.example/pmo'),{code:'42501'}),'read-only RLS acceptance');
+ assert.match(output,/42501/);
+ assert.doesNotMatch(output,/secret|private.example|postgres:\/\//);
+});
+test('unknown audit error codes are redacted',()=>{
+ const output=safeStripeDbFailure(Object.assign(new Error('password=topsecret'),{code:'CUSTOM_SECRET'}),'driver');
+ assert.match(output,/UNCLASSIFIED/);
+ assert.doesNotMatch(output,/topsecret|CUSTOM_SECRET/);
 });

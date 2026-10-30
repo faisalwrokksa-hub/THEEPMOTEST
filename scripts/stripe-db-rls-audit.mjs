@@ -121,27 +121,45 @@ export async function auditStripeDbRls(db, tenantA, tenantB) {
     limits: 'Read-only full-table tenant aggregation; run dedicated adversarial PostgreSQL mutation tests before production' };
 }
 
+/** Sanitized CI diagnostics: never log SQL, connection URLs, or secrets. */
+export function safeStripeDbFailure(error, phase) {
+  const codes = new Set(['28P01','42501','42P01','42703','25006','22P02','23503',
+    'ECONNREFUSED','ETIMEDOUT','ERR_REQUIRE_ESM','ERR_MODULE_NOT_FOUND',
+    'MODULE_NOT_FOUND','ERR_PACKAGE_PATH_NOT_EXPORTED']);
+  const code = typeof error?.code === 'string' && codes.has(error.code)
+    ? error.code : 'UNCLASSIFIED';
+  const message = typeof error?.message === 'string' ? error.message : '';
+  const reason = /TENANT ISOLATION FAILURE/.test(message) ? 'tenant-isolation violation'
+    : /Inconclusive/.test(message) ? 'missing seeded financial fixtures'
+    : /Unsafe/.test(message) ? 'unsafe role or RLS policy'
+    : /DATABASE_URL|DEPLOYMENT_ENV|tenant UUIDs/.test(message) ? 'invalid audit configuration'
+    : 'database or driver failure';
+  return `BLOCKED Stripe database RLS audit [${phase}; ${code}]: ${reason}`;
+}
+
 async function main() {
+  let phase = 'configuration';
+  try {
   const config = validateStripeDbAuditConfig(process.env);
   // Resolve postgres from the actual @pmo/db workspace dependency rather than
   // introducing a duplicate root dependency.
+  phase = 'driver';
   const requireDb = createRequire(new URL('../packages/db/package.json', import.meta.url));
   const postgres = requireDb('postgres');
   const db = postgres(config.databaseUrl, { max: 1, connect_timeout: 10 });
+  phase = 'read-only RLS acceptance';
   try {
     const result = await auditStripeDbRls(db, config.tenantA, config.tenantB);
     console.log(`PASS Stripe billing PostgreSQL RLS: ${result.tables} tables, two tenants, restricted role, no-tenant denial`);
     console.log('Counts per tenant:', JSON.stringify({ A: result.tenantARowCounts, B: result.tenantBRowCounts }));
     console.log('LIMIT: This is sampled live staging evidence, not proof of full production readiness.');
   } finally { await db.end(); }
+  } catch (error) {
+    console.error(safeStripeDbFailure(error, phase));
+    process.exitCode = 1;
+  }
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1]) {
-  main().catch(error => {
-    // Don't accidentally echo raw database URLs or secrets from driver errors.
-    console.error('BLOCKED Stripe database RLS audit:', error instanceof Error &&
-      (/TENANT ISOLATION FAILURE|Unsafe|Inconclusive|DEPLOYMENT_ENV|DATABASE_URL|tenant UUIDs|missing|policy/i.test(error.message))
-        ? error.message : 'database access or audit failed; inspect staging logs securely');
-    process.exitCode = 1;
-  });
+  main();
 }
