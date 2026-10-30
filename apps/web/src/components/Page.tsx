@@ -30,7 +30,9 @@ export async function Loaded<T>({ load, children, empty }:
         <div className="panel locked">
           <span className="tag">{t('Not included in your plan')}</span>
           <h2 style={{ fontSize: 'var(--fs-lg)', margin: '14px 0 8px' }}>{t('This module is not enabled')}</h2>
-          <p className="dim" style={{ maxWidth: '60ch' }}>{err.detail}</p>
+          <p className="dim" style={{ maxWidth: '60ch' }}>
+            {ar ? 'هذه الوحدة غير متاحة ضمن اشتراك مساحة العمل الحالي.' : 'This module is unavailable under the current workspace subscription.'}
+          </p>
           <p className="dim" style={{ maxWidth: '60ch' }}>
             {t('The EPMO is licensed per module. An administrator can turn this on from')}{' '}
             <a href="/platform">{t('Platform & Modules')}</a>.
@@ -43,7 +45,7 @@ export async function Loaded<T>({ load, children, empty }:
         <div className="panel locked">
           <span className="tag">{t('Not permitted')}</span>
           <h2 style={{ fontSize: 'var(--fs-lg)', margin: '14px 0 8px' }}>{t('Your role cannot open this')}</h2>
-          <p className="dim">{err.detail}</p>
+          <p className="dim">{ar ? 'ليس لديك إذن للوصول إلى هذه الصفحة. تواصل مع مسؤول مساحة العمل إذا كنت بحاجة إلى الوصول.' : 'You do not have permission to view this page. Contact your workspace administrator if you need access.'}</p>
         </div>
       );
     }

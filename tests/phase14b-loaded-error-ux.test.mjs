@@ -20,3 +20,12 @@ test('expired-session and loading-failure states have explicit Arabic copy', () 
   assert.match(loaded, /تعذّر تحميل الصفحة/);
   assert.match(loaded, /const ar = \(await getLang\(\)\) === 'ar'/);
 });
+
+test('forbidden and unlicensed states do not render raw API details', () => {
+  assert.doesNotMatch(loaded, /\{err\.detail\}/);
+  assert.match(loaded, /if \(err\.status === 403\)/);
+  assert.match(loaded, /This module is unavailable under the current workspace subscription/);
+  assert.match(loaded, /You do not have permission to view this page/);
+  assert.match(loaded, /هذه الوحدة غير متاحة/);
+  assert.match(loaded, /ليس لديك إذن للوصول/);
+});
