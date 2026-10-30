@@ -30,7 +30,11 @@ export class SubscriptionService {
     requireCapability('pmoa_admin');
     const { tenantId, userId } = currentContext();
     return withTenant(tenantId, async tx => {
-      // A row lock makes the eligibility check and update atomic.
+      // Use the same tenant-scoped advisory lock as renewal invoice creation,
+      // Stripe Checkout and webhook settlement. Acquire it BEFORE the row lock
+      // so cancellation and payment cannot race through different lock orders.
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      // The row lock makes the eligibility check and update atomic.
       const result = rows(await tx.execute(sql`
         SELECT id, status, period_ends_at AS "periodEndsAt", cancel_at_period_end AS "cancelAtPeriodEnd"
         FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
