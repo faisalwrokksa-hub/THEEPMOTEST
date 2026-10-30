@@ -11,9 +11,9 @@ const digest = text => createHash('sha256').update(text).digest('hex');
 const valid = { schemaVersion: 1, algorithm: 'sha256', files: { '0000_initial.sql': digest('CREATE TABLE t(id int);') } };
 const hashes = { '0000_initial.sql': digest('CREATE TABLE t(id int);') };
 
-test('existing 20 migration SQL sources match pinned release digests', () => {
+test('existing 21 migration SQL sources match pinned release digests', () => {
   const result = verifyRepositoryMigrations();
-  assert.equal(result.count, 20);
+  assert.equal(result.count, 21);
   assert.equal(result.checksumsVerified, true);
 });
 test('matching SQL contents accepted', () => assert.deepEqual(checkMigrationHashes(valid, hashes), []));
