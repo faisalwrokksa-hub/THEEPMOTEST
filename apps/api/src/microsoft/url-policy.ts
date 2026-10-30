@@ -18,7 +18,7 @@ export function microsoftApiUrl(base: string, path: string): string {
   }
   let target: URL;
   try {
-    target = path.startsWith('https://') ? new URL(path) : new URL(path, service.origin);
+    target = path.startsWith('https://') ? new URL(path) : new URL(service.pathname.replace(/\/$/, '') + path, service.origin);
   } catch {
     throw new Error('Unsafe Microsoft API URL');
   }
