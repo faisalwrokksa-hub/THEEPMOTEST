@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { translator } from '@/lib/i18n-dict';
+import { focusWrapTarget } from '@/lib/focus-trap.mjs';
 
 /** Small-screen rail. A link selection or Escape closes it; focus returns to the trigger. */
 export function MobileNav({ children, ar = false }: { children: React.ReactNode; ar?: boolean }) {
@@ -10,6 +11,7 @@ export function MobileNav({ children, ar = false }: { children: React.ReactNode;
   const previousPath = useRef(path);
   const trigger = useRef<HTMLButtonElement>(null);
   const closeButton = useRef<HTMLButtonElement>(null);
+  const drawer = useRef<HTMLElement>(null);
   const t = translator(ar ? 'ar' : 'en');
 
   function close(restoreFocus = true) {
@@ -26,12 +28,24 @@ export function MobileNav({ children, ar = false }: { children: React.ReactNode;
 
   useEffect(() => {
     if (!open) return;
+    // Keep keyboard focus and background scrolling inside the mobile dialog.
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
     closeButton.current?.focus();
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') { e.preventDefault(); close(); }
+      if (e.key === 'Escape') { e.preventDefault(); close(); return; }
+      if (e.key !== 'Tab') return;
+      const focusable = Array.from(drawer.current?.querySelectorAll<HTMLElement>(
+        'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+      ) ?? []).filter(el => el.getClientRects().length > 0 && el.getAttribute('aria-hidden') !== 'true');
+      const target = focusWrapTarget(document.activeElement, focusable, e.shiftKey);
+      if (target) { e.preventDefault(); target.focus(); }
     };
     window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [open]);
 
   return (
@@ -44,8 +58,9 @@ export function MobileNav({ children, ar = false }: { children: React.ReactNode;
         </svg>
       </button>
       {open && (
-        <div className="drawer-backdrop" onClick={() => close()}>
-          <nav id="mobile-navigation" className="rail drawer"
+        <div className="drawer-backdrop" role="dialog" aria-modal="true"
+             aria-label={t('Modules')} onClick={() => close()}>
+          <nav ref={drawer} id="mobile-navigation" className="rail drawer"
                onClick={(e) => {
                  e.stopPropagation();
                  if ((e.target as HTMLElement).closest('a[href]')) close(false);
