@@ -25,7 +25,7 @@ const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
   { key: 'progress', head: 'Progress', value: (r) => r.progressPct,
     cell: (r) => (
       <>
-        <div className="bar"><i style={{ width: `${r.progressPct}%` }} /></div>
+        <div className="bar"><i style={{ width: `${Math.min(100, Math.max(0, Number.isFinite(r.progressPct) ? r.progressPct : 0))}%` }} /></div>
         <span className="dim">{r.progressPct}%</span>
       </>
     ) },
