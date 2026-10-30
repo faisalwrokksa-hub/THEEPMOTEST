@@ -1,4 +1,5 @@
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
+import { logoutFailureResponse } from '@/lib/logout-recovery';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -17,9 +18,8 @@ export async function POST(req: NextRequest) {
     });
     if (!response.ok) throw new Error('Session revocation not confirmed');
   } catch {
-    // Never redirect as if every device was signed out when the API is down.
-    return NextResponse.json({ error: 'Could not sign out all devices. Please retry.' },
-      { status: 503, headers: { 'cache-control': 'no-store' } });
+    // Do not claim all devices were signed out if the API is unavailable.
+    return logoutFailureResponse(req, true);
   }
   const result = NextResponse.redirect(publicUrl(req, '/login'), 303);
   result.cookies.delete(SESSION);
