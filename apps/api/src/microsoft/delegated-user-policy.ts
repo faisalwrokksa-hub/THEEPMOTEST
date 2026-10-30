@@ -5,6 +5,6 @@ export function canUseDelegatedMicrosoftConnection(
   connectedBy: string | null | undefined,
   userId: string | null | undefined,
 ): boolean {
-  return typeof connectedBy === 'string' && connectedBy.length > 0 &&
-    typeof userId === 'string' && userId.length > 0 && connectedBy === userId;
+  return typeof connectedBy === 'string' && connectedBy.trim().length > 0 &&
+    typeof userId === 'string' && userId.trim().length > 0 && connectedBy === userId;
 }
