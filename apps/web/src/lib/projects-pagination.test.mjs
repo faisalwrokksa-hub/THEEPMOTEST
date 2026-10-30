@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validProjectCursor, projectPageHref } from './projects-pagination.ts';
+import { validProjectCursor, validProjectHealth, projectPageHref, projectGovernanceHref } from './projects-pagination.ts';
 
 const cursor = '2026-10-30T16:20:43.000Z';
 const program = '11111111-1111-4111-8111-111111111111';
@@ -21,4 +21,18 @@ test('next page preserves programme and health context without unsafe redirects'
   assert.equal(url.searchParams.get('health'), 'at_risk');
   assert.equal(projectPageHref(null), '/projects');
   assert.equal(projectPageHref(null, program), `/projects?program=${program}`);
+});
+
+test('invalid health query never hides the full project list', () => {
+  for (const valid of ['on_track', 'at_risk', 'critical']) {
+    assert.equal(validProjectHealth(valid), valid);
+  }
+  for (const invalid of ['unknown', 'critical%20', '', null, [], {}, 'CRITICAL']) {
+    assert.equal(validProjectHealth(invalid), undefined);
+  }
+});
+
+test('programme drilldown opens the selected project governance record', () => {
+  const id = '11111111-1111-4111-8111-111111111111';
+  assert.equal(projectGovernanceHref(id), `/governance/${id}`);
 });
