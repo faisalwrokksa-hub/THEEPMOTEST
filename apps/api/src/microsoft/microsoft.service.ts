@@ -9,6 +9,7 @@ import { requireCapability } from '../common/require-capability';
 import { can } from '@pmo/contracts';
 import { redactMicrosoftConnection } from './connection-policy';
 import { canUseDelegatedMicrosoftConnection } from './delegated-user-policy';
+import { deploymentAllowsTenant, parseRuntimeDeployment } from '../tenancy/deployment-runtime';
 import { seal, open, canSealTokens } from './crypto';
 import { msConfig, authorizeUrl, exchangeCode, refresh, readIdToken, call, callAll,
          GRAPH, POWERBI, MsAuthError, MsApiError, type Resource, type MsConfig } from './client';
@@ -33,6 +34,9 @@ export type Connection = {
 @Injectable()
 export class MicrosoftService {
   private readonly log = new Logger('Microsoft');
+  // The OAuth callback is public and never passes through TenantMiddleware.
+  // Use the same trusted runtime inventory as authenticated API and login routes.
+  private readonly runtimeDeployment = parseRuntimeDeployment(process.env);
 
   /**
    * Access tokens, in memory only.
@@ -164,6 +168,15 @@ export class MicrosoftService {
 
     const tenantId = state.split('.')[0];
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId ?? '')) {
+      throw new BadRequestException(
+        'That sign-in link has expired or has already been used. Start the connection again.');
+    }
+
+    // The state prefix is untrusted. A valid state issued on another deployment
+    // must not let this public callback consume its row or write credentials.
+    // Reject before opening a tenant-scoped database transaction or exchanging
+    // an authorization code, using the same generic invalid-state response.
+    if (!deploymentAllowsTenant(this.runtimeDeployment, tenantId)) {
       throw new BadRequestException(
         'That sign-in link has expired or has already been used. Start the connection again.');
     }

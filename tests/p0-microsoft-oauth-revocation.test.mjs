@@ -35,3 +35,16 @@ test('membership validation and token upsert share one tenant-scoped transaction
   assert.ok(transaction >= 0 && guard > transaction && upsert > guard && audit > upsert);
   assert.match(callback, /WHERE integration_connections\.connected_by = EXCLUDED\.connected_by/);
 });
+
+test('public Microsoft callback rejects cross-deployment state before database or token exchange', () => {
+  assert.match(source, /import \{ deploymentAllowsTenant, parseRuntimeDeployment \} from '\.\.\/tenancy\/deployment-runtime';/);
+  assert.match(source, /private readonly runtimeDeployment = parseRuntimeDeployment\(process\.env\);/);
+  const validation = callback.indexOf('if (!deploymentAllowsTenant(this.runtimeDeployment, tenantId))');
+  const tenantDb = callback.indexOf('const st = await withTenant(tenantId');
+  const tokenExchange = callback.indexOf('await exchangeCode(cfg, code, resource)');
+  assert.ok(validation >= 0 && tenantDb > validation && tokenExchange > tenantDb,
+    'reject off-deployment state before tenant DB access and Microsoft token exchange');
+  const denied = callback.slice(validation, tenantDb);
+  assert.match(denied, /throw new BadRequestException\(/);
+  assert.match(denied, /That sign-in link has expired or has already been used/);
+});
