@@ -40,7 +40,7 @@ export default async function ProgramDetails({ params }: {
       {program.description && <p>{program.description}</p>}
     </section>
     <section className="panel">
-      <h2>{ar ? 'المشاريع المرتبطة' : 'Linked projects'} ({projects.items.length})</h2>
+      <h2>{ar ? 'المشاريع المرتبطة' : 'Linked projects'} ({projects.items.length}{projects.nextCursor ? '+' : ''})</h2>
       {projects.items.length === 0
         ? <p className="dim">{ar ? 'لا توجد مشاريع مرتبطة بهذا البرنامج.' : 'No projects are linked to this programme.'}</p>
         : <div style={{ overflowX: 'auto' }}><table>
@@ -50,6 +50,9 @@ export default async function ProgramDetails({ params }: {
             <td><span className={`pill ${project.health}`}>{healthLabel(project.health)}</span></td>
           </tr>)}</tbody>
         </table></div>}
+      {projects.nextCursor && <p className="dim">{ar
+        ? 'تُعرض أول 50 مشروعاً كحد أقصى هنا. افتح قائمة المشاريع للاطلاع على الصفحات التالية.'
+        : 'Showing up to the first 50 linked projects. Open the project list to see additional pages.'}</p>}
       <p><Link href={`/projects?program=${encodeURIComponent(program.id)}`}>
         {ar ? 'عرض جميع مشاريع البرنامج' : 'View all programme projects'}
       </Link></p>
