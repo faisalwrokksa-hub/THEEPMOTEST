@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { redactMicrosoftConnection } from '../apps/api/src/microsoft/connection-policy.ts';
+import { canUseDelegatedMicrosoftConnection } from '../apps/api/src/microsoft/delegated-user-policy.ts';
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const service = read('apps/api/src/microsoft/microsoft.service.ts');
 const controller = read('apps/api/src/microsoft/microsoft.controller.ts');
@@ -41,6 +42,21 @@ test('service status reads authenticated capabilities before returning metadata'
   assert.match(code,/redactMicrosoftConnection\(/);
   assert.match(code,/can\(this\.ctx\(\)\.capabilities \?\? \[\], 'pmoa_admin'\)/);
 });
+test('another workspace admin cannot inspect the consenting Microsoft user connection', () => {
+  const status = bodyBetween('async status()', 'async beginConnect(');
+  assert.match(status, /SELECT id, status, connected_by, account_email/);
+  assert.match(status, /canUseDelegatedMicrosoftConnection\(row\.connected_by, this\.ctx\(\)\.userId\)/);
+  assert.equal(canUseDelegatedMicrosoftConnection('admin-a', 'admin-b'), false);
+  const safe = redactMicrosoftConnection(connection,
+    true && canUseDelegatedMicrosoftConnection('admin-a', 'admin-b'));
+  assert.equal(safe.accountEmail, null);
+  assert.equal(safe.scopes, null);
+  assert.equal(safe.lastError, null);
+  const owner = redactMicrosoftConnection(connection,
+    true && canUseDelegatedMicrosoftConnection('admin-a', 'admin-a'));
+  assert.equal(owner.accountEmail, connection.accountEmail);
+});
+
 test('Power BI report listing checks admin permission BEFORE getting shared Microsoft token', () => {
   const code = bodyBetween('async reports()', 'async embed(');
   const guard = code.indexOf("requireCapability('pmoa_admin')");

@@ -9,6 +9,7 @@ import { requireCapability } from '../common/require-capability';
 import { can } from '@pmo/contracts';
 import { redactMicrosoftConnection } from './connection-policy';
 import { canUseDelegatedMicrosoftConnection } from './delegated-user-policy';
+import { deploymentAllowsTenant, parseRuntimeDeployment } from '../tenancy/deployment-runtime';
 import { seal, open, canSealTokens } from './crypto';
 import { msConfig, authorizeUrl, exchangeCode, refresh, readIdToken, call, callAll,
          GRAPH, POWERBI, MsAuthError, MsApiError, type Resource, type MsConfig } from './client';
@@ -33,6 +34,9 @@ export type Connection = {
 @Injectable()
 export class MicrosoftService {
   private readonly log = new Logger('Microsoft');
+  // The OAuth callback is public and never passes through TenantMiddleware.
+  // Use the same trusted runtime inventory as authenticated API and login routes.
+  private readonly runtimeDeployment = parseRuntimeDeployment(process.env);
 
   /**
    * Access tokens, in memory only.
@@ -89,7 +93,7 @@ export class MicrosoftService {
     const { tenantId } = this.ctx();
     const configured = Boolean(msConfig()) && canSealTokens();
     const row = await withTenant(tenantId, async (tx) => (rows(await tx.execute(sql`
-      SELECT id, status, account_email, account_name, external_tenant_id, scopes,
+      SELECT id, status, connected_by, account_email, account_name, external_tenant_id, scopes,
              site_id, site_name, site_url, drive_id, drive_name, root_item_id, root_path,
              connected_at, last_error
       FROM integration_connections WHERE provider = ${PROVIDER}`)))[0]);
@@ -105,7 +109,10 @@ export class MicrosoftService {
       lastError: row.last_error,
     };
     return { configured, connection: redactMicrosoftConnection(
-      connection, can(this.ctx().capabilities ?? [], 'pmoa_admin')) };
+      // A workspace administrator is not automatically the consenting Microsoft
+      // identity. Hide the other administrator's account, sites and errors.
+      connection, can(this.ctx().capabilities ?? [], 'pmoa_admin') &&
+        canUseDelegatedMicrosoftConnection(row.connected_by, this.ctx().userId)) };
   }
 
   /**
@@ -164,6 +171,15 @@ export class MicrosoftService {
 
     const tenantId = state.split('.')[0];
     if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tenantId ?? '')) {
+      throw new BadRequestException(
+        'That sign-in link has expired or has already been used. Start the connection again.');
+    }
+
+    // The state prefix is untrusted. A valid state issued on another deployment
+    // must not let this public callback consume its row or write credentials.
+    // Reject before opening a tenant-scoped database transaction or exchanging
+    // an authorization code, using the same generic invalid-state response.
+    if (!deploymentAllowsTenant(this.runtimeDeployment, tenantId)) {
       throw new BadRequestException(
         'That sign-in link has expired or has already been used. Start the connection again.');
     }

@@ -1,7 +1,8 @@
 import test from 'node:test';
+import { readFileSync } from 'node:fs';
 import assert from 'node:assert/strict';
 import { parseStripePaymentException, assertStripeExceptionIntent,
-  shouldPauseOnPaymentException, stripeCheckoutParams, assertStripePaymentInvoiceMatch } from './stripe-policy.ts';
+  shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutParams, assertStripePaymentInvoiceMatch } from './stripe-policy.ts';
 const tenantId = '2bb4c19e-ac7d-47a3-8fa1-f917640e127a';
 const invoiceId = 'ae6c076e-c4fe-4cb0-9eda-476ea8d59024';
 const subscriptionId = '72c72f05-c371-43c0-9f2a-9eb4b9945805';
@@ -90,4 +91,16 @@ test('invoice match validates captured payment before quarantine', () => {
   {...session,metadata:{...session.metadata,tenantId:subscriptionId}},
   {...session,payment_status:'unpaid'},
  ]) assert.throws(()=>assertStripePaymentInvoiceMatch(changed,record,invoice));
+});
+
+// Stripe can refund one charge in full without refunding the entire invoice.
+// Revoking a paid licence for that partial invoice reversal is unsafe.
+test('only a full invoice refund may pause an active entitlement', () => {
+ assert.equal(refundCoversPaidInvoice(12000,12000),true);
+ for (const amount of [1,4000,11999,12001,0,-1,1.5,Number.NaN])
+  assert.equal(refundCoversPaidInvoice(amount,12000),false);
+ assert.equal(refundCoversPaidInvoice(12000,0),false);
+ const service = readFileSync(new URL('./stripe.service.ts',import.meta.url),'utf8');
+ assert.match(service,/refundCoversPaidInvoice\(event\.amountMinor, matched\.amountMinor\)/);
+ assert.match(service,/!!affected && refundCoversInvoice && shouldPauseOnPaymentException/);
 });

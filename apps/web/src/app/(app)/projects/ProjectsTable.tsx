@@ -39,6 +39,6 @@ const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
 export function ProjectsTable({ rows, lang }: { rows: Row[]; lang?: Lang }) {
   const cols = makeCols(translator(lang ?? 'en'), lang ?? 'en');
   return <DataTable rows={rows} cols={cols} lang={lang}
-                    filterPlaceholder="Filter by code, name or status…"
-                    initialSort={{ key: 'health', dir: 'asc' }} empty="No projects yet." />;
+                    filterPlaceholder={lang === 'ar' ? 'ابحث برمز المشروع أو اسمه أو حالته…' : 'Filter by code, name or status…'}
+                    initialSort={{ key: 'health', dir: 'asc' }} empty={lang === 'ar' ? 'لا توجد مشاريع بعد.' : 'No projects yet.'} />;
 }

@@ -71,3 +71,12 @@ export function assertRuntimeDeploymentTenant(runtime: RuntimeDeployment | null,
     binding,
   });
 }
+
+/**
+ * Auth routes do not pass through TenantMiddleware. They must apply the same
+ * trusted server inventory before listing workspaces, creating a session or
+ * accepting an existing session. Legacy shared mode remains compatible.
+ */
+export function deploymentAllowsTenant(runtime: RuntimeDeployment | null, tenantId: string): boolean {
+  return runtime === null || runtime.tenantBindings.has(tenantId);
+}
