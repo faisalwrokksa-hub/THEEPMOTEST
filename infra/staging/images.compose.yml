@@ -1,0 +1,8 @@
+# Optional immutable staging application image selection.
+# The base compose build contexts remain for local builds, but approved
+# staging runs must use --no-build --pull never after images are attested.
+services:
+  api:
+    image: epmo-staging-api:sha-${EPMO_DEPLOY_SHA:?set approved exact staging candidate SHA}
+  web:
+    image: epmo-staging-web:sha-${EPMO_DEPLOY_SHA:?set approved exact staging candidate SHA}
