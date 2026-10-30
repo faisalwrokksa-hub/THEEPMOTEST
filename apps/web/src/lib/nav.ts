@@ -18,6 +18,7 @@ export const NAV: NavGroup[] = [
   ]},
   { key: 'plan', label: 'Plan & Deliver', ar: 'التخطيط والتنفيذ', items: [
     { key: 'portfolios', label: 'Portfolios', ar: 'المحافظ', href: '/portfolios', cap: 'pmoa_view_portfolio' },
+    { key: 'programs', label: 'Programs', ar: 'البرامج', href: '/programs', cap: 'pmoa_view_portfolio' },
     { key: 'projects', label: 'Projects', ar: 'المشاريع', href: '/projects', cap: 'read' },
     { key: 'work-board', label: 'Work Board', ar: 'لوحة العمل', href: '/board', cap: 'pmoa_manage_work' },
     { key: 'schedule', label: 'Schedule', ar: 'الجدول وجانت', href: '/planner', cap: 'pmoa_manage_work' },

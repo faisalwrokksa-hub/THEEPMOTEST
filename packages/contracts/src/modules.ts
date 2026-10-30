@@ -109,6 +109,7 @@ export const NAV_MODULE: Record<string, ModuleId> = {
   'my-work': 'core360',
   attention: 'core360',
   portfolios: 'pmo360',
+  programs: 'pmo360',
   projects: 'pmo360',
   'work-board': 'pmo360',
   schedule: 'pmo360',
