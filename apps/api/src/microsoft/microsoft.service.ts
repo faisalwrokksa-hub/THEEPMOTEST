@@ -338,22 +338,21 @@ export class MicrosoftService {
         'password changed. Connect it again.');
     }
 
-    // Microsoft rotates refresh tokens; the old one stops working, so the new
-    // one has to be written or the connection dies on the next refresh.
-    let credential = row.refresh_token;
-    if (tok.refreshToken) {
-      credential = seal(tok.refreshToken);
-      const updated = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
-          UPDATE integration_connections
-          SET refresh_token = ${credential}, status = 'connected',
-              last_error = NULL, last_used_at = now(), updated_at = now()
-          WHERE provider = ${PROVIDER} AND connected_by = ${userId}
-            AND refresh_token = ${row.refresh_token}
-          RETURNING id`)));
-      if (!updated.length) {
-        this.tokens.delete(cacheKey);
-        throw new ConflictException('Microsoft connection changed during refresh. Reconnect and retry.');
-      }
+    // Microsoft may rotate the refresh token or return no replacement.
+    // Either network call can outlive a disconnect, reconnect or credential
+    // rotation. Require the original consenting user and exact credential to
+    // still exist before caching or returning the refreshed access token.
+    const credential = tok.refreshToken ? seal(tok.refreshToken) : row.refresh_token;
+    const updated = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+        UPDATE integration_connections
+        SET refresh_token = ${credential}, status = 'connected',
+            last_error = NULL, last_used_at = now(), updated_at = now()
+        WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+          AND refresh_token = ${row.refresh_token}
+        RETURNING id`)));
+    if (!updated.length) {
+      this.tokens.delete(cacheKey);
+      throw new ConflictException('Microsoft connection changed during refresh. Reconnect and retry.');
     }
     this.tokens.set(cacheKey, { accessToken: tok.accessToken, expiresAt: tok.expiresAt, credential });
     return tok.accessToken;
