@@ -643,6 +643,27 @@ export const integrations = pgTable('integrations', {
  * the files; we hold a pointer and a token, and the token is encrypted at rest
  * so a database dump is not a set of keys to a customer's SharePoint.
  */
+/** E04a: additive user-bound credentials; runtime remains on legacy storage. */
+export const microsoftUserConnections = pgTable('microsoft_user_connections', {
+ id: id(),
+ tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
+ userId: uuid('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+ provider: text('provider').notNull().default('microsoft'),
+ status: integStatusEnum('status').notNull().default('pending'),
+ externalTenantId: text('external_tenant_id'), accountEmail: text('account_email'),
+ accountName: text('account_name'), scopes: text('scopes'), refreshToken: text('refresh_token'),
+ siteId: text('site_id'), siteName: text('site_name'), siteUrl: text('site_url'),
+ driveId: text('drive_id'), driveName: text('drive_name'),
+ rootItemId: text('root_item_id'), rootPath: text('root_path'),
+ connectedAt: timestamp('connected_at', { withTimezone: true }),
+ lastError: text('last_error'), lastUsedAt: timestamp('last_used_at', { withTimezone: true }),
+ updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+ createdAt: createdAt(),
+}, t => ({
+ perUser: uniqueIndex('microsoft_user_connections_tenant_user_provider_key').on(t.tenantId,t.userId,t.provider),
+ tenantIdx: index('microsoft_user_connections_tenant_idx').on(t.tenantId),
+}));
+
 export const integrationConnections = pgTable('integration_connections', {
   id: id(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id, { onDelete: 'cascade' }),
