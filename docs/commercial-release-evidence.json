@@ -269,7 +269,7 @@
     "qualification": "Delegated-user token containment passed source/audit/verify on exact SHA, but workspace singleton storage and real Entra multi-user OAuth acceptance remain unresolved."
   },
   "lastFrontendIntegratedObservation": {
-    "branch": "fix/p0-frontend-error-recovery-integrated-20261030",
+    "branch": "feat/frontend-error-recovery-green-20261030",
     "pullRequestUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/8",
     "commitSha": "3f04f705ec5bbeb110b92afe1a2ebb1470ab212b",
     "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41013673810",
