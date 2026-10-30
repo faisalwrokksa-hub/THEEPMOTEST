@@ -1,0 +1,7 @@
+# Staging application-only rollback: NEVER runs migrations or restores a DB.
+# Used exclusively by infra/staging/rollback-app.sh after action-specific approval.
+services:
+  api:
+    image: epmo-staging-api:sha-${EPMO_ROLLBACK_SHA:?set approved 40-character rollback SHA}
+  web:
+    image: epmo-staging-web:sha-${EPMO_ROLLBACK_SHA:?set approved 40-character rollback SHA}

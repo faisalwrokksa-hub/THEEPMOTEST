@@ -1,0 +1,22 @@
+[Unit]
+Description=The EPMO staging public HTTPS and anonymous-auth health probe
+Documentation=file:/opt/the-epmo-staging/docs/release/STAGING_BUILD_RUNBOOK.md
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+WorkingDirectory=/opt/the-epmo-staging
+ExecStart=/usr/bin/node /opt/the-epmo-staging/infra/staging/health-probe.mjs --once
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+StandardOutput=journal
+StandardError=journal
+TimeoutStartSec=35
