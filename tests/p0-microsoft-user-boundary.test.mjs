@@ -42,3 +42,25 @@ test('reconnect and disconnect clear every user-scoped token for the workspace',
   assert.match(service, /private invalidateTenantTokens\(tenantId: string\)/);
   assert.equal((service.match(/this.invalidateTenantTokens\(tenantId\)/g) ?? []).length, 2);
 });
+
+const complete = service.slice(service.indexOf('async completeConnect('), service.indexOf('async disconnect('));
+const disconnect = service.slice(service.indexOf('async disconnect('), service.indexOf('private async accessToken('));
+const location = service.slice(service.indexOf('async chooseLocation('), service.indexOf('private async folder('));
+const connection = service.slice(service.indexOf('private async connection('), service.indexOf('async upload('));
+
+test('OAuth callback cannot replace another consenting user or mark their connection as failed', () => {
+  assert.match(complete, /WHERE integration_connections\.connected_by = EXCLUDED\.connected_by/);
+  assert.match(complete, /RETURNING id`\)\)/);
+  assert.match(complete, /if \(!saved\)/);
+  assert.match(complete, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{st\.user_id\}/);
+});
+
+test('only the owner can disconnect a delegated connection; legacy unowned cleanup remains possible', () => {
+  assert.match(disconnect, /connected_by = \$\{userId\} OR connected_by IS NULL/);
+  assert.match(disconnect, /requireCapability\('pmoa_admin'\)/);
+});
+
+test('Graph folder selection and storage reads cannot cross the consenting user boundary', () => {
+  assert.match(location, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\} RETURNING id/);
+  assert.match(connection, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\}/);
+});

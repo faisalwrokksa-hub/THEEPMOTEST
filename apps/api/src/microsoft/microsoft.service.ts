@@ -186,7 +186,7 @@ export class MicrosoftService {
       await withTenant(tenantId, async (tx) => {
         await tx.execute(sql`
           UPDATE integration_connections SET status = 'error', last_error = ${msg}, updated_at = now()
-          WHERE provider = ${PROVIDER}`);
+          WHERE provider = ${PROVIDER} AND connected_by = ${st.user_id}`);
       });
       throw new BadRequestException(`Microsoft refused the connection: ${msg}`);
     }
@@ -198,7 +198,7 @@ export class MicrosoftService {
 
     const who = readIdToken(tok.idToken);
     await withTenant(tenantId, async (tx) => {
-      await tx.execute(sql`
+      const [saved] = rows(await tx.execute(sql`
         INSERT INTO integration_connections
           (tenant_id, provider, status, external_tenant_id, account_email, account_name,
            scopes, refresh_token, connected_by, connected_at, last_error, updated_at)
@@ -220,7 +220,13 @@ export class MicrosoftService {
           connected_by = EXCLUDED.connected_by,
           connected_at = coalesce(integration_connections.connected_at, EXCLUDED.connected_at),
           last_error = NULL,
-          updated_at = now()`);
+          updated_at = now()
+        WHERE integration_connections.connected_by = EXCLUDED.connected_by
+        RETURNING id`));
+      if (!saved) {
+        throw new ConflictException(
+          'Another user owns this Microsoft connection. Ask the owner to disconnect before reconnecting.');
+      }
 
       await tx.insert(auditEvents).values({
         tenantId, actorId: st.user_id, entity: 'integration',
@@ -247,12 +253,14 @@ export class MicrosoftService {
    */
   async disconnect(): Promise<{ ok: true; documentsStillLinked: number }> {
     requireCapability('pmoa_admin');
-    const { tenantId } = this.ctx();
+    const { tenantId, userId } = this.ctx();
     return withTenant(tenantId, async (tx) => {
       const [n] = rows(await tx.execute(sql`
         SELECT count(*)::int AS n FROM documents WHERE storage_provider = ${PROVIDER}`));
       const [gone] = rows(await tx.execute(sql`
-        DELETE FROM integration_connections WHERE provider = ${PROVIDER} RETURNING id`));
+        DELETE FROM integration_connections
+        WHERE provider = ${PROVIDER} AND (connected_by = ${userId} OR connected_by IS NULL)
+        RETURNING id`));
       if (!gone) throw new NotFoundException('Microsoft is not connected to this workspace.');
       this.invalidateTenantTokens(tenantId);
       await this.audit(tx, PROVIDER, 'microsoft.disconnected', { documentsStillLinked: n.n });
@@ -374,7 +382,7 @@ export class MicrosoftService {
    */
   async chooseLocation(b: { siteId?: string; driveId: string; folderName?: string }) {
     requireCapability('pmoa_admin');
-    const { tenantId } = this.ctx();
+    const { tenantId, userId } = this.ctx();
     const token = await this.accessToken('graph');
 
     // The folder is named after the workspace, so somebody browsing their own
@@ -397,7 +405,7 @@ export class MicrosoftService {
           drive_id = ${b.driveId}, drive_name = ${drive?.name ?? null},
           root_item_id = ${root.id}, root_path = ${folder},
           status = 'connected', last_error = NULL, updated_at = now()
-        WHERE provider = ${PROVIDER} RETURNING id`));
+        WHERE provider = ${PROVIDER} AND connected_by = ${userId} RETURNING id`));
       if (!done) throw new ConflictException('Microsoft is not connected to this workspace yet.');
       await this.audit(tx, PROVIDER, 'microsoft.location_set',
         { site: site?.webUrl ?? null, drive: drive?.name, folder });
@@ -424,9 +432,10 @@ export class MicrosoftService {
   }
 
   private async connection(tx: any) {
+    const { userId } = this.ctx();
     const [c] = rows(await tx.execute(sql`
       SELECT drive_id, root_item_id, root_path, site_url FROM integration_connections
-      WHERE provider = ${PROVIDER}`));
+      WHERE provider = ${PROVIDER} AND connected_by = ${userId}`));
     if (!c) throw new ConflictException('Microsoft is not connected to this workspace yet.');
     if (!c.drive_id || !c.root_item_id) {
       throw new ConflictException(
