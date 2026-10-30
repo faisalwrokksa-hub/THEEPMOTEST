@@ -93,7 +93,7 @@ export class MicrosoftService {
     const { tenantId } = this.ctx();
     const configured = Boolean(msConfig()) && canSealTokens();
     const row = await withTenant(tenantId, async (tx) => (rows(await tx.execute(sql`
-      SELECT id, status, account_email, account_name, external_tenant_id, scopes,
+      SELECT id, status, connected_by, account_email, account_name, external_tenant_id, scopes,
              site_id, site_name, site_url, drive_id, drive_name, root_item_id, root_path,
              connected_at, last_error
       FROM integration_connections WHERE provider = ${PROVIDER}`)))[0]);
@@ -109,7 +109,10 @@ export class MicrosoftService {
       lastError: row.last_error,
     };
     return { configured, connection: redactMicrosoftConnection(
-      connection, can(this.ctx().capabilities ?? [], 'pmoa_admin')) };
+      // A workspace administrator is not automatically the consenting Microsoft
+      // identity. Hide the other administrator's account, sites and errors.
+      connection, can(this.ctx().capabilities ?? [], 'pmoa_admin') &&
+        canUseDelegatedMicrosoftConnection(row.connected_by, this.ctx().userId)) };
   }
 
   /**
