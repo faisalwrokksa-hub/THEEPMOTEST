@@ -5,7 +5,7 @@ import { Page, Loaded } from '@/components/Page';
 import { NewRecord, Flash } from '@/components/NewRecord';
 import { ProjectsTable } from './ProjectsTable';
 import { getLang, tr } from '@/lib/i18n';
-import { validProjectCursor, validProjectHealth, projectPageHref } from '@/lib/projects-pagination';
+import { validProjectCursor, validProjectHealth, projectPageHref, filterProjectPage } from '@/lib/projects-pagination';
 
 export default async function ProjectsPage({ searchParams }:
   { searchParams: Promise<{ error?: string; done?: string; health?: string; program?: string; cursor?: string; new?: string }> }) {
@@ -81,13 +81,16 @@ export default async function ProjectsPage({ searchParams }:
                 {healthFilter && (
                   <p className="filtered">
                     {t('Showing only')} <strong>{t(healthFilter.replace(/_/g, ' '))}</strong> {t('projects')} {lang === 'ar' ? 'في هذه الصفحة فقط' : 'on this page only'}.{' '}
-                    <a href="/projects">{t('Show all')}</a>
+                    <Link href={projectPageHref(null, programFilter)}>{t('Show all')}</Link>
                   </p>
                 )}
                 <ProjectsTable lang={lang}
-                  rows={(healthFilter
-                    ? (d.items as any[]).filter((p) => p.health === healthFilter)
-                    : (d.items as any[]))} />
+                  rows={filterProjectPage(d.items, healthFilter)}
+                  empty={healthFilter
+                    ? (lang === 'ar'
+                      ? 'لا توجد مشاريع بهذه الحالة في الصفحة الحالية. انتقل إلى الصفحة التالية أو أزل التصفية.'
+                      : 'No projects with this health on this page. Try the next page or clear the filter.')
+                    : undefined} />
                 {(pageCursor || d.nextCursor) && <nav aria-label={lang === 'ar' ? 'صفحات المشاريع' : 'Project pages'}
                   style={{ display: 'flex', gap: 16, marginBlockStart: 18, flexWrap: 'wrap' }}>
                   {pageCursor && <Link href={projectPageHref(null, programFilter, healthFilter)}>
