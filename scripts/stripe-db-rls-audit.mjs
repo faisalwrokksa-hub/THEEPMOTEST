@@ -121,6 +121,18 @@ export async function auditStripeDbRls(db, tenantA, tenantB) {
     limits: 'Read-only full-table tenant aggregation; run dedicated adversarial PostgreSQL mutation tests before production' };
 }
 
+/**
+ * Postgres.js may expose its callable client as the CommonJS export or as the
+ * default of an ESM namespace after a major dependency upgrade. Reject any
+ * unexpected module shape before opening a connection.
+ */
+export function resolvePostgresClientFactory(moduleExports) {
+  const factory = typeof moduleExports === 'function'
+    ? moduleExports : moduleExports?.default;
+  assert(typeof factory === 'function', 'PostgreSQL client module has no callable factory');
+  return factory;
+}
+
 /** Sanitized CI diagnostics: never log SQL, connection URLs, or secrets. */
 export function safeStripeDbFailure(error, phase) {
   const codes = new Set(['28P01','42501','42P01','42703','25006','22P02','23503',
@@ -132,6 +144,7 @@ export function safeStripeDbFailure(error, phase) {
   const reason = /TENANT ISOLATION FAILURE/.test(message) ? 'tenant-isolation violation'
     : /Inconclusive/.test(message) ? 'missing seeded financial fixtures'
     : /Unsafe/.test(message) ? 'unsafe role or RLS policy'
+    : /PostgreSQL client module has no callable factory/.test(message) ? 'incompatible database driver export' 
     : /DATABASE_URL|DEPLOYMENT_ENV|tenant UUIDs/.test(message) ? 'invalid audit configuration'
     : 'database or driver failure';
   return `BLOCKED Stripe database RLS audit [${phase}; ${code}]: ${reason}`;
@@ -145,7 +158,7 @@ async function main() {
   // introducing a duplicate root dependency.
   phase = 'driver';
   const requireDb = createRequire(new URL('../packages/db/package.json', import.meta.url));
-  const postgres = requireDb('postgres');
+  const postgres = resolvePostgresClientFactory(requireDb('postgres'));
   const db = postgres(config.databaseUrl, { max: 1, connect_timeout: 10 });
   phase = 'read-only RLS acceptance';
   try {
