@@ -66,3 +66,17 @@ test('Graph folder selection and storage reads cannot cross the consenting user 
   assert.match(location, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\} RETURNING id/);
   assert.match(connection, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\}/);
 });
+
+const e04aSql = readFileSync(new URL('../packages/db/migrations/0020_microsoft_user_connections.sql', import.meta.url), 'utf8');
+const e04aSchema = readFileSync(new URL('../packages/db/src/schema.ts', import.meta.url), 'utf8');
+const e04aJournal = JSON.parse(readFileSync(new URL('../packages/db/migrations/meta/_journal.json', import.meta.url), 'utf8'));
+test('E04a user-bound storage is additive and fail-closed', () => {
+ assert.match(e04aSql, /UNIQUE\(tenant_id,user_id,provider\)/);
+ assert.match(e04aSql, /FOREIGN KEY\(tenant_id,user_id\)/);
+ assert.match(e04aSql, /ENABLE ROW LEVEL SECURITY/);
+ assert.match(e04aSql, /FORCE ROW LEVEL SECURITY/);
+ assert.match(e04aSql, /REVOKE ALL ON TABLE public\.microsoft_user_connections FROM PUBLIC/);
+ assert.doesNotMatch(e04aSql, /(?:DROP|TRUNCATE|DELETE FROM)\s+(?:public\.)?integration_connections/i);
+ assert.match(e04aSchema, /export const microsoftUserConnections = pgTable/);
+ assert.equal(e04aJournal.entries.at(-1).tag,'0020_microsoft_user_connections');
+});
