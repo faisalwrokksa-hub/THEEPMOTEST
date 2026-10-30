@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "candidateSha": null,
   "decision": "NO-GO",
-  "description": "Review-only integrated code candidate dbbeb31921b47ea9a10a0cedde582c76ccfdb569 passed its CI; later Frontend and Commercial commits have not been integrated. No accepted immutable release candidate or external staging/provider/UAT evidence. All nine gates remain non-PASS; no live payments or deployment.",
+  "description": "Engineering delegated-token containment PR #7 and follow-on Frontend error-recovery PR #8 each have green same-SHA CI; PR #8 SHA 3f04f705ec5bbeb110b92afe1a2ebb1470ab212b is the newest observed non-deploying code candidate. Commercial contract update is on a separate branch, not integrated. No pinned immutable final release candidate or external provider/staging/UAT acceptance. All nine gates remain non-PASS; NO-GO.",
   "gates": {
     "dependency_security": {
       "status": "BLOCKED",
@@ -12,7 +12,7 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "2026-10-30 integrated review-only PR #6 SHA dbbeb31921b47ea9a10a0cedde582c76ccfdb569 CI #41000449526 audit PASS at high threshold; 2 MODERATE advisories remain. This is verified same-SHA integrated code CI but no independent release-candidate/staging signoff. Commercial PR #4 SHA 7243563f CI #40998450262 audit FAIL with 65 advisories on old dependency graph.",
+      "blockingReason": "2026-10-30 PR #8 exact SHA 3f04f705ec5bbeb110b92afe1a2ebb1470ab212b CI #41013673810 audit PASS at high/critical threshold; moderate advisories require independent review. Commercial-only SHA 034fef2768d3d30ff3246beec83b72b1f38a4661 CI #41009993673 audit FAIL on old dependency base. No final immutable integrated release candidate or provider acceptance.",
       "unblockAction": "Engineering review risk and disposition of 2 moderate advisories, preserve frozen-lockfile dependency graph, independently inspect integrated CI #41000449526 at its exact SHA, and repeat audit on final immutable release candidate if it changes. No downgrading audit threshold."
     },
     "ci_build_tests": {
@@ -23,8 +23,8 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "Integrated review-only PR #6 SHA dbbeb31921b47ea9a10a0cedde582c76ccfdb569 CI #41000449526 all four jobs PASS: 874 offline tests, 109 integration PASS/20 SKIP, 13 billing isolation PASS, real restricted-role PostgreSQL financial RLS, typecheck, API/web/Docker builds, high/critical audit PASS with 2 moderate. Newer Commercial PR #4 SHA 11fae87b1f233826e7c397764a0d90ceaa904395 CI #41004177501 FAILED audit (65 advisories) and verify (8 Microsoft/finance tests); newer Frontend PR #3 SHA 3cac0194c1e536cc9712a379da5e3c02be6a26b6 CI #41007992793 likewise FAILED audit and verify on old base. Branch failures must not be transferred to integrated green SHA, nor green result to new code.",
-      "unblockAction": "Release owner independently review and pin a final immutable release candidate SHA, preserve this green integrated run as code evidence, rerun CI if any commit changes, and attach all nine gates' independent real provider/staging receipts on exactly that SHA. No merge/deploy."
+      "blockingReason": "Latest non-deploying Frontend PR #8 exact SHA 3f04f705ec5bbeb110b92afe1a2ebb1470ab212b CI #41013673810 all four jobs PASS: source, high/critical audit, full verify including PostgreSQL RLS, tenant/billing isolation, TypeScript, API/web/Docker builds and compiled Next.js smoke, plus non-deploying remediation candidate. PR #8 builds on Engineering PR #7 SHA a4478f7aa67c0635b208ae1a46cd9b653d0d360f (CI #41011473208 all four jobs PASS). Commercial PR #4 contract/manifest updates are NOT part of PR #8 and its separate latest head 034fef2 CI #41009993673 FAILED audit/verify on old base. No final release candidate pinned.",
+      "unblockAction": "Integration owner stage the latest Commercial-owned contract/manifest files onto the reviewed PR #8 security/frontend candidate without overlapping backend/UI files; pin resulting immutable SHA, rerun full frozen-lockfile CI and all provider/staging/negative tests on exactly that SHA, review 2 moderate advisories and independently attach receipts. No merge or deploy."
     },
     "tenant_rls": {
       "status": "PENDING",
@@ -45,8 +45,8 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "No real Entra staging test-user consent/refresh/revoke or cross-user-denial artifact on candidate SHA; branch-local Microsoft CI assertions have failed.",
-      "unblockAction": "Authorized Entra test administrator provision isolated test app and two test identities; Engineering execute consent, refresh, revoke, cross-user denial in staging, preserving no external customer consent, and attach candidate-SHA evidence."
+      "blockingReason": "Engineering PR #7 SHA a4478f7aa67c0635b208ae1a46cd9b653d0d360f CI #41011473208 passed four jobs and added fail-closed delegated token owner/cache guards. However storage remains one Microsoft integration connection per workspace, not two independently consented users; real Entra two-user consent, refresh, revoke and cross-user-denial evidence on a final SHA is absent.",
+      "unblockAction": "Engineering design/migrate tenant+user+provider connection storage and test two simultaneous delegated users without sharing refresh tokens; authorized Entra staging administrator provision isolated app and two test identities; run consent, refresh, revoke and cross-user denial with sanitized same-SHA receipts. Preserve fail-closed behavior; no customer tenant consent."
     },
     "stripe_test_billing": {
       "status": "BLOCKED",
@@ -108,7 +108,7 @@
           "testResult": null
         }
       },
-      "blockingReason": "Integrated PR #6 CI #41000449526 is green, but its apps/web/src/app/api/billing/checkout/route.ts still only proxies invoiceId to /api/v1/subscription/billing/stripe/checkout (existing invoice payment), not first-customer recurring subscription checkout. Seven real Stripe TEST lifecycle scenarios remain PENDING. No verified restricted sk_test/whsec, HTTPS webhook endpoint or disposable staging customers.",
+      "blockingReason": "Latest green PR #8 CI #41013673810 covers code/build/RLS but does not prove recurring Stripe TEST. Existing checkout path is invoice payment-mode proxy; first-customer subscription-mode Checkout, signed raw-body webhook, replay-safe entitlement provisioning, failed payment and cancellation remain unverified. No verified restricted test key/signing secret, public staging HTTPS webhook or disposable customer tenants. All seven real scenarios PENDING.",
       "unblockAction": "Engineering implement authenticated server-owned Stripe subscription-mode first-customer checkout, raw-body signature verification, replay-safe idempotency and tenant-bound entitlement state; Frontend wire pending/failed/cancelled UX without trusting success URL; authorized staging administrator provision restricted sk_test/whsec in secret store, public HTTPS endpoint, two disposable tenants and Stripe TEST webhook delivery; Commercial execute and review all seven scenarios on one final SHA."
     },
     "frontend_customer_journeys": {
@@ -119,8 +119,8 @@
       "environment": null,
       "reviewer": null,
       "testResult": null,
-      "blockingReason": "Integrated PR #6 SHA dbbeb31921b47ea9a10a0cedde582c76ccfdb569 CI #41000449526 passes 874/874 source tests and compiled web smoke, but Frontend PR #3 review (2026-10-30 05:19 UTC) identifies no public landing page or /signup route: root / is protected; invite acceptance/onboarding are not self-service signup. Frontend PR #3 newer SHA 3cac0194c1e536cc9712a379da5e3c02be6a26b6 is NOT integrated. Its CI #41007992793 failed audit (65 advisories: 2 critical, 25 high) and verify (8 Microsoft/finance integration failures) on its old dependency base. No interactive desktop/375px/Arabic RTL staging paid-customer browser UAT.",
-      "unblockAction": "Engineering/Commercial agree secure public plan discovery and signup/activation contract (tenant creation, verified identity, abuse/rate limits, no entitlement before signed Stripe webhook); Frontend implement public landing/pricing/signup/activation and accessible checkout/account/support states in its own files. Integrate latest frontend changes with audited Engineering base, rerun full CI on the new exact SHA, then record interactive desktop/375px Arabic RTL staging browser UAT and screenshots with reviewer."
+      "blockingReason": "Frontend follow-on PR #8 SHA 3f04f705ec5bbeb110b92afe1a2ebb1470ab212b CI #41013673810 passed all four jobs, including compiled web smoke; this is not interactive browser UAT. Error boundary Arabic/English recovery fixes are integrated on the newer Engineering security base, but no public landing or /signup is proven. No 375px/desktop RTL screenshot, real account activation or Stripe TEST recurring journey evidence.",
+      "unblockAction": "Engineering/Commercial ratify proposed public signup and subscription API contract in docs/COMMERCIAL-RELEASE-CONTRACT.md; Frontend implement accessible public landing/pricing/signup, checkout/failed/cancelled/account/support UX in its own files, then execute 375px/desktop keyboard/Arabic RTL browser UAT on final same-SHA HTTPS staging candidate."
     },
     "staging_smoke": {
       "status": "PENDING",
@@ -157,37 +157,36 @@
     }
   },
   "lastObservedFailure": {
-    "observedAtUtc": "2026-10-30T04:42:24Z",
+    "observedAtUtc": "2026-10-30T06:42:20Z",
     "branch": "feat/commercial-release-evidence-20261029",
-    "commitSha": "11fae87b1f233826e7c397764a0d90ceaa904395",
-    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41004177501",
+    "commitSha": "034fef2768d3d30ff3246beec83b72b1f38a4661",
+    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41009993673",
     "sourceChecks": {
       "status": "PASS"
     },
     "integrationTests": {
-      "passed": 101,
-      "failed": 8,
-      "skipped": 20
+      "status": "FAIL",
+      "details": "Full verify job failed; do not infer current exact failure count without logs."
     },
     "dependencyAudit": {
-      "total": 65,
-      "critical": 2,
-      "high": 25,
-      "moderate": 29,
-      "low": 9
+      "status": "FAIL",
+      "details": "Audit job failed on Commercial-only old dependency base; no new numeric advisory count asserted."
     },
-    "qualification": "Old Commercial-only dependency base; verify and audit failed. PR #6 integrated SHA is green and must not inherit this failure. New Commercial SHA does not inherit PR #6 success."
+    "qualification": "This failure is on the old Commercial branch and does not negate green PR #8; PR #8 PASS does not transfer to new Commercial docs."
   },
   "lastCommercialDecision": {
     "decision": "NO-GO",
-    "reason": "Integrated review-only PR #6 CI remains green at SHA dbbeb31921b47ea9a10a0cedde582c76ccfdb569 but first-customer recurring checkout and public self-service signup are absent/unproven, all seven Stripe TEST scenarios and external Entra/staging/UAT/recovery/legal evidence are missing. Newer frontend and commercial SHAs are not integrated. No final release candidate accepted.",
+    "reason": "PR #8 is a newer all-green code candidate, but commercial docs are not integrated, public self-service signup and recurring Stripe subscription lifecycle are absent/unproven, full per-user Entra delegated OAuth is not implemented, and no external staging, UAT, restore or legal/support acceptance exists. No final immutable candidate SHA accepted.",
     "safeChanges": [
       {
-        "description": "Inspected latest completed Frontend CI #41007992793 and Commercial CI #41004177501, verified branch-specific failures, reconciled missing public signup handoff and maintained NO-GO without transferring CI results across SHAs."
+        "description": "Verified PR #7 and PR #8 exact heads and all four GitHub Actions jobs for #41011473208 and #41013673810; separately confirmed latest Commercial-only #41009993673 audit/verify failure. No cross-SHA PASS transfer."
+      },
+      {
+        "description": "Committed proposed non-overlapping Engineering/Frontend signup, subscription, webhook, entitlement and failed-payment interface contract to Commercial-owned documentation (ccac387df89e041dc3a16df78a6f216945412dc8)."
       }
     ],
-    "verification": "Read PR #3/#4/#6 exact head metadata, integrated and latest branch job conclusions and failing audit/verify logs, integrated checkout proxy and Frontend PR #6 handoff. No real Stripe/Entra/staging tests executed.",
-    "tradeoff": "Update only Commercial-owned evidence and PR contract comments; leave integrated green PR #6 untouched. New commercial commit triggers branch CI on old dependency base and is not release acceptance. Final candidate must deliberately reconcile newer frontend and manifest changes and rerun same-SHA CI."
+    "verification": "GitHub PR metadata, exact commit workflow conclusions and job steps, latest commercial evidence manifest and contract inspected. No Stripe/Entra/staging/browser/recovery acceptance was executed.",
+    "tradeoff": "Kept green Engineering/Frontend PR #8 unchanged; Commercial docs and register remain on separate draft PR #4. This new documentation-only commit will require deliberate integration and new same-SHA CI. Proposed API is explicitly not implemented."
   },
   "lastEngineeringObservation": {
     "branch": "fix/p0-ci-assertions-20261029",
@@ -260,5 +259,23 @@
     "source": "PASS",
     "productGap": "Frontend review identifies no public landing or /signup route; invite/onboarding is not self-service signup",
     "qualification": "This later frontend SHA is not part of green integrated PR #6. No browser UAT or provider acceptance."
+  },
+  "lastEngineeringSecurityObservation": {
+    "branch": "fix/p0-microsoft-delegated-user-boundary-20261030",
+    "pullRequestUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/7",
+    "commitSha": "a4478f7aa67c0635b208ae1a46cd9b653d0d360f",
+    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41011473208",
+    "status": "CI_GREEN_4_OF_4_REVIEW_ONLY",
+    "qualification": "Delegated-user token containment passed source/audit/verify on exact SHA, but workspace singleton storage and real Entra multi-user OAuth acceptance remain unresolved."
+  },
+  "lastFrontendIntegratedObservation": {
+    "branch": "fix/p0-frontend-error-recovery-integrated-20261030",
+    "pullRequestUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/8",
+    "commitSha": "3f04f705ec5bbeb110b92afe1a2ebb1470ab212b",
+    "workflowRunUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41013673810",
+    "status": "CI_GREEN_4_OF_4_REVIEW_ONLY",
+    "verified": "Dependency-free source checks, high/critical audit, verify with PostgreSQL financial RLS and isolation, TypeScript, production API/web/Docker builds, integration and compiled web HTTP smoke all completed successfully; remediation candidate job successful.",
+    "notVerified": "Public signup, Stripe TEST recurring subscription and webhooks, live two-user Entra consent, real browser 375px/RTL UAT, staging and recovery, legal/support.",
+    "qualification": "PR #8 includes PR #7 Microsoft security changes and frontend error-recovery patch, but not latest Commercial PR #4 documentation/manifest. No release acceptance."
   }
 }
