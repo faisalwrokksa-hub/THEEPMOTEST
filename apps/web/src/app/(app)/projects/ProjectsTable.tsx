@@ -36,9 +36,9 @@ const makeCols = (t: (s: string) => string, lang: Lang): Col<Row>[] => [
     cell: (r) => <span className="num">{when(r.endDate, lang)}</span> },
 ];
 
-export function ProjectsTable({ rows, lang }: { rows: Row[]; lang?: Lang }) {
+export function ProjectsTable({ rows, lang, empty }: { rows: Row[]; lang?: Lang; empty?: string }) {
   const cols = makeCols(translator(lang ?? 'en'), lang ?? 'en');
   return <DataTable rows={rows} cols={cols} lang={lang}
                     filterPlaceholder={lang === 'ar' ? 'ابحث برمز المشروع أو اسمه أو حالته…' : 'Filter by code, name or status…'}
-                    initialSort={{ key: 'health', dir: 'asc' }} empty={lang === 'ar' ? 'لا توجد مشاريع بعد.' : 'No projects yet.'} />;
+                    initialSort={{ key: 'health', dir: 'asc' }} empty={empty ?? (lang === 'ar' ? 'لا توجد مشاريع بعد.' : 'No projects yet.')} />;
 }
