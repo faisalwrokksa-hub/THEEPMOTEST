@@ -31,6 +31,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
   const formRef = useRef<HTMLFormElement>(null);
   const [open, setOpen] = useState(initialOpen);
   const [error, setError] = useState('');
+  const [sessionExpired, setSessionExpired] = useState(false);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const message = (english: string, arabic: string) => locale === 'ar' ? arabic : english;
@@ -71,6 +72,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
     busyGuard.current = true;
     setBusy(true);
     setError('');
+    setSessionExpired(false);
     setFieldErrors({});
     try {
       const res = await fetch(form.action, {
@@ -95,12 +97,18 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
         } else {
           // Connection failure is retryable; submitted form values stay intact.
           // Avoid displaying raw English API error responses to Arabic users.
-          setError(res.status === 503
-            ? message('The service is temporarily unavailable. Try again shortly.',
-                      'الخدمة غير متاحة مؤقتًا. يرجى المحاولة مجددًا بعد قليل.')
-            : locale === 'ar'
-              ? 'تعذّر الحفظ. تحقق من البيانات وحاول مجددًا.'
-              : String(j?.error || t('That could not be saved.')));
+          if (res.status === 401) setSessionExpired(true);
+          setError(res.status === 401
+            ? message('Your session has expired. Sign in again to continue.',
+                      'انتهت جلسة تسجيل الدخول. يرجى تسجيل الدخول مجددًا للمتابعة.')
+            : res.status === 503
+              ? message('The service is temporarily unavailable. Try again shortly.',
+                        'الخدمة غير متاحة مؤقتًا. يرجى المحاولة مجددًا بعد قليل.')
+              : res.status === 429
+                ? message('Too many attempts. Please try again shortly.',
+                          'عدد المحاولات كبير. يرجى المحاولة مجددًا بعد قليل.')
+                : message('That could not be saved. Check your information and try again.',
+                          'تعذّر الحفظ. تحقق من البيانات وحاول مجددًا.'));
         }
         return;
       }
@@ -131,7 +139,7 @@ export function NewRecord({ kind, title, cta, fields, returnTo, intro, lang, ini
         <button type="button" className="x" disabled={busy} onClick={() => setOpen(false)} aria-label={t('Cancel')}>×</button>
       </header>
       {intro && <p className="dim intro">{t(intro)}</p>}
-      {error && <p className="formerr" role="alert">{error}</p>}
+      {error && <p className="formerr" role="alert">{error}{sessionExpired && <> <a href="/login">{message("Sign in", "تسجيل الدخول")}</a></>}</p>}
       <div className="grid">
         {fields.map(f => {
           const hintId = f.hint ? `${id}-${f.name}-hint` : undefined;
