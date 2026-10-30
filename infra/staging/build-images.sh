@@ -31,8 +31,20 @@ command -v docker >/dev/null || { echo 'BLOCKED: Docker required' >&2; exit 1; }
   { echo 'BLOCKED: checkout is not clean' >&2; exit 1; }
 [[ -f apps/api/Dockerfile && -f apps/web/Dockerfile ]] ||
   { echo 'BLOCKED: not at EPMO repository root' >&2; exit 1; }
-docker build --file apps/api/Dockerfile --label "org.opencontainers.image.revision=$sha" --tag "$api_image" .
-docker build --file apps/web/Dockerfile --label "org.opencontainers.image.revision=$sha" --tag "$web_image" .
+# Never send .env.staging, ignored credentials, backups or untracked files
+# to the Docker daemon. Build only from tracked files at this immutable SHA.
+command -v tar >/dev/null || { echo 'BLOCKED: tar required' >&2; exit 1; }
+context=$(mktemp -d)
+cleanup() { [[ -n "${context:-}" && -d "$context" ]] && rm -rf -- "$context"; }
+trap cleanup EXIT
+git archive --format=tar "$sha" | tar -xf - -C "$context"
+if find "$context" -type f \( -name '.env' -o -name '.env.staging' -o -name '.env.prod' \
+  -o -name '*.key' -o -name '*.pem' -o -name '*.dump' \) | grep -q .; then
+  echo 'BLOCKED: tracked secret-like file in immutable build context' >&2
+  exit 1
+fi
+docker build --file "$context/apps/api/Dockerfile" --label "org.opencontainers.image.revision=$sha" --tag "$api_image" "$context"
+docker build --file "$context/apps/web/Dockerfile" --label "org.opencontainers.image.revision=$sha" --tag "$web_image" "$context"
 [[ "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$api_image")" == "$sha" &&
    "$(docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$web_image")" == "$sha" ]] ||
   { echo 'BLOCKED: built image revision label mismatch' >&2; exit 1; }
