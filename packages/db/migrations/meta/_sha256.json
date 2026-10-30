@@ -21,6 +21,7 @@
     "0016_workspace_profiles_invitations.sql": "66d3e8b39759d6a6ca0982c685f268c1b394f9ff7a019ef05628203a2aa9763c",
     "0017_tenant_membership_status.sql": "cbe388ef3b8d4abb33e99caac44eb3220c1bee5cec24c45434e1ebc2844145bd",
     "0018_payment_exceptions.sql": "39eaa3a8ca600dc82fdad9dd47f9bb73f7bcee800dd5b2626ead91744d709d1c",
-    "0019_password_recovery.sql": "4bbe5ee55becbf9394b0883314681d56135491c67f9e82ab4e23b6d60a050f74"
+    "0019_password_recovery.sql": "4bbe5ee55becbf9394b0883314681d56135491c67f9e82ab4e23b6d60a050f74",
+    "0020_microsoft_user_connections.sql": "998d8546c6ec7340fa60cac50c02bdecfe62e78aa51b015516741a8b851a5cce"
   }
 }
