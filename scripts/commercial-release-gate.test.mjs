@@ -140,3 +140,17 @@ test('rejects signed or credential-bearing evidence URL query aliases', () => {
   manifest.gates.ci_build_tests.artifactUrl = 'https://github.com/example/actions/runs/1?view=summary';
   assert.equal(evaluateCommercialEvidence(manifest).readyForHumanReview, true);
 });
+
+test('rejects local and production-only evidence for staging acceptance', () => {
+  const manifest = valid();
+  for (const id of ['microsoft_per_user_oauth', 'stripe_test_billing', 'frontend_customer_journeys', 'staging_smoke', 'backup_restore_rollback']) {
+    manifest.gates[id].environment = 'local';
+    assert.match(evaluateCommercialEvidence(manifest).issues.join('\\n'), new RegExp(id + ': acceptance requires staging'), id);
+    manifest.gates[id].environment = 'staging';
+  }
+  manifest.gates.stripe_test_billing.environment = 'production';
+  assert.equal(evaluateCommercialEvidence(manifest).readyForHumanReview, false);
+  manifest.gates.stripe_test_billing.environment = 'staging';
+  manifest.gates.backup_restore_rollback.environment = 'isolated-staging';
+  assert.equal(evaluateCommercialEvidence(manifest).readyForHumanReview, true);
+});
