@@ -2,6 +2,7 @@ import { Injectable, NestMiddleware, UnauthorizedException } from '@nestjs/commo
 import type { Request, Response, NextFunction } from 'express';
 import { AuthService, SESSION_COOKIE } from '../auth/auth.service';
 import { runWithContext } from './tenant-context';
+import { parseRuntimeDeployment, assertRuntimeDeploymentTenant } from './deployment-runtime';
 
 /**
  * Establishes who is calling, from a signed-in session — not from headers.
@@ -12,11 +13,17 @@ import { runWithContext } from './tenant-context';
  */
 @Injectable()
 export class TenantMiddleware implements NestMiddleware {
+  private readonly runtimeDeployment = parseRuntimeDeployment(process.env);
   constructor(private readonly auth: AuthService) {}
 
   async use(req: Request, _res: Response, next: NextFunction) {
     const p = await this.auth.principal(req.cookies?.[SESSION_COOKIE]);
     if (p) {
+      try {
+        assertRuntimeDeploymentTenant(this.runtimeDeployment, { tenantId: p.tenantId, userId: p.userId });
+      } catch {
+        throw new UnauthorizedException('Workspace unavailable in this deployment');
+      }
       return runWithContext(
         { tenantId: p.tenantId, userId: p.userId, role: p.role as any,
           capabilities: p.capabilities as any }, () => next());
@@ -29,6 +36,8 @@ export class TenantMiddleware implements NestMiddleware {
       const tenantId = req.header('x-tenant-id');
       const userId = req.header('x-user-id') ?? null;
       if (tenantId) {
+        // Local header impersonation never bypasses a configured deployment registry.
+        if (this.runtimeDeployment) throw new UnauthorizedException('Header authentication unavailable for deployed tenants');
         const { and, eq } = await import('drizzle-orm');
         const { withTenant, memberships } = await import('@pmo/db');
         if (!userId) throw new UnauthorizedException('Development header authentication requires a user ID');
