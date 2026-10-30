@@ -1,4 +1,4 @@
-import { tr } from '@/lib/i18n';
+import { getLang, tr } from '@/lib/i18n';
 /**
  * Every screen's heading goes through here, so translating the shell
  * translates 26 titles and subtitles without touching 26 files. Pages keep
@@ -19,6 +19,7 @@ export async function Page({ title, sub, children }:
 export async function Loaded<T>({ load, children, empty }:
   { load: () => Promise<T>; children: (d: T) => React.ReactNode; empty?: string }) {
   const t = await tr();
+  const ar = (await getLang()) === 'ar';
   let data: T;
   try { data = await load(); }
   catch (e) {
@@ -46,10 +47,23 @@ export async function Loaded<T>({ load, children, empty }:
         </div>
       );
     }
+    // An expired session is recoverable through sign-in, not a server outage.
+    if (err.status === 401) {
+      return (
+        <div className="panel locked" role="alert">
+          <strong>{ar ? 'انتهت جلسة تسجيل الدخول.' : 'Your session has expired.'}</strong>
+          <p className="dim">{ar ? 'سجّل الدخول مجددًا للمتابعة.' : 'Please sign in again to continue.'}</p>
+          <a href="/login">{ar ? 'تسجيل الدخول' : 'Sign in'}</a>
+        </div>
+      );
+    }
+    // Never display raw API exceptions or developer commands to customers.
     return (
-      <div className="err">
-        <strong>{t('Could not reach the API.')}</strong> {err.message}
-        <br />Run <code>pnpm smoke</code> to see which part is down.
+      <div className="err" role="alert">
+        <strong>{ar ? 'تعذّر تحميل الصفحة.' : 'This page could not load.'}</strong>{' '}
+        {ar
+          ? 'حدّث الصفحة، وإذا استمرت المشكلة فتواصل مع الدعم.'
+          : 'Refresh the page. If the problem continues, contact support.'}
       </div>
     );
   }
