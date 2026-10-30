@@ -1,5 +1,5 @@
 import { Injectable, Logger, BadRequestException, NotFoundException,
-         ConflictException, ServiceUnavailableException } from '@nestjs/common';
+         ConflictException, ServiceUnavailableException, ForbiddenException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { safeMicrosoftReturnPath } from './return-path';
 import { sql } from 'drizzle-orm';
@@ -8,6 +8,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requireCapability } from '../common/require-capability';
 import { can } from '@pmo/contracts';
 import { redactMicrosoftConnection } from './connection-policy';
+import { canUseDelegatedMicrosoftConnection } from './delegated-user-policy';
 import { seal, open, canSealTokens } from './crypto';
 import { msConfig, authorizeUrl, exchangeCode, refresh, readIdToken, call, callAll,
          GRAPH, POWERBI, MsAuthError, MsApiError, type Resource, type MsConfig } from './client';
@@ -40,10 +41,18 @@ export class MicrosoftService {
    * add a second secret at rest to protect for no gain. Keyed by workspace and
    * resource, because one process serves every customer and handing one
    * tenant's token to another is the whole of the damage this could do.
+   * Cache keys also include the consenting EPMO user; a workspace is not a
+   * license to reuse somebody else's delegated Microsoft identity.
    */
-  private readonly tokens = new Map<string, { accessToken: string; expiresAt: number }>();
+  private readonly tokens = new Map<string, { accessToken: string; expiresAt: number; credential: string }>();
 
   private ctx() { return currentContext(); }
+
+  private invalidateTenantTokens(tenantId: string) {
+    for (const key of this.tokens.keys()) {
+      if (key.startsWith(`${tenantId}:`)) this.tokens.delete(key);
+    }
+  }
 
   private config(): MsConfig {
     const cfg = msConfig();
@@ -177,7 +186,7 @@ export class MicrosoftService {
       await withTenant(tenantId, async (tx) => {
         await tx.execute(sql`
           UPDATE integration_connections SET status = 'error', last_error = ${msg}, updated_at = now()
-          WHERE provider = ${PROVIDER}`);
+          WHERE provider = ${PROVIDER} AND connected_by = ${st.user_id}`);
       });
       throw new BadRequestException(`Microsoft refused the connection: ${msg}`);
     }
@@ -189,7 +198,7 @@ export class MicrosoftService {
 
     const who = readIdToken(tok.idToken);
     await withTenant(tenantId, async (tx) => {
-      await tx.execute(sql`
+      const [saved] = rows(await tx.execute(sql`
         INSERT INTO integration_connections
           (tenant_id, provider, status, external_tenant_id, account_email, account_name,
            scopes, refresh_token, connected_by, connected_at, last_error, updated_at)
@@ -211,7 +220,13 @@ export class MicrosoftService {
           connected_by = EXCLUDED.connected_by,
           connected_at = coalesce(integration_connections.connected_at, EXCLUDED.connected_at),
           last_error = NULL,
-          updated_at = now()`);
+          updated_at = now()
+        WHERE integration_connections.connected_by = EXCLUDED.connected_by
+        RETURNING id`));
+      if (!saved) {
+        throw new ConflictException(
+          'Another user owns this Microsoft connection. Ask the owner to disconnect before reconnecting.');
+      }
 
       await tx.insert(auditEvents).values({
         tenantId, actorId: st.user_id, entity: 'integration',
@@ -221,8 +236,7 @@ export class MicrosoftService {
     });
 
     // The in-memory token for this workspace is now stale in both directions.
-    this.tokens.delete(`${tenantId}:graph`);
-    this.tokens.delete(`${tenantId}:powerbi`);
+    this.invalidateTenantTokens(tenantId);
 
     // Connection details and email are retained in tenant-scoped audit history.
     this.log.log(`Microsoft ${resource} connection completed`);
@@ -239,15 +253,16 @@ export class MicrosoftService {
    */
   async disconnect(): Promise<{ ok: true; documentsStillLinked: number }> {
     requireCapability('pmoa_admin');
-    const { tenantId } = this.ctx();
+    const { tenantId, userId } = this.ctx();
     return withTenant(tenantId, async (tx) => {
       const [n] = rows(await tx.execute(sql`
         SELECT count(*)::int AS n FROM documents WHERE storage_provider = ${PROVIDER}`));
       const [gone] = rows(await tx.execute(sql`
-        DELETE FROM integration_connections WHERE provider = ${PROVIDER} RETURNING id`));
+        DELETE FROM integration_connections
+        WHERE provider = ${PROVIDER} AND (connected_by = ${userId} OR connected_by IS NULL)
+        RETURNING id`));
       if (!gone) throw new NotFoundException('Microsoft is not connected to this workspace.');
-      this.tokens.delete(`${tenantId}:graph`);
-      this.tokens.delete(`${tenantId}:powerbi`);
+      this.invalidateTenantTokens(tenantId);
       await this.audit(tx, PROVIDER, 'microsoft.disconnected', { documentsStillLinked: n.n });
       return { ok: true as const, documentsStillLinked: n.n };
     });
@@ -264,17 +279,26 @@ export class MicrosoftService {
    */
   private async accessToken(resource: Resource): Promise<string> {
     const cfg = this.config();
-    const { tenantId } = this.ctx();
-    const cacheKey = `${tenantId}:${resource}`;
-    const hit = this.tokens.get(cacheKey);
-    if (hit && hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
+    const { tenantId, userId } = this.ctx();
+    const cacheKey = `${tenantId}:${userId}:${resource}`;
 
+    // Check the database owner BEFORE any cached token can be returned.
+    // The legacy schema stores one delegated connection per workspace; that
+    // does not authorize a different workspace administrator to impersonate
+    // the person who consented. Unowned legacy rows fail closed.
     const [row] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
-      SELECT refresh_token FROM integration_connections WHERE provider = ${PROVIDER}`)));
+      SELECT refresh_token, connected_by FROM integration_connections WHERE provider = ${PROVIDER}`)));
     if (!row?.refresh_token) {
       this.tokens.delete(cacheKey);
       throw new ConflictException('Microsoft is not connected to this workspace yet.');
     }
+    if (!canUseDelegatedMicrosoftConnection(row.connected_by, userId)) {
+      this.tokens.delete(cacheKey);
+      throw new ForbiddenException(
+        'This Microsoft connection belongs to another user. Connect your own Microsoft account.');
+    }
+    const hit = this.tokens.get(cacheKey);
+    if (hit && hit.credential === row.refresh_token && hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
 
     let tok;
     try {
@@ -291,7 +315,8 @@ export class MicrosoftService {
       await withTenant(tenantId, async (tx) => {
         await tx.execute(sql`
           UPDATE integration_connections SET status = 'error', last_error = ${msg}, updated_at = now()
-          WHERE provider = ${PROVIDER}`);
+          WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+            AND refresh_token = ${row.refresh_token}`);
       });
       throw new ConflictException(
         'The Microsoft connection is no longer valid — it may have been revoked, or the ' +
@@ -300,16 +325,22 @@ export class MicrosoftService {
 
     // Microsoft rotates refresh tokens; the old one stops working, so the new
     // one has to be written or the connection dies on the next refresh.
+    let credential = row.refresh_token;
     if (tok.refreshToken) {
-      await withTenant(tenantId, async (tx) => {
-        await tx.execute(sql`
+      credential = seal(tok.refreshToken);
+      const updated = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
           UPDATE integration_connections
-          SET refresh_token = ${seal(tok.refreshToken!)}, status = 'connected',
+          SET refresh_token = ${credential}, status = 'connected',
               last_error = NULL, last_used_at = now(), updated_at = now()
-          WHERE provider = ${PROVIDER}`);
-      });
+          WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+            AND refresh_token = ${row.refresh_token}
+          RETURNING id`)));
+      if (!updated.length) {
+        this.tokens.delete(cacheKey);
+        throw new ConflictException('Microsoft connection changed during refresh. Reconnect and retry.');
+      }
     }
-    this.tokens.set(cacheKey, { accessToken: tok.accessToken, expiresAt: tok.expiresAt });
+    this.tokens.set(cacheKey, { accessToken: tok.accessToken, expiresAt: tok.expiresAt, credential });
     return tok.accessToken;
   }
 
@@ -351,7 +382,7 @@ export class MicrosoftService {
    */
   async chooseLocation(b: { siteId?: string; driveId: string; folderName?: string }) {
     requireCapability('pmoa_admin');
-    const { tenantId } = this.ctx();
+    const { tenantId, userId } = this.ctx();
     const token = await this.accessToken('graph');
 
     // The folder is named after the workspace, so somebody browsing their own
@@ -374,7 +405,7 @@ export class MicrosoftService {
           drive_id = ${b.driveId}, drive_name = ${drive?.name ?? null},
           root_item_id = ${root.id}, root_path = ${folder},
           status = 'connected', last_error = NULL, updated_at = now()
-        WHERE provider = ${PROVIDER} RETURNING id`));
+        WHERE provider = ${PROVIDER} AND connected_by = ${userId} RETURNING id`));
       if (!done) throw new ConflictException('Microsoft is not connected to this workspace yet.');
       await this.audit(tx, PROVIDER, 'microsoft.location_set',
         { site: site?.webUrl ?? null, drive: drive?.name, folder });
@@ -401,9 +432,10 @@ export class MicrosoftService {
   }
 
   private async connection(tx: any) {
+    const { userId } = this.ctx();
     const [c] = rows(await tx.execute(sql`
       SELECT drive_id, root_item_id, root_path, site_url FROM integration_connections
-      WHERE provider = ${PROVIDER}`));
+      WHERE provider = ${PROVIDER} AND connected_by = ${userId}`));
     if (!c) throw new ConflictException('Microsoft is not connected to this workspace yet.');
     if (!c.drive_id || !c.root_item_id) {
       throw new ConflictException(
@@ -617,7 +649,7 @@ export class MicrosoftService {
     const token = await this.accessToken('powerbi');
     const path = groupId ? `/groups/${groupId}/reports/${reportId}` : `/reports/${reportId}`;
     const r = await call<any>(POWERBI, token, path);
-    const { expiresAt } = this.tokens.get(`${this.ctx().tenantId}:powerbi`) ?? { expiresAt: 0 };
+    const { expiresAt } = this.tokens.get(`${this.ctx().tenantId}:${this.ctx().userId}:powerbi`) ?? { expiresAt: 0 };
     return {
       id: r.id, name: r.name, embedUrl: r.embedUrl, datasetId: r.datasetId,
       accessToken: token, tokenType: 'Aad' as const,
