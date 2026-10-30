@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
   }
 
   const line = (res.headers.getSetCookie?.() ?? []).find((c) => c.startsWith(`${SESSION}=`));
-  const token = line?.split(';')[0]?.split('=')[1];
+  // Preserve opaque cookie values containing '=' padding; split only at the cookie-name boundary.
+  const token = line?.split(';', 1)[0]?.slice(`${SESSION}=`.length);
   if (!token) return back('session_missing');
 
   const out = NextResponse.redirect(publicUrl(req, '/'), 303);
