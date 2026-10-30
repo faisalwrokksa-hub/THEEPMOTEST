@@ -4,7 +4,7 @@
  * Stripe, Microsoft, PostgreSQL, or any network. Never prints secret values.
  */
 import { readFileSync, realpathSync, statSync } from 'node:fs';
-import { X509Certificate, createPublicKey } from 'node:crypto';
+import { X509Certificate, createPrivateKey, createPublicKey } from 'node:crypto';
 import { resolve, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseSimpleEnvFile } from '../../scripts/rc1-release-gate.mjs';
@@ -59,7 +59,9 @@ export function tlsMaterialChecks(env, root = repoRoot, now = Date.now()) {
     if ((keyStat.mode & 0o077) !== 0) throw new Error('Private key must be owner-readable only');
     checks.push({ name: 'TLS files exist outside the checkout with private key permissions', passed: true });
     cert = new X509Certificate(readFileSync(certResolved));
-    key = createPublicKey(readFileSync(keyResolved));
+    // A matching public key is not a deployable TLS private key. Require an
+    // actual parseable private key before comparing its derived public half.
+    key = createPrivateKey(readFileSync(keyResolved));
   } catch {
     return [
       { name: 'TLS files exist outside the checkout with private key permissions', passed: false },
