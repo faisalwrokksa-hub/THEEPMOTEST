@@ -25,3 +25,8 @@ export function validProjectHealth(value: unknown): string | undefined {
 export function projectGovernanceHref(projectId: string): string {
   return `/governance/${encodeURIComponent(projectId)}`;
 }
+
+/** Page-scoped only: the API must own any future portfolio-wide health filter. */
+export function filterProjectPage<T extends { health: string }>(items: readonly T[], health?: string): T[] {
+  return health ? items.filter(item => item.health === health) : [...items];
+}
