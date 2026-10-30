@@ -5,7 +5,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
-import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseStripePaymentException, shouldPauseOnPaymentException, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
+import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -187,7 +187,11 @@ export class StripeBillingService {
         SELECT id, status, period_ends_at AS "periodEndsAt"
         FROM tenant_subscriptions WHERE tenant_id = ${tenantId} AND id = ${matched.subscriptionId}
         FOR UPDATE`))[0];
-      const pause = !!affected && shouldPauseOnPaymentException(event.type,
+      // A complete refund of a single Stripe charge is not necessarily a refund
+      // of the full paid invoice. Never revoke the entitlement for that case.
+      const refundCoversInvoice = event.type !== 'full_refund' ||
+        refundCoversPaidInvoice(event.amountMinor, matched.amountMinor);
+      const pause = !!affected && refundCoversInvoice && shouldPauseOnPaymentException(event.type,
         affected, { subscriptionId: matched.subscriptionId, periodEndsAt: matched.periodEndsAt },
         latest?.id || '');
       await tx.execute(sql`
@@ -196,7 +200,8 @@ export class StripeBillingService {
            exception_type, amount_minor, currency, subscription_paused, details)
         VALUES (${tenantId}, ${invoiceId}, ${STRIPE_PROVIDER}, ${event.eventId}, ${event.paymentIntent},
                 ${event.type}, ${event.amountMinor}, ${event.currency}, ${pause},
-                ${JSON.stringify({ providerObjectId: event.providerObjectId })}::jsonb)`);
+                ${JSON.stringify({ providerObjectId: event.providerObjectId,
+                  fullInvoiceRefund: event.type === 'full_refund' ? refundCoversInvoice : null })}::jsonb)`);
       if (pause) {
         await tx.execute(sql`UPDATE tenant_subscriptions
           SET status = 'paused', updated_at = now()
