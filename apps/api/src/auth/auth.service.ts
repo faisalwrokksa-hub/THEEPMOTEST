@@ -4,6 +4,7 @@ import { and, eq, lt, or, sql } from 'drizzle-orm';
 import * as bcrypt from 'bcryptjs';
 import { db, sessions, users, authEvents, memberships, tenants, projects, withTenant } from '@pmo/db';
 import { capabilitiesFor } from '@pmo/contracts';
+import { deploymentAllowsTenant, parseRuntimeDeployment } from '../tenancy/deployment-runtime';
 
 /**
  * Session lifetime, as two independent limits.
@@ -58,6 +59,9 @@ export interface Principal {
 
 @Injectable()
 export class AuthService {
+  // /auth is intentionally outside the authenticated API middleware. Bind its
+  // login/session/tenant-switch paths to the same trusted deployment inventory.
+  private readonly runtimeDeployment = parseRuntimeDeployment(process.env);
   private async record(action: string, o: { email?: string; userId?: string; ip?: string; detail?: string }) {
     await db.insert(authEvents).values({
       action, email: o.email ?? null, userId: o.userId ?? null,
@@ -155,6 +159,9 @@ export class AuthService {
     `)) as unknown as { id: string; name: string; slug: string }[];
     const out: { tenantId: string; name: string; slug: string; role: string }[] = [];
     for (const t of rows) {
+      // Do not expose or query a membership on another shared/dedicated runtime.
+      // This also ensures login cannot create a session for an off-deployment tenant.
+      if (!deploymentAllowsTenant(this.runtimeDeployment, t.id)) continue;
       const [m] = await withTenant(t.id, (tx) =>
         tx.select({ role: memberships.role }).from(memberships)
           .where(and(eq(memberships.userId, userId), eq(memberships.isActive, true))).limit(1));
@@ -191,7 +198,7 @@ export class AuthService {
     }
 
     const tenantId = s.activeTenantId;
-    if (!tenantId) return null;
+    if (!tenantId || !deploymentAllowsTenant(this.runtimeDeployment, tenantId)) return null;
     const [m] = await withTenant(tenantId, (tx) =>
       tx.select({ role: memberships.role }).from(memberships)
         .where(and(eq(memberships.userId, u.id), eq(memberships.isActive, true))).limit(1));
