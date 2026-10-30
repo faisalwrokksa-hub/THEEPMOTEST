@@ -1,4 +1,4 @@
-import { tr } from '@/lib/i18n';
+import { getLang, tr } from '@/lib/i18n';
 /**
  * Every screen's heading goes through here, so translating the shell
  * translates 26 titles and subtitles without touching 26 files. Pages keep
@@ -19,17 +19,22 @@ export async function Page({ title, sub, children }:
 export async function Loaded<T>({ load, children, empty }:
   { load: () => Promise<T>; children: (d: T) => React.ReactNode; empty?: string }) {
   const t = await tr();
+  const ar = (await getLang()) === 'ar';
   let data: T;
   try { data = await load(); }
   catch (e) {
-    const err = e as { status?: number; detail?: string; message: string; isNotLicensed?: boolean };
+    const err = (e !== null && typeof e === 'object' ? e : {}) as {
+      status?: number; detail?: string; isNotLicensed?: boolean
+    };
     // A module this workspace has not licensed is a normal state, not a fault.
     if (err.isNotLicensed || (err.status === 403 && /not enabled|subscription expired/i.test(err.detail ?? ''))) {
       return (
         <div className="panel locked">
           <span className="tag">{t('Not included in your plan')}</span>
           <h2 style={{ fontSize: 'var(--fs-lg)', margin: '14px 0 8px' }}>{t('This module is not enabled')}</h2>
-          <p className="dim" style={{ maxWidth: '60ch' }}>{err.detail}</p>
+          <p className="dim" style={{ maxWidth: '60ch' }}>
+            {ar ? 'هذه الوحدة غير متاحة ضمن اشتراك مساحة العمل الحالي.' : 'This module is unavailable under the current workspace subscription.'}
+          </p>
           <p className="dim" style={{ maxWidth: '60ch' }}>
             {t('The EPMO is licensed per module. An administrator can turn this on from')}{' '}
             <a href="/platform">{t('Platform & Modules')}</a>.
@@ -42,14 +47,27 @@ export async function Loaded<T>({ load, children, empty }:
         <div className="panel locked">
           <span className="tag">{t('Not permitted')}</span>
           <h2 style={{ fontSize: 'var(--fs-lg)', margin: '14px 0 8px' }}>{t('Your role cannot open this')}</h2>
-          <p className="dim">{err.detail}</p>
+          <p className="dim">{ar ? 'ليس لديك إذن للوصول إلى هذه الصفحة. تواصل مع مسؤول مساحة العمل إذا كنت بحاجة إلى الوصول.' : 'You do not have permission to view this page. Contact your workspace administrator if you need access.'}</p>
         </div>
       );
     }
+    // An expired session is recoverable through sign-in, not a server outage.
+    if (err.status === 401) {
+      return (
+        <div className="panel locked" role="alert">
+          <strong>{ar ? 'انتهت جلسة تسجيل الدخول.' : 'Your session has expired.'}</strong>
+          <p className="dim">{ar ? 'سجّل الدخول مجددًا للمتابعة.' : 'Please sign in again to continue.'}</p>
+          <a href="/login">{ar ? 'تسجيل الدخول' : 'Sign in'}</a>
+        </div>
+      );
+    }
+    // Never display raw API exceptions or developer commands to customers.
     return (
-      <div className="err">
-        <strong>{t('Could not reach the API.')}</strong> {err.message}
-        <br />Run <code>pnpm smoke</code> to see which part is down.
+      <div className="err" role="alert">
+        <strong>{ar ? 'تعذّر تحميل الصفحة.' : 'This page could not load.'}</strong>{' '}
+        {ar
+          ? 'حدّث الصفحة، وإذا استمرت المشكلة فتواصل مع الدعم.'
+          : 'Refresh the page. If the problem continues, contact support.'}
       </div>
     );
   }
