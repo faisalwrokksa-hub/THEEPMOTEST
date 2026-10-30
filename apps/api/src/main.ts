@@ -10,9 +10,12 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/all-exceptions.filter';
 import { loadEnv } from './common/env';
 import { isAllowedWriteRequest } from './common/write-origin.guard';
+import { parseRuntimeDeployment } from './tenancy/deployment-runtime';
 
 async function bootstrap() {
   const env = loadEnv();
+  // Fail boot before binding a port if the trusted deployment inventory is inconsistent.
+  parseRuntimeDeployment(process.env);
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: true, rawBody: true });
 
   // Behind a load balancer the client IP arrives in X-Forwarded-For; without

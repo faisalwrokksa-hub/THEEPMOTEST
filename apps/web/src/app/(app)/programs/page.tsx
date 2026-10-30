@@ -63,7 +63,7 @@ export default async function ProgramsPage({ searchParams }: {
             <th>{lang === 'ar' ? 'المشاريع' : 'Projects'}</th>
           </tr></thead>
           <tbody>{programs.map(program => <tr key={program.id}>
-            <td><strong>{program.name}</strong>{program.description &&
+            <td><strong><Link href={`/programs/${encodeURIComponent(program.id)}`}>{program.name}</Link></strong>{program.description &&
               <div className="dim">{program.description}</div>}</td>
             <td>{portfolios.find(p => p.id === program.portfolioId)?.name ?? '—'}</td>
             <td><span className={`pill ${program.health}`}>{program.health.replace(/_/g, ' ')}</span></td>
