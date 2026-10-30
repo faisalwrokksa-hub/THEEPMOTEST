@@ -198,6 +198,21 @@ export class MicrosoftService {
 
     const who = readIdToken(tok.idToken);
     await withTenant(tenantId, async (tx) => {
+      // Consent was initiated while the user was an administrator, but the
+      // membership may have been suspended or downgraded during the redirect.
+      // Recheck inside the token-write transaction and lock the membership so
+      // a concurrent role change cannot race the connection commit.
+      const [authorized] = rows(await tx.execute(sql`
+        SELECT m.id FROM memberships AS m
+        WHERE m.tenant_id = ${tenantId}
+          AND m.user_id = ${st.user_id}
+          AND m.is_active = true
+          AND m.role IN ('owner', 'admin', 'client_admin')
+        FOR SHARE OF m`));
+      if (!authorized) {
+        throw new ForbiddenException(
+          'Your workspace administrator access changed during Microsoft sign-in. Start again after access is restored.');
+      }
       const [saved] = rows(await tx.execute(sql`
         INSERT INTO integration_connections
           (tenant_id, provider, status, external_tenant_id, account_email, account_name,
