@@ -443,8 +443,9 @@ export class MicrosoftService {
           site_url = ${site?.webUrl ?? null},
           drive_id = ${b.driveId}, drive_name = ${drive?.name ?? null},
           root_item_id = ${root.id}, root_path = ${folder},
-          status = 'connected', last_error = NULL, updated_at = now()
-        WHERE provider = ${PROVIDER} AND connected_by = ${userId} RETURNING id`));
+          updated_at = now()
+        WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+          AND status = 'connected' RETURNING id`));
       if (!done) throw new ConflictException('Microsoft is not connected to this workspace yet.');
       await this.audit(tx, PROVIDER, 'microsoft.location_set',
         { site: site?.webUrl ?? null, drive: drive?.name, folder });
@@ -474,7 +475,8 @@ export class MicrosoftService {
     const { userId } = this.ctx();
     const [c] = rows(await tx.execute(sql`
       SELECT drive_id, root_item_id, root_path, site_url FROM integration_connections
-      WHERE provider = ${PROVIDER} AND connected_by = ${userId}`));
+      WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+        AND status = 'connected'`));
     if (!c) throw new ConflictException('Microsoft is not connected to this workspace yet.');
     if (!c.drive_id || !c.root_item_id) {
       throw new ConflictException(
