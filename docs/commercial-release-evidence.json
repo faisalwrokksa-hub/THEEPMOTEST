@@ -449,42 +449,29 @@
     "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
   },
   "latestReviewOnlyIntegration": {
-    "label": "Q25",
+    "label": "Q26",
     "date": "2026-10-31",
-    "branch": "integration/q25-e25-f30-c24-20261031",
-    "baseSha": "49ddc2c0df9ab53cdb94d54fc5aa31e0b584c9e1",
+    "branch": "integration/q26-s25-s26-20261031",
+    "baseSha": "b7bf8726f9a22bdd11a48f873c84588b2778caf8",
     "candidateSha": null,
     "ciStatus": "PENDING_EXACT_FINAL_SHA",
     "releaseDecision": "NO-GO",
     "sourcePullRequests": [
-      116,
-      117,
-      118,
-      119,
-      120
+      121,
+      122
     ],
     "sourceShas": [
-      "bf3f380c748742a4c6e0fde72c285e6a7606c76f",
-      "e4ecee8c578ac466689be8f4e3bed50869c3a2f6",
-      "cf3e71dfd32398db4f708e3aa1ccba2b3a500dd6"
+      "71d8eeef66fa2f1ac92413e0694df03a36108dab",
+      "44d17b09f71a5a86a9a1979e7612fa0ccfea967a"
     ],
     "sourceWorkflowRuns": [
-      41182967853,
-      41183764266,
-      41184607941
+      41185803183,
+      41185992359
     ],
-    "sourceFileCount": 11,
-    "excludedPending": [
-      {
-        "pr": 121,
-        "sha": "71d8eeef66fa2f1ac92413e0694df03a36108dab",
-        "workflowRun": 41185803183,
-        "reason": "Final exact-SHA CI in progress at integration decision; no queued/running pass"
-      }
-    ],
+    "sourceFileCount": 6,
     "externalAcceptedGates": 0,
     "providerStripeTestScenariosAccepted": 0,
-    "limitations": "Source CI completed SUCCESS 4/4 each; combined Q25 CI pending. No independent HTTPS staging, two-user Entra, real Stripe TEST, staging RLS, encrypted restore, browser/mobile/Arabic RTL or legal/support acceptance."
+    "limitations": "Source and Q25 integrated CI completed SUCCESS 4/4 each; Q26 combined CI pending. No independent HTTPS staging, two-user Entra, Stripe TEST 0/7, staging RLS, encrypted recovery, browser/mobile/Arabic RTL or legal/support acceptance."
   },
   "lastIndependentIntegrationQ23Ci": {
     "pr": 109,
@@ -499,5 +486,12 @@
     "workflowRun": 41182378680,
     "ci": "SUCCESS_4_OF_4_85_OF_85_STEPS",
     "scope": "CI-local only; no provider/staging/browser/recovery acceptance"
+  },
+  "lastIndependentIntegrationQ25Ci": {
+    "pr": 123,
+    "sha": "b7bf8726f9a22bdd11a48f873c84588b2778caf8",
+    "workflowRun": 41185952580,
+    "ci": "SUCCESS_4_OF_4_85_OF_85_STEPS",
+    "scope": "CI-local only; external provider/staging/browser/recovery acceptance absent"
   }
 }

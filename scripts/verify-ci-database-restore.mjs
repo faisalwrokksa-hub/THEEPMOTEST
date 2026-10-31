@@ -52,7 +52,7 @@ export function runRestoreDrill(env = process.env) {
   const cfg = disposableRestoreConfig(env);
   const scratch = mkdtempSync(join(tmpdir(), 'epmo-ci-restore-'));
   const archive = join(scratch, 'seeded.dump');
-  const destination = `epmo_ci_restore_${randomBytes(10).toString('hex')}`;
+  const destination = `epmo_restore_ci_${randomBytes(10).toString('hex')}`;
   // Do not inherit arbitrary libpq settings from the runner. In particular,
   // PGHOSTADDR can redirect a connection even when a safe -h localhost is
   // specified, defeating the source/destination host checks above.
@@ -82,7 +82,20 @@ export function runRestoreDrill(env = process.env) {
     exec('pg_restore', ['--list', archive]);
     exec('createdb', [...args, '--', destination]);
     created = true;
-    exec('pg_restore', [...args, '--exit-on-error', '--single-transaction', '--no-owner', '--no-acl', '--dbname', destination, archive]);
+    // Exercise the same guarded CLI used for nonproduction recovery; no credentials in argv.
+    // The child environment is constructed from validated CI-only settings, never inherited.
+    const restoreUrl = new URL(env.DATABASE_URL_ADMIN);
+    restoreUrl.pathname = '/' + destination;
+    const cliEnv = {
+      PATH: childEnv.PATH, HOME: childEnv.HOME, LANG: childEnv.LANG,
+      PGCONNECT_TIMEOUT: '10', BACKUP_FILE: archive,
+      RESTORE_DATABASE_URL: restoreUrl.toString(), ALLOW_DISPOSABLE_RESTORE: 'YES',
+    };
+    const cli = spawnSync('bash', ['scripts/verify-disposable-postgres-restore.sh'], {
+      env: cliEnv, encoding: 'utf8', timeout: 180_000, maxBuffer: 1024 * 1024,
+    });
+    if (cli.error || cli.status !== 0)
+      throw new Error('Guarded disposable restore CLI failed; see restricted CI diagnostics');
     const after = counts(destination);
     if (JSON.stringify(after) !== JSON.stringify(before))
       throw new Error('Blocked: restored row counts differ from the CI source snapshot');
