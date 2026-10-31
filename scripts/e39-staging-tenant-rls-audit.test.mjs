@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   validateTenantAuditConfig, assertTenantCatalog, quotePgIdentifier,
-  verifyTenantCounts, auditAllTenantRls, safeTenantAuditFailure,
+  verifyTenantCounts, assertTenantPolicyRows, auditAllTenantRls, safeTenantAuditFailure,
 } from './e39-staging-tenant-rls-audit.mjs';
 
 const A = '11111111-1111-4111-8111-111111111111';
@@ -18,6 +18,35 @@ const catalog = [
   { name: 'audit_events', rlsEnabled: true, rlsForced: true, policyCount: 1 },
 ];
 
+const policies = catalog.map(row => ({
+  tableName: row.name, policyName: 'tenant_isolation', permissive: 'PERMISSIVE',
+  command: 'ALL', usingExpression: '(tenant_id = app_current_tenant())',
+  checkExpression: '(tenant_id = app_current_tenant())',
+}));
+
+test('rejects extra permissive RLS policies even without foreign fixture rows', () => {
+  assert.equal(assertTenantPolicyRows(policies, ['audit_events', 'projects']), 2);
+  const bad = {
+    tableName: 'projects', policyName: 'bypass', permissive: 'PERMISSIVE',
+    command: 'ALL', usingExpression: 'true', checkExpression: 'true',
+  };
+  for (const mutated of [
+    [...policies, bad],
+    policies.filter(row => row.tableName !== 'projects'),
+    [...policies, policies[0]],
+    policies.map(row => row.tableName === 'projects' ? { ...row, command: 'SELECT' } : row),
+    policies.map(row => row.tableName === 'projects' ? { ...row, usingExpression: 'tenant_id = app_current_tenant() OR true' } : row),
+    policies.map(row => row.tableName === 'projects' ? { ...row, checkExpression: 'coalesce(tenant_id = app_current_tenant(), true)' } : row),
+  ]) assert.throws(() => assertTenantPolicyRows(mutated, ['audit_events', 'projects']));
+});
+test('allows only the reviewed legacy billing predicate for named policies', () => {
+  const billing = { tableName: 'projects', policyName: 'billing_tenant_isolation',
+    permissive: 'PERMISSIVE', command: 'ALL',
+    usingExpression: "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid",
+    checkExpression: "tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid" };
+  assert.equal(assertTenantPolicyRows([...policies, billing], ['audit_events', 'projects']), 2);
+  assert.throws(() => assertTenantPolicyRows([...policies, { ...billing, policyName: 'unreviewed' }], ['audit_events', 'projects']));
+});
 test('requires explicit staging opt-in and rejects production mode', () => {
   assert.equal(validateTenantAuditConfig(env).tenantB, B);
   for (const patch of [
@@ -53,11 +82,12 @@ test('rejects cross-tenant, unset-context and invalid aggregate rows', () => {
 });
 
 function fakeDb({ role = 'pmo_app', bypass = false, superuser = false, leak = false,
-  emptyB = false, catalogRows = catalog, missingReadOnly = false } = {}) {
+  emptyB = false, catalogRows = catalog, policyRows = policies, missingReadOnly = false } = {}) {
   const state = { transactions: 0, readOnly: 0, tenantSettings: [] };
   const db = {
     async unsafe(sql) {
       if (sql.includes('current_user')) return [{ dbRole: role, isSuperuser: superuser, bypassRls: bypass }];
+      if (sql.includes('pg_attribute') && sql.includes('p.policyname AS')) return policyRows;
       if (sql.includes('pg_attribute')) return catalogRows;
       throw Error('Unexpected catalog SQL');
     },
@@ -100,6 +130,14 @@ test('executes real tenant-context queries in three separate read-only transacti
 });
 test('rejects unpopulated second tenant instead of passing empty-table evidence', async () => {
   await assert.rejects(auditAllTenantRls(fakeDb({ emptyB: true }).db, A, B), /Inconclusive/);
+});
+test('fails staging audit before row probes when a permissive bypass policy exists', async () => {
+  const unsafe = [...policies, { tableName: 'projects', policyName: 'allow_all',
+    permissive: 'PERMISSIVE', command: 'ALL', usingExpression: 'true',
+    checkExpression: 'true' }];
+  const { db, state } = fakeDb({ policyRows: unsafe });
+  await assert.rejects(auditAllTenantRls(db, A, B), /Unsafe permissive/);
+  assert.equal(state.transactions, 0);
 });
 test('rejects no-tenant leakage', async () => {
   await assert.rejects(auditAllTenantRls(fakeDb({ leak: true }).db, A, B), /ISOLATION FAILURE/);
