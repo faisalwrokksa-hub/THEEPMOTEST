@@ -8,7 +8,7 @@ export async function readBoundedSuccessJson(response, maxBytes = 16 * 1024 * 10
     throw new Error('Invalid API response limit');
   }
   const declared = response?.headers?.get?.('content-length');
-  if (typeof declared === 'string' && /^\\d+$/.test(declared) && Number(declared) > maxBytes) {
+  if (typeof declared === 'string' && /^[0-9]+$/.test(declared) && Number(declared) > maxBytes) {
     throw new Error('API response too large');
   }
   if (!response?.body || typeof response.body.getReader !== 'function') {
