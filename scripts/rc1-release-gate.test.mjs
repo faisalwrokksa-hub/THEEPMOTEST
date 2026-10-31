@@ -16,7 +16,10 @@ const good = {
 const failed=(v,mode='staging')=>validateRc1Configuration(v,mode).filter(c=>!c.passed).map(c=>c.name);
 test('staging configuration passes when complete and safe',()=>assert.deepEqual(failed(good),[]));
 test('production accepts only live keys and no staging exemption',()=>{
- const env={...good,DEPLOYMENT_ENV:'production',STRIPE_SECRET_KEY:'sk_live_12345678901234567890',STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'};
+ const env={...good,DEPLOYMENT_ENV:'production',STRIPE_SECRET_KEY:'sk_live_12345678901234567890',
+   STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false', WEB_ORIGIN:'https://theepmo.com',
+   PUBLIC_API_URL:'https://api.theepmo.com',
+   STRIPE_WEBHOOK_PUBLIC_URL:'https://api.theepmo.com/api/v1/billing/stripe-webhook'};
  assert.deepEqual(failed(env,'production'),[]);
 });
 test('staging rejects live keys even with override',()=>assert.ok(failed({...good,STRIPE_SECRET_KEY:'sk_live_12345678901234567890'}).some(c=>c.includes('test key'))));
