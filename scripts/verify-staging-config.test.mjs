@@ -38,3 +38,9 @@ test('S26 rejects PostgreSQL URI query redirects and fragments', () => {
   assert.ok(failed({...env,DATABASE_URL:env.DATABASE_URL + suffix})
     .includes('Database connection has non-placeholder credentials'), suffix);
 });
+
+test('S26 rejects Redis URI query and fragment overrides', () => {
+ for (const suffix of ['?tls=false', '?db=1', '#ignored'])
+  assert.ok(failed({...env,REDIS_URL:env.REDIS_URL + suffix})
+    .includes('Redis connection has non-placeholder password'), suffix);
+});
