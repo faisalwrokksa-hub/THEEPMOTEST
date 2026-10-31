@@ -7,6 +7,8 @@
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PRICE = /^price_[A-Za-z0-9]+$/;
 const SESSION = /^cs_(test_|live_)[A-Za-z0-9]+$/;
+const verifiedPrices = new WeakSet<object>();
+export type VerifiedRecurringPrice = Readonly<{ priceId: string; planId: string; liveMode: boolean }>;
 
 export type RecurringPlan = Readonly<{
   id: string; code: string; priceMinor: number; currency: string;
@@ -28,7 +30,7 @@ function assertPlan(plan: RecurringPlan): void {
  * A caller-provided price ID must never be trusted.
  */
 export function assertRecurringStripePrice(value: unknown, plan: RecurringPlan,
-  expectedPriceId: string, liveMode: boolean): void {
+  expectedPriceId: string, liveMode: boolean): VerifiedRecurringPrice {
   assertPlan(plan);
   if (!PRICE.test(expectedPriceId) || !value || typeof value !== 'object')
     throw new Error('Invalid recurring Stripe Price');
@@ -43,6 +45,9 @@ export function assertRecurringStripePrice(value: unknown, plan: RecurringPlan,
       price.recurring?.interval_count !== 1 ||
       price.recurring?.usage_type !== 'licensed')
     throw new Error('Stripe recurring Price does not match the authorized plan');
+  const verified = Object.freeze({ priceId: expectedPriceId, planId: plan.id, liveMode });
+  verifiedPrices.add(verified);
+  return verified;
 }
 
 function validateRedirects(successUrl: string, cancelUrl: string): void {
@@ -64,9 +69,11 @@ function validateRedirects(successUrl: string, cancelUrl: string): void {
  * No trial, coupon, tax override, browser price, or immediate entitlement grant.
  */
 export function stripeRecurringCheckoutParams(plan: RecurringPlan, tenantId: string,
-  verifiedPriceId: string, successUrl: string, cancelUrl: string): URLSearchParams {
+  verifiedPrice: VerifiedRecurringPrice, liveMode: boolean,
+  successUrl: string, cancelUrl: string): URLSearchParams {
   assertPlan(plan);
-  if (!UUID.test(tenantId) || !PRICE.test(verifiedPriceId))
+  if (!UUID.test(tenantId) || !verifiedPrice || !verifiedPrices.has(verifiedPrice) ||
+      verifiedPrice.planId !== plan.id || verifiedPrice.liveMode !== liveMode)
     throw new Error('Invalid recurring Checkout identity');
   validateRedirects(successUrl, cancelUrl);
   return new URLSearchParams({
@@ -77,7 +84,7 @@ export function stripeRecurringCheckoutParams(plan: RecurringPlan, tenantId: str
     'subscription_data[metadata][tenantId]': tenantId,
     'subscription_data[metadata][planId]': plan.id,
     'payment_method_types[0]': 'card',
-    'line_items[0][price]': verifiedPriceId,
+    'line_items[0][price]': verifiedPrice.priceId,
     'line_items[0][quantity]': '1',
     success_url: successUrl,
     cancel_url: cancelUrl,
