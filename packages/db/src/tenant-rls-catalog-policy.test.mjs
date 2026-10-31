@@ -17,11 +17,11 @@ test('requires a complete catalog and enforced RLS for every tenant table', () =
 });
 
 test('rejects absent, incomplete or additional permissive policies', () => {
-  assert.throws(() => assertTenantRlsCatalog([{ ...good(), policy_name: null, permissive: null }]), /missing or additional/);
+  assert.throws(() => assertTenantRlsCatalog([{ ...good(), policy_name: null, permissive: null }]), /missing or duplicate/);
   assert.throws(() => assertTenantRlsCatalog([{ ...good(), command: 'SELECT' }]), /incomplete/);
   assert.throws(() => assertTenantRlsCatalog([{ ...good(), check_expression: null }]), /incomplete/);
   assert.throws(() => assertTenantRlsCatalog([{ ...good(), using_expression: 'true' }]), /incomplete/);
-  assert.throws(() => assertTenantRlsCatalog([good(), { ...good(), policy_name: 'bypass_all', using_expression: 'true' }]), /additional permissive/);
+  assert.throws(() => assertTenantRlsCatalog([good(), { ...good(), policy_name: 'bypass_all', using_expression: 'true' }]), /unsafe or incomplete/);
 });
 
 test('allows additional restrictive policies without treating them as an OR bypass', () => {
@@ -29,4 +29,22 @@ test('allows additional restrictive policies without treating them as an OR bypa
     ...good(), policy_name: 'restrict_status', permissive: 'RESTRICTIVE',
     using_expression: 'is_active', check_expression: 'is_active',
   }]), 1);
+});
+
+test('accepts only tenant-bound legacy billing policies alongside the canonical policy', () => {
+  const legacy = {
+    ...good('billing_invoices'), policy_name: 'billing_tenant_isolation',
+    using_expression: "(tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)",
+    check_expression: "(tenant_id = (NULLIF(current_setting('app.tenant_id'::text, true), ''::text))::uuid)",
+  };
+  assert.equal(assertTenantRlsCatalog([good('billing_invoices'), legacy]), 1);
+  assert.throws(() => assertTenantRlsCatalog([good('billing_invoices'), {
+    ...legacy, using_expression: "tenant_id = app_current_tenant() OR true",
+  }]), /unsafe or incomplete/);
+  assert.throws(() => assertTenantRlsCatalog([good('billing_invoices'), {
+    ...legacy, policy_name: 'unknown_bypass',
+  }]), /unsafe or incomplete/);
+  assert.throws(() => assertTenantRlsCatalog([{
+    ...good(), using_expression: 'tenant_id = app_current_tenant() OR true',
+  }]), /unsafe or incomplete/);
 });
