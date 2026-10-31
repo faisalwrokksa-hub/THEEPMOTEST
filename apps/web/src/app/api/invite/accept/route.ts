@@ -22,6 +22,8 @@ export async function POST(req: NextRequest) {
 
   const result = await fetch(`${BASE}/api/v1/onboarding/invitation/accept`, {
     method: 'POST', cache: 'no-store', redirect: 'error',
+    // Bound invitation-token forwarding when the upstream service stalls.
+    signal: AbortSignal.timeout(15_000),
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ token: body.token, displayName: body.displayName || undefined,
       password: body.password || undefined }),
