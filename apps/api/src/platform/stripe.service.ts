@@ -5,7 +5,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
-import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeApiFetch, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
+import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -92,8 +92,37 @@ export class StripeBillingService {
             !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(existing.sessionId) ||
             existing.sessionId.startsWith('cs_live_') !== config.liveMode)
           throw new ConflictException('Stored Stripe Checkout reference failed validation');
-        return { invoiceId, sessionId: existing.sessionId, url: existing.url,
-          expiresAt: existing.expiresAt, reused: true, paymentVerified: false };
+        // The webhook may be delayed: the database expiry alone does not prove
+        // that the hosted session is still payable. Verify its live TEST-mode
+        // state directly with Stripe before reusing any cached payment URL.
+        let remoteResponse: Response;
+        try {
+          remoteResponse = await stripeApiFetch(
+            `https://api.stripe.com/v1/checkout/sessions/${existing.sessionId}`, {
+              headers: { Authorization: `Bearer ${config.key}` },
+              signal: AbortSignal.timeout(12_000),
+            });
+        } catch { throw new BadGatewayException('Stripe Checkout status could not be verified'); }
+        if (!remoteResponse.ok)
+          throw new BadGatewayException('Stripe Checkout status lookup failed');
+        let remoteSession: unknown;
+        try { remoteSession = await remoteResponse.json(); }
+        catch { throw new BadGatewayException('Invalid Stripe Checkout status response'); }
+        let disposition: 'reusable' | 'expired' | 'pending_settlement';
+        try {
+          disposition = stripeCachedCheckoutDisposition(remoteSession, {
+            sessionId: existing.sessionId, invoiceId, tenantId,
+            amountMinor: invoice.amountMinor, currency: invoice.currency, liveMode: config.liveMode,
+          });
+        } catch { throw new ConflictException('Stored Stripe Checkout state failed validation'); }
+        if (disposition === 'pending_settlement')
+          throw new ConflictException('Stripe payment is awaiting signed reconciliation');
+        if (disposition === 'reusable') {
+          return { invoiceId, sessionId: existing.sessionId, url: existing.url,
+            expiresAt: existing.expiresAt, reused: true, paymentVerified: false };
+        }
+        // A provider-confirmed expired session may be retried with the next
+        // attempt key. Do not mutate the historical Checkout/session ledger.
       }
 
       // Stripe caches requests by idempotency key. A fixed invoice-only key
