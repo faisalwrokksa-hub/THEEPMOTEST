@@ -5,7 +5,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
-import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
+import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -106,7 +106,7 @@ export class StripeBillingService {
         if (!remoteResponse.ok)
           throw new BadGatewayException('Stripe Checkout status lookup failed');
         let remoteSession: unknown;
-        try { remoteSession = await remoteResponse.json(); }
+        try { remoteSession = await readStripeApiJson(remoteResponse); }
         catch { throw new BadGatewayException('Invalid Stripe Checkout status response'); }
         let disposition: 'reusable' | 'expired' | 'pending_settlement';
         try {
@@ -145,7 +145,7 @@ export class StripeBillingService {
       } catch { throw new BadGatewayException('Stripe Checkout request failed'); }
       if (!response.ok) throw new BadGatewayException('Stripe Checkout could not be created');
       let session: any;
-      try { session = await response.json(); }
+      try { session = await readStripeApiJson(response); }
       catch { throw new BadGatewayException('Invalid Stripe Checkout response'); }
       const url = session && typeof session.url === 'string' ? session.url : '';
       if (!session || !stripeCheckoutReferenceValid(url, session.id) || !stripeCreatedSessionIsPending(session) ||
@@ -195,7 +195,7 @@ export class StripeBillingService {
     } catch { throw new BadGatewayException('Unable to verify Stripe payment exception'); }
     if (!response.ok) throw new BadGatewayException('Stripe PaymentIntent lookup failed');
     let intent: unknown;
-    try { intent = await response.json(); }
+    try { intent = await readStripeApiJson(response); }
     catch { throw new BadGatewayException('Invalid Stripe PaymentIntent response'); }
     let ref: { tenantId: string; invoiceId: string };
     try { ref = assertStripeExceptionIntent(intent, event, config.liveMode); }

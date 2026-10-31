@@ -20,6 +20,36 @@ export async function stripeApiFetch(url: string, init: RequestInit,
   return response;
 }
 
+/** Bound successful Stripe API JSON before parsing; do not let an oversized
+ * provider response exhaust the billing worker while holding tenant locks.
+ * Stripe Checkout and PaymentIntent objects fit well below 256 KiB.
+ */
+export async function readStripeApiJson(response: Response): Promise<unknown> {
+  const limit = 262_144;
+  const declared = response.headers.get('content-length');
+  if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > limit))
+    throw new Error('Stripe API JSON exceeds the response limit');
+  if (!response.body) throw new Error('Stripe API JSON response has no body');
+  const reader = response.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel().catch(() => {});
+        throw new Error('Stripe API JSON exceeds the response limit');
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally { reader.releaseLock(); }
+  if (total === 0) throw new Error('Stripe API JSON response is empty');
+  try { return JSON.parse(Buffer.concat(chunks, total).toString('utf8')); }
+  catch { throw new Error('Invalid Stripe API JSON'); }
+}
+
 export const STRIPE_PROVIDER = 'stripe';
 export const STRIPE_EVENTS = new Set(['checkout.session.completed', 'checkout.session.async_payment_succeeded']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
