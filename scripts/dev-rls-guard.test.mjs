@@ -12,8 +12,8 @@ const commandFile = join(dir, 'docker-command');
 const sqlFile = join(dir, 'docker-stdin');
 const docker = join(dir, 'docker');
 writeFileSync(docker, `#!/bin/sh
-if [ "$1" = context ] && [ "$2" = show ]; then echo "${S24_CONTEXT:-default}"; exit 0; fi
-if [ "$1" = context ] && [ "$2" = inspect ]; then echo "${S24_ENDPOINT:-unix:///var/run/docker.sock}"; exit 0; fi
+if [ "$1" = context ] && [ "$2" = show ]; then echo "\${S24_CONTEXT:-default}"; exit 0; fi
+if [ "$1" = context ] && [ "$2" = inspect ]; then echo "\${S24_ENDPOINT:-unix:///var/run/docker.sock}"; exit 0; fi
 printf '%s\\n' "$*" > "$S24_COMMAND"
 cat > "$S24_SQL"
 `);
