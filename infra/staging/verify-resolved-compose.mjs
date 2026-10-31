@@ -44,6 +44,31 @@ export function inspectResolvedStagingCompose(config, candidateSha) {
   add('Exact isolated staging Compose project', config?.name === 'pmo-staging');
   add('Required staging services exist', requiredServices.every(name => isObject(services[name])));
   add('Only approved staging networks are declared', same(keys(networks), ['staging-app', 'staging-data']));
+  add('Only approved staging services and named volumes exist',
+    same(keys(services), [...requiredServices].sort()) && same(keys(volumes), ['pgdata']));
+  add('No unapproved bind mounts, data volumes or host device passthrough',
+    requiredServices.every(name => {
+      const s = services[name];
+      if (!isObject(s) || s.devices !== undefined || s.volumes_from !== undefined ||
+          s.device_cgroup_rules !== undefined) return false;
+      const mounts = s.volumes;
+      if (mounts === undefined) return true;
+      if (!Array.isArray(mounts)) return false;
+      return mounts.every(mount => {
+        if (!isObject(mount)) return false;
+        if (name === 'postgres') {
+          return mount.type === 'volume' && mount.source === 'pgdata' &&
+            mount.target === '/var/lib/postgresql/data';
+        }
+        if (name === 'staging-edge') {
+          return mount.type === 'bind' && mount.read_only === true &&
+            typeof mount.source === 'string' && mount.source.startsWith('/') &&
+            ['/etc/nginx/conf.d/default.conf', '/run/epmo-tls/tls.crt',
+              '/run/epmo-tls/tls.key'].includes(mount.target);
+        }
+        return false;
+      });
+    }));
   add('Data network is internal and neither network is external',
     networks['staging-data']?.internal === true &&
     networks['staging-data']?.external !== true &&
