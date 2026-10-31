@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { checkStagingSecurity } from './verify-staging-config.mjs';
 const env = {
  DEPLOYMENT_ENV:'staging', WEB_BIND:'127.0.0.1', WEB_ORIGIN:'https://staging.theepmo.com',
- PUBLIC_API_URL:'https://api-staging.theepmo.com', DATABASE_URL:`postgres://app:${'A'.repeat(32)}@db:5432/pmo`,
+ PUBLIC_API_URL:'https://api-staging.theepmo.com', DATABASE_URL:`postgres://app:${'A'.repeat(32)}@postgres:5432/pmo`,
  REDIS_URL:`redis://:${'B'.repeat(32)}@redis:6379`, STRIPE_SECRET_KEY:'sk_test_dummy', BILLING_REFERENCE_WEBHOOK_ENABLED:'false', NODE_ENV:'production'
 };
 const failed = e => checkStagingSecurity(e).filter(c=>!c.passed).map(c=>c.name);
@@ -43,4 +43,37 @@ test('S26 rejects Redis URI query and fragment overrides', () => {
  for (const suffix of ['?tls=false', '?db=1', '#ignored'])
   assert.ok(failed({...env,REDIS_URL:env.REDIS_URL + suffix})
     .includes('Redis connection has non-placeholder password'), suffix);
+});
+
+test('S27 blocks cross-environment PostgreSQL endpoints even with valid credentials', () => {
+ const password = 'A'.repeat(32);
+ for (const target of [
+   'db', 'postgres-prod', 'postgres.internal', 'prod-db.theepmo.com',
+   'localhost', '127.0.0.1', '10.0.0.9', 'postgres.evil.example'
+ ]) {
+   const url = `postgres://app:${password}@${target}:5432/pmo`;
+   assert.ok(failed({...env, DATABASE_URL:url})
+     .includes('PostgreSQL uses isolated staging Compose service'), target);
+ }
+ for (const port of ['5433', '6432', '15432']) {
+   assert.ok(failed({...env, DATABASE_URL:`postgres://app:${password}@postgres:${port}/pmo`})
+     .includes('PostgreSQL uses isolated staging Compose service'), port);
+ }
+ assert.ok(!failed({...env, DATABASE_URL:`postgres://app:${password}@postgres:5432/pmo`})
+   .includes('PostgreSQL uses isolated staging Compose service'));
+});
+
+test('S27 blocks Redis production, alternate Compose services and wrong ports', () => {
+ const password = 'B'.repeat(32);
+ for (const target of ['redis-prod', 'cache', 'redis.internal', 'localhost', '127.0.0.1', '10.0.0.9']) {
+   const url = `redis://:${password}@${target}:6379`;
+   assert.ok(failed({...env, REDIS_URL:url})
+     .includes('Redis uses isolated staging Compose service'), target);
+ }
+ for (const port of ['6380', '16379']) {
+   assert.ok(failed({...env, REDIS_URL:`redis://:${password}@redis:${port}`})
+     .includes('Redis uses isolated staging Compose service'), port);
+ }
+ assert.ok(!failed({...env, REDIS_URL:`redis://:${password}@redis:6379`})
+   .includes('Redis uses isolated staging Compose service'));
 });

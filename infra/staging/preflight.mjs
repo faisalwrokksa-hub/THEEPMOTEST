@@ -30,7 +30,7 @@ export function stagingEdgeChecks(env) {
       portOk(edgePort) && String(edgePort) !== String(webPort)],
     ['No live Stripe credentials', !/^(?:sk|rk)_live_/.test(String(env.STRIPE_SECRET_KEY || ''))],
     ['Development header authentication disabled', env.ALLOW_HEADER_AUTH !== 'true'],
-    ['No production deployment selected', env.NODE_ENV !== 'development' && env.DEPLOYMENT_ENV !== 'production'],
+    ['Production Node runtime required for staging TLS edge', env.NODE_ENV === 'production' && env.DEPLOYMENT_ENV === 'staging'],
     ['Certificate and key paths are distinct absolute paths',
       isAbsolute(cert) && isAbsolute(key) && cert !== key],
     ['No unreviewed source SHA override', !env.EPMO_ROLLBACK_SHA || shaPattern.test(env.EPMO_ROLLBACK_SHA)],

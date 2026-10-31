@@ -2,6 +2,10 @@ import { safeReturnPath } from '@/lib/browser-mutation';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
+import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
+import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
+import { safeMutationError } from '@/lib/safe-mutation-feedback.mjs';
+import { uuidPathSegment } from '@/lib/uuid-path.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const SESSION = 'pmo_session';
@@ -20,58 +24,68 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get(SESSION)?.value;
   if (!token) return NextResponse.redirect(publicUrl(req, '/login'), 303);
 
-  const f = await req.formData();
+  // A form must be fully received within the byte ceiling before any write.
+  const parsed = await readBoundedBrowserForm(req);
+  if (!parsed.form) return NextResponse.json({
+    error: parsed.error === 'too-large'
+      ? 'Form submission exceeds the size limit.' : 'Invalid form submission.',
+  }, { status: parsed.error === 'too-large' ? 413 : 400 });
+  const f = parsed.form;
   const intent = String(f.get('intent') ?? '');
   const back = String(f.get('returnTo') ?? '/governance');
 
+  // Every governance operation targets a UUID resource. Do not allow a form
+  // field to select an arbitrary authenticated API path through traversal.
+  let id: string | null = null;
+  try { id = uuidPathSegment(f.get('id')); } catch { /* invalid form ID */ }
+
   const call = async (path: string, method: string, body?: unknown) => {
-    const res = await fetch(`${BASE}${path}`, {
+    const res = await fetchTenantMutation(fetch, `${BASE}${path}`, {
       method,
       headers: { 'content-type': 'application/json', cookie: `${SESSION}=${token}` },
       body: body === undefined ? undefined : JSON.stringify(body),
       cache: 'no-store',
     });
-    if (res.ok) return null;
-    const j = await res.json().catch(() => ({} as any));
-    const reasons = Array.isArray(j?.blockers) ? j.blockers.map((b: any) => b.message).join(' · ') : '';
-    return [j?.message, reasons].filter(Boolean).join(' — ') || `Request failed (${res.status})`;
+    // Never reflect upstream SQL errors, blocker messages or exception text
+    // into redirect query parameters. A rejected redirect is not retried.
+    return res?.ok ? null : safeMutationError(res?.status ?? 503);
   };
 
   let error: string | null = null;
-  switch (intent) {
+  if (!id) error = 'Invalid resource identifier';
+  else switch (intent) {
     case 'criterion': {
-      const id = String(f.get('id'));
       const isMet = String(f.get('isMet')) === 'true';
       const evidenceUrl = String(f.get('evidenceUrl') ?? '').trim() || undefined;
       error = await call(`/api/v1/gate-criteria/${id}`, 'PATCH', { isMet, evidenceUrl });
       break;
     }
     case 'decide':
-      error = await call(`/api/v1/approvals/${String(f.get('id'))}/decision`, 'POST', {
+      error = await call(`/api/v1/approvals/${id}/decision`, 'POST', {
         decision: String(f.get('decision')),
         comment: String(f.get('comment') ?? '').trim() || undefined,
       });
       break;
     case 'advance':
-      error = await call(`/api/v1/gates/${String(f.get('id'))}/advance`, 'POST');
+      error = await call(`/api/v1/gates/${id}/advance`, 'POST');
       break;
     case 'assign':
-      error = await call(`/api/v1/gates/${String(f.get('id'))}/approvers`, 'POST', {
+      error = await call(`/api/v1/gates/${id}/approvers`, 'POST', {
         userId: String(f.get('userId')), accountable: true,
       });
       break;
     case 'addCriterion':
-      error = await call(`/api/v1/gates/${String(f.get('id'))}/criteria`, 'POST', {
+      error = await call(`/api/v1/gates/${id}/criteria`, 'POST', {
         label: String(f.get('label') ?? '').trim(),
       });
       break;
     case 'raid':
-      error = await call(`/api/v1/raid/${String(f.get('id'))}`, 'PATCH', {
+      error = await call(`/api/v1/raid/${id}`, 'PATCH', {
         status: String(f.get('status')),
       });
       break;
     case 'task':
-      error = await call(`/api/v1/tasks/${String(f.get('id'))}`, 'PATCH', {
+      error = await call(`/api/v1/tasks/${id}`, 'PATCH', {
         state: String(f.get('state')),
       });
       break;

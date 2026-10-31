@@ -449,29 +449,28 @@
     "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
   },
   "latestReviewOnlyIntegration": {
-    "label": "Q26",
-    "date": "2026-10-31",
-    "branch": "integration/q26-s25-s26-20261031",
-    "baseSha": "b7bf8726f9a22bdd11a48f873c84588b2778caf8",
-    "candidateSha": null,
-    "ciStatus": "PENDING_EXACT_FINAL_SHA",
-    "releaseDecision": "NO-GO",
+    "label": "Q27",
+    "baseSha": "152e541479e687b53d014cdc79783f2db3b31e46",
+    "branch": "integration/q27-e28-f33-c25-s28-20261031",
+    "recordedAtUtc": "2026-10-31T09:47:00Z",
+    "finalSha": null,
+    "finalShaCi": "PENDING",
     "sourcePullRequests": [
-      121,
-      122
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      132,
+      133
     ],
-    "sourceShas": [
-      "71d8eeef66fa2f1ac92413e0694df03a36108dab",
-      "44d17b09f71a5a86a9a1979e7612fa0ccfea967a"
-    ],
-    "sourceWorkflowRuns": [
-      41185803183,
-      41185992359
-    ],
-    "sourceFileCount": 6,
-    "externalAcceptedGates": 0,
-    "providerStripeTestScenariosAccepted": 0,
-    "limitations": "Source and Q25 integrated CI completed SUCCESS 4/4 each; Q26 combined CI pending. No independent HTTPS staging, two-user Entra, Stripe TEST 0/7, staging RLS, encrypted recovery, browser/mobile/Arabic RTL or legal/support acceptance."
+    "sourceFiles": 24,
+    "sourceCi": "nine exact-source PR heads each completed four successful jobs",
+    "decision": "NO-GO",
+    "acceptedCommercialGates": 0,
+    "notes": "CI-local only; recurring Stripe C25 policy is not endpoint/webhook-wired; no real TEST, Entra two-user, independent tenant RLS, public HTTPS staging, browser RTL, encrypted recovery, or legal/support receipts."
   },
   "lastIndependentIntegrationQ23Ci": {
     "pr": 109,

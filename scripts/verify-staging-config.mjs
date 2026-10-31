@@ -27,6 +27,16 @@ function dbUrl(value) {
       !!u.username && validSecret(decodeURIComponent(u.password)) && !!u.pathname.slice(1);
   } catch { return false; }
 }
+// The staging Compose topology provisions its own PostgreSQL and Redis services.
+// A syntactically valid URL pointing to production, localhost, an IP address,
+// or another Compose stack must never pass this offline isolation gate.
+function stagingComposeService(value, protocols, host, port) {
+  try {
+    const u = new URL(value);
+    return protocols.includes(u.protocol) && u.hostname === host &&
+      (!u.port || u.port === String(port)) && !u.search && !u.hash;
+  } catch { return false; }
+}
 export function checkStagingSecurity(env) {
   const checks = [
     ['Staging environment explicitly selected', env.DEPLOYMENT_ENV === 'staging'],
@@ -39,7 +49,9 @@ export function checkStagingSecurity(env) {
     ['Canonical staging API origin', env.PUBLIC_API_URL === 'https://api-staging.theepmo.com'],
     ['Distinct API and web origins', !!env.PUBLIC_API_URL && env.PUBLIC_API_URL !== env.WEB_ORIGIN],
     ['Database connection has non-placeholder credentials', dbUrl(env.DATABASE_URL)],
+    ['PostgreSQL uses isolated staging Compose service', stagingComposeService(env.DATABASE_URL, ['postgres:', 'postgresql:'], 'postgres', 5432)],
     ['Redis connection has non-placeholder password', (() => {try {const u=new URL(env.REDIS_URL);return ['redis:','rediss:'].includes(u.protocol) && !u.search && !u.hash && validSecret(decodeURIComponent(u.password));}catch{return false;}})()],
+    ['Redis uses isolated staging Compose service', stagingComposeService(env.REDIS_URL, ['redis:', 'rediss:'], 'redis', 6379)],
     ['Stripe configuration never uses live key in staging', !/^(?:sk|rk)_live_/.test(String(env.STRIPE_SECRET_KEY || ''))],
     ['Reference billing webhook disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
     ['Production Node runtime required for staging', env.NODE_ENV === 'production' && env.DEPLOYMENT_ENV !== 'production'],
