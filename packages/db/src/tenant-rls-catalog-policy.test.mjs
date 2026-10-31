@@ -48,3 +48,25 @@ test('accepts only tenant-bound legacy billing policies alongside the canonical 
     ...good(), using_expression: 'tenant_id = app_current_tenant() OR true',
   }]), /unsafe or incomplete/);
 });
+
+test('recognizes only tenant-bound legacy subscription policies from migration 0011', () => {
+  const subscriptionLegacy = {
+    ...good('subscription_events'), policy_name: 'subscription_events_isolation',
+    using_expression: "tenant_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text)::uuid",
+    check_expression: "tenant_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text)::uuid",
+  };
+  const tenantSubscriptionLegacy = {
+    ...subscriptionLegacy, table_name: 'tenant_subscriptions',
+    policy_name: 'tenant_subscriptions_isolation',
+  };
+  assert.equal(assertTenantRlsCatalog([
+    good('subscription_events'), subscriptionLegacy,
+    good('tenant_subscriptions'), tenantSubscriptionLegacy,
+  ]), 2);
+  assert.throws(() => assertTenantRlsCatalog([
+    good('subscription_events'), { ...subscriptionLegacy, check_expression: 'true' },
+  ]), /unsafe or incomplete/);
+  assert.throws(() => assertTenantRlsCatalog([
+    good('subscription_events'), { ...subscriptionLegacy, using_expression: 'tenant_id = app_current_tenant() OR true' },
+  ]), /unsafe or incomplete/);
+});
