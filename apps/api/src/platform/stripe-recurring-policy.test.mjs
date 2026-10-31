@@ -13,6 +13,7 @@ const price = { id: 'price_TEST123', object: 'price', active: true, livemode: fa
   type: 'recurring', billing_scheme: 'per_unit', currency: 'sar',
   unit_amount: 12000, unit_amount_decimal: '12000',
   recurring: { interval: 'month', interval_count: 1, usage_type: 'licensed' } };
+const verified = assertRecurringStripePrice(price, plan, price.id, false);
 const now = 1761900000000;
 const session = { id: 'cs_test_ABC123', object: 'checkout.session', livemode: false,
   mode: 'subscription', status: 'open', payment_status: 'unpaid',
@@ -46,7 +47,7 @@ test('Price fails closed on amount, currency, interval, mode, activity and produ
 });
 
 test('subscription Checkout uses server Price, never one-time amount or browser tenant', () => {
-  const params = stripeRecurringCheckoutParams(plan, tenantId, price.id,
+  const params = stripeRecurringCheckoutParams(plan, tenantId, verified, false,
     'https://theepmo.com/billing?billing=success',
     'https://theepmo.com/billing?billing=cancelled');
   assert.equal(params.get('mode'), 'subscription');
@@ -67,13 +68,21 @@ test('Checkout rejects untrusted redirect destinations', () => {
     'javascript:alert(1)',
   ]) {
     if (success === 'https://theepmo.com.evil.test/billing') {
-      assert.throws(() => stripeRecurringCheckoutParams(plan, tenantId, price.id,
+      assert.throws(() => stripeRecurringCheckoutParams(plan, tenantId, verified, false,
         success, 'https://theepmo.com/billing'));
     } else {
-      assert.throws(() => stripeRecurringCheckoutParams(plan, tenantId, price.id,
+      assert.throws(() => stripeRecurringCheckoutParams(plan, tenantId, verified, false,
         success, 'https://theepmo.com/billing'));
     }
   }
+});
+
+test('forged, unverified or wrong-mode Stripe Price tokens cannot initiate Checkout', () => {
+  assert.throws(() => stripeRecurringCheckoutParams(plan, tenantId,
+    { priceId: price.id, planId, liveMode: false }, false,
+    'https://theepmo.com/billing', 'https://theepmo.com/billing'));
+  assert.throws(() => stripeRecurringCheckoutParams(plan, tenantId, verified, true,
+    'https://theepmo.com/billing', 'https://theepmo.com/billing'));
 });
 
 test('Stripe subscription Checkout response is session-bound and still unpaid', () => {
