@@ -12,7 +12,7 @@ const fake = String.raw`#!/usr/bin/env node
 const fs=require('node:fs');const path=require('node:path');
 const args=process.argv.slice(2), bin=path.basename(process.argv[1]);
 const dir=process.env.FAKE_STATE;const log=process.env.FAKE_LOG;
-const write=(s)=>fs.appendFileSync(log,s+'\\n');
+const write=(s)=>fs.appendFileSync(log,s+'\n');
 const state=n=>path.join(dir,n+'.state');
 if(bin==='docker'){
  const op=args[0];
@@ -27,7 +27,7 @@ if(bin==='docker'){
      const query=args[args.indexOf('-c')+1]||'';
      if(query.includes('SELECT id,marker')){
        const current=fs.readFileSync(state(n),'utf8');
-       process.stdout.write(current==='corrupt'?'1|S34_SYNTHETIC_CORRUPTED\\n2|S34_SYNTHETIC_B\\n':'1|S34_SYNTHETIC_A\\n2|S34_SYNTHETIC_B\\n');
+       process.stdout.write(current==='corrupt'?'1|S34_SYNTHETIC_CORRUPTED\n2|S34_SYNTHETIC_B\n':'1|S34_SYNTHETIC_A\n2|S34_SYNTHETIC_B\n');
      } else if(query.includes('UPDATE')){fs.writeFileSync(state(n),'corrupt');write('mutate '+n);}
      else {fs.readFileSync(0);fs.writeFileSync(state(n),'seeded');write('seed '+n);}
    }
@@ -62,7 +62,7 @@ test('S34 executes synthetic remote roundtrip, injected failure and clean rollba
   const r=spawnSync(process.execPath,[script],{env,encoding:'utf8',timeout:30000});
   assert.equal(r.status,0,r.stderr);
   assert.match(r.stdout,/synthetic-only encrypted S3 round-trip/);
-  const lines=readFileSync(env.FAKE_LOG,'utf8').trim().split('\\n');
+  const lines=readFileSync(env.FAKE_LOG,'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x.startsWith('run ')).length,3);
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,2);
   assert.equal(lines.filter(x=>x.startsWith('rm ')).length,3);
@@ -77,7 +77,7 @@ test('S34 corrupted off-host archive blocks restore and cleans disposable source
   const r=spawnSync(process.execPath,[script],{env,encoding:'utf8',timeout:30000});
   assert.equal(r.status,1,r.stderr);
   assert.match(r.stderr,/BLOCKED: synthetic drill failed/);
-  const lines=readFileSync(env.FAKE_LOG,'utf8').trim().split('\\n');
+  const lines=readFileSync(env.FAKE_LOG,'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,0);
   assert.equal(lines.filter(x=>x.startsWith('rm ')).length,1);
  }finally{rmSync(dir,{recursive:true,force:true});}
