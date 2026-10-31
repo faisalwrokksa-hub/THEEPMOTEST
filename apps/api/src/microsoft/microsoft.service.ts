@@ -14,6 +14,10 @@ import { redactMicrosoftConnection } from './connection-policy';
 import { canUseDelegatedMicrosoftConnection, isActiveDelegatedMicrosoftConnection } from './delegated-user-policy';
 import { deploymentAllowsTenant, parseRuntimeDeployment } from '../tenancy/deployment-runtime';
 import { seal, open, canSealTokens } from './crypto';
+import { microsoftUserStorePreviewEnabled } from './user-connection-policy';
+import { readUserMicrosoftConnection, saveUserMicrosoftConsent, rotateUserMicrosoftCredential,
+         markUserMicrosoftCredentialRevoked, deleteUserMicrosoftConnection,
+         setUserMicrosoftLocation } from './user-connection-store';
 import { msConfig, authorizeUrl, exchangeCode, refresh, readIdToken, call, callAll,
          GRAPH, POWERBI, MsAuthError, MsApiError, type Resource, type MsConfig } from './client';
 
@@ -55,6 +59,9 @@ export class MicrosoftService {
 
   private ctx() { return currentContext(); }
 
+  /** Off by default: legacy workspace connections retain their current behavior. */
+  private perUserPreview() { return microsoftUserStorePreviewEnabled(); }
+
   private invalidateTenantTokens(tenantId: string) {
     for (const key of this.tokens.keys()) {
       if (key.startsWith(`${tenantId}:`)) this.tokens.delete(key);
@@ -95,6 +102,18 @@ export class MicrosoftService {
   async status(): Promise<{ configured: boolean; connection: Connection | null }> {
     const { tenantId } = this.ctx();
     const configured = Boolean(msConfig()) && canSealTokens();
+    if (this.perUserPreview()) {
+      const { userId } = this.ctx();
+      const owner = await readUserMicrosoftConnection(tenantId, userId);
+      if (!owner) return { configured, connection: null };
+      return { configured, connection: {
+        id: owner.id, status: owner.status, accountEmail: owner.accountEmail,
+        accountName: owner.accountName, externalTenantId: owner.externalTenantId,
+        scopes: owner.scopes, siteId: owner.siteId, siteName: null, siteUrl: null,
+        driveId: owner.driveId, driveName: null, rootItemId: owner.rootItemId,
+        rootPath: null, connectedAt: null, lastError: null,
+      } };
+    }
     const row = await withTenant(tenantId, async (tx) => (rows(await tx.execute(sql`
       SELECT id, status, connected_by, account_email, account_name, external_tenant_id, scopes,
              site_id, site_name, site_url, drive_id, drive_name, root_item_id, root_path,
@@ -212,6 +231,22 @@ export class MicrosoftService {
     }
 
     const who = readIdToken(tok.idToken);
+    if (this.perUserPreview()) {
+      // OAuth state is single-use and carries the consenting user, not a
+      // callback cookie or caller-controlled body. Store only that user's consent.
+      await saveUserMicrosoftConsent(tenantId, st.user_id, {
+        refreshToken: tok.refreshToken, accountEmail: who.email, accountName: who.name,
+        externalTenantId: who.tid, scopes: tok.scope,
+      });
+      await withTenant(tenantId, async (tx) => {
+        await tx.insert(auditEvents).values({
+          tenantId, actorId: st.user_id, entity: 'integration', entityId: PROVIDER,
+          action: 'microsoft.connected', diff: { resource, account: who.email, msTenant: who.tid } as any,
+        });
+      });
+      this.invalidateTenantTokens(tenantId);
+      return { returnTo: st.return_to ?? '/integrations' };
+    }
     await withTenant(tenantId, async (tx) => {
       // Consent was initiated while the user was an administrator, but the
       // membership may have been suspended or downgraded during the redirect.
@@ -284,6 +319,16 @@ export class MicrosoftService {
   async disconnect(): Promise<{ ok: true; documentsStillLinked: number }> {
     requireCapability('pmoa_admin');
     const { tenantId, userId } = this.ctx();
+    if (this.perUserPreview()) {
+      const [n] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+        SELECT count(*)::int AS n FROM documents WHERE storage_provider = ${PROVIDER}`)));
+      if (!await deleteUserMicrosoftConnection(tenantId, userId))
+        throw new NotFoundException('Microsoft is not connected for this user.');
+      this.invalidateTenantTokens(tenantId);
+      await withTenant(tenantId, (tx) => this.audit(tx, PROVIDER, 'microsoft.disconnected',
+        { documentsStillLinked: n.n }));
+      return { ok: true as const, documentsStillLinked: n.n };
+    }
     return withTenant(tenantId, async (tx) => {
       const [n] = rows(await tx.execute(sql`
         SELECT count(*)::int AS n FROM documents WHERE storage_provider = ${PROVIDER}`));
@@ -311,6 +356,7 @@ export class MicrosoftService {
     const cfg = this.config();
     const { tenantId, userId } = this.ctx();
     const cacheKey = `${tenantId}:${userId}:${resource}`;
+    if (this.perUserPreview()) return this.accessUserToken(resource, cfg, tenantId, userId, cacheKey);
 
     // Check the database owner BEFORE any cached token can be returned.
     // The legacy schema stores one delegated connection per workspace; that
@@ -386,6 +432,43 @@ export class MicrosoftService {
     return tok.accessToken;
   }
 
+  /**
+   * Preview-only per-owner delegated token flow. Every read/rotation uses the
+   * owner-scoped RLS store; a revoked or replaced credential cannot be revived
+   * by an in-flight refresh, nor can one owner's token serve another.
+   */
+  private async accessUserToken(resource: Resource, cfg: MsConfig,
+    tenantId: string, userId: string, cacheKey: string): Promise<string> {
+    const row = await readUserMicrosoftConnection(tenantId, userId);
+    if (!row?.sealedRefreshToken || !isActiveDelegatedMicrosoftConnection(row.status)) {
+      this.tokens.delete(cacheKey);
+      throw new ConflictException('Microsoft is not connected for this user. Reconnect the account.');
+    }
+    const hit = this.tokens.get(cacheKey);
+    if (hit && hit.credential === row.sealedRefreshToken &&
+        hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
+    let tok;
+    try {
+      tok = await refresh(cfg, open(row.sealedRefreshToken), resource);
+    } catch (e) {
+      if (e instanceof MsAuthError && e.needsConsent)
+        throw new ConflictException('Microsoft needs delegated consent for this resource.');
+      if (!(e instanceof MsAuthError && e.needsReconnect))
+        throw new ServiceUnavailableException('Microsoft token refresh is temporarily unavailable.');
+      await markUserMicrosoftCredentialRevoked(tenantId, userId, row.sealedRefreshToken);
+      this.tokens.delete(cacheKey);
+      throw new ConflictException('Microsoft credentials were revoked. Reconnect the account.');
+    }
+    const credential = await rotateUserMicrosoftCredential(
+      tenantId, userId, row.sealedRefreshToken, tok.refreshToken ?? null);
+    if (!credential) {
+      this.tokens.delete(cacheKey);
+      throw new ConflictException('Microsoft connection changed during refresh. Reconnect and retry.');
+    }
+    this.tokens.set(cacheKey, { accessToken: tok.accessToken, expiresAt: tok.expiresAt, credential });
+    return tok.accessToken;
+  }
+
   /* ── where the files go ───────────────────────────────────────────── */
 
   /** Their SharePoint sites, plus the signed-in person's own OneDrive. */
@@ -439,6 +522,15 @@ export class MicrosoftService {
     const folder = safeName(b.folderName || `The EPMO — ${t?.name ?? 'Workspace'}`);
     const root = await this.folder(token, b.driveId, 'root', folder);
 
+    if (this.perUserPreview()) {
+      if (!await setUserMicrosoftLocation(tenantId, userId, {
+        siteId: b.siteId ?? null, driveId: b.driveId,
+        rootItemId: root.id, rootPath: folder,
+      })) throw new ConflictException('Microsoft connection changed during folder selection.');
+      await withTenant(tenantId, (tx) => this.audit(tx, PROVIDER, 'microsoft.location_set',
+        { site: site?.webUrl ?? null, drive: drive?.name, folder }));
+      return { driveId: b.driveId, rootItemId: root.id, folder, webUrl: root.webUrl };
+    }
     await withTenant(tenantId, async (tx) => {
       const [done] = rows(await tx.execute(sql`
         UPDATE integration_connections SET
@@ -476,10 +568,20 @@ export class MicrosoftService {
 
   private async connection(tx: any) {
     const { userId } = this.ctx();
-    const [c] = rows(await tx.execute(sql`
-      SELECT drive_id, root_item_id, root_path, site_url FROM integration_connections
-      WHERE provider = ${PROVIDER} AND connected_by = ${userId}
-        AND status = 'connected'`));
+    let c: any;
+    if (this.perUserPreview()) {
+      await tx.execute(sql`SELECT set_config('app.user_id', ${userId}, true)`);
+      [c] = rows(await tx.execute(sql`
+        SELECT drive_id, root_item_id, root_path, site_url FROM microsoft_user_connections
+        WHERE tenant_id = ${this.ctx().tenantId} AND user_id = ${userId}
+          AND provider = ${PROVIDER} AND status = 'connected'
+          AND refresh_token IS NOT NULL`));
+    } else {
+      [c] = rows(await tx.execute(sql`
+        SELECT drive_id, root_item_id, root_path, site_url FROM integration_connections
+        WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+          AND status = 'connected'`));
+    }
     if (!c) throw new ConflictException('Microsoft is not connected to this workspace yet.');
     if (!c.drive_id || !c.root_item_id) {
       throw new ConflictException(
@@ -552,12 +654,24 @@ export class MicrosoftService {
       // change. Revalidate the consenting user and exact destination before
       // persisting the document. Hold a row lock through the insert and audit
       // so revocation cannot commit between the check and the local write.
-      const [active] = rows(await tx.execute(sql`
-        SELECT id FROM integration_connections
-        WHERE provider = ${PROVIDER} AND connected_by = ${userId}
-          AND status = 'connected' AND drive_id = ${c.drive_id}
-          AND root_item_id = ${c.root_item_id}
-        FOR SHARE`));
+      let active: any;
+      if (this.perUserPreview()) {
+        await tx.execute(sql`SELECT set_config('app.user_id', ${userId}, true)`);
+        [active] = rows(await tx.execute(sql`
+          SELECT id FROM microsoft_user_connections
+          WHERE tenant_id = ${tenantId} AND user_id = ${userId}
+            AND provider = ${PROVIDER} AND status = 'connected'
+            AND refresh_token IS NOT NULL AND drive_id = ${c.drive_id}
+            AND root_item_id = ${c.root_item_id}
+          FOR SHARE`));
+      } else {
+        [active] = rows(await tx.execute(sql`
+          SELECT id FROM integration_connections
+          WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+            AND status = 'connected' AND drive_id = ${c.drive_id}
+            AND root_item_id = ${c.root_item_id}
+          FOR SHARE`));
+      }
       if (!active) {
         throw new ConflictException(
           'Microsoft connection or document location changed during upload. Reconnect and retry.');
