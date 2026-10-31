@@ -2,6 +2,7 @@ import { cookies } from 'next/headers';
 import type { Project, Portfolio, GateSummary, RaidItem, Task } from '@pmo/contracts';
 import { fetchAuthenticatedApi } from './authenticated-api-fetch.mjs';
 import { safeApiFailure } from './safe-api-error.mjs';
+import { readBoundedUpstreamText } from './bounded-upstream-body.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export const SESSION_COOKIE = 'pmo_session';
@@ -26,7 +27,7 @@ async function get<T>(path: string): Promise<T> {
     // Preserve only fixed licensing classifications needed by the UI.
     // Other upstream error bodies can contain secrets or SQL diagnostics and
     // must never be copied into an Error message, detail, or server logs.
-    const licenseBody = res.status === 403 ? await res.text().catch(() => '') : '';
+    const licenseBody = res.status === 403 ? await readBoundedUpstreamText(res, 4096) : '';
     const failure = safeApiFailure(res.status, licenseBody);
     throw new ApiError(failure.status, failure.message, failure.detail);
   }
