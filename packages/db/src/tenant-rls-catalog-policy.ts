@@ -14,7 +14,7 @@ export type TenantPolicyRow = {
   check_expression: string | null;
 };
 
-const tenantPredicate = /\\btenant_id\\s*=\\s*(?:public\\.)?app_current_tenant\\(\\)/i;
+const tenantPredicate = /\btenant_id\s*=\s*(?:public\.)?app_current_tenant\(\)/i;
 
 export function assertTenantRlsCatalog(rows: ReadonlyArray<TenantPolicyRow>): number {
   if (!rows.length) throw new Error('No tenant-scoped PostgreSQL tables found; RLS verification cannot pass');
