@@ -3,6 +3,7 @@ import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { validCreateKind } from '@/lib/create-kind.mjs';
 import { safeMutationError, safeCreateIssues } from '@/lib/safe-mutation-feedback.mjs';
+import { readBoundedUpstreamJson } from '@/lib/bounded-upstream-body.mjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -78,7 +79,7 @@ export async function POST(req: NextRequest) {
     // Never echo upstream exception details or raw validation messages to
     // browser JSON or query strings. Only bounded field identifiers survive.
     const payload = (res.status === 400 || res.status === 422)
-      ? await res.json().catch(() => null) : null;
+      ? await readBoundedUpstreamJson(res, 16384) : null;
     const issues = safeCreateIssues(payload);
     const message = safeMutationError(res.status);
     if (wantsJson) return NextResponse.json({ error: message, issues }, { status: res.status });

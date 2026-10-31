@@ -36,8 +36,11 @@ BEGIN;
 SELECT pg_advisory_xact_lock(1717, 2026);
 CREATE TABLE IF NOT EXISTS public.schema_migrations (
   filename text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
+  applied_at timestamptz NOT NULL DEFAULT now(),
+  source_sha256 text
 );
+-- Existing filename-only rows remain NULL: never invent their historical bytes.
+ALTER TABLE public.schema_migrations ADD COLUMN IF NOT EXISTS source_sha256 text;
 COMMIT;
 SQL
 
@@ -47,9 +50,15 @@ for file in packages/db/migrations/*.sql; do
     echo "BLOCKED: invalid migration filename $name" >&2
     exit 1
   fi
+  digest=$(node -e 'const {createHash}=require("node:crypto");const {readFileSync}=require("node:fs");process.stdout.write(createHash("sha256").update(readFileSync(process.argv[1])).digest("hex"))' "$file")
   installed=$(psql_admin -At -c "SELECT 1 FROM public.schema_migrations WHERE filename = '$name'")
   if [[ "$installed" == '1' ]]; then
-    echo "SKIP: $name already applied"
+    recorded=$(psql_admin -At -c "SELECT COALESCE(source_sha256, 'UNATTESTED') FROM public.schema_migrations WHERE filename = '$name'")
+    if [[ "$recorded" != "$digest" ]]; then
+      echo "BLOCKED: $name has no trustworthy SQL-byte attestation or its recorded digest differs. Independently verify historical deployment evidence; never auto-backfill." >&2
+      exit 1
+    fi
+    echo "SKIP: $name already applied (SHA-256 verified)"
     continue
   fi
   [[ -z "$installed" ]] || { echo "BLOCKED: unexpected ledger state for $name" >&2; exit 1; }
@@ -61,10 +70,21 @@ for file in packages/db/migrations/*.sql; do
   # it without closing the transaction (including the conditional INSERT).
   if ! {
     printf 'BEGIN;\nLOCK TABLE public.schema_migrations IN EXCLUSIVE MODE;\n'
+    # Recheck the byte attestation under the same lock as the DDL. A competing
+    # deployment must never cause a mismatched migration to be silently skipped.
+    cat <<SQL
+DO \$ledger\$ BEGIN
+  IF EXISTS (SELECT 1 FROM public.schema_migrations
+             WHERE filename = '$name' AND source_sha256 IS DISTINCT FROM '$digest') THEN
+    RAISE EXCEPTION 'Existing SQL migration has missing or mismatched source attestation';
+  END IF;
+END \$ledger\$;
+SQL
     printf "SELECT NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE filename = '%s') AS needs_apply \\gset\n" "$name"
     printf '\\if :needs_apply\n'
     cat "$file"
     printf "\nINSERT INTO public.schema_migrations(filename) VALUES ('%s');\n" "$name"
+    printf "UPDATE public.schema_migrations SET source_sha256 = '%s' WHERE filename = '%s' AND source_sha256 IS NULL;\n" "$digest" "$name"
     printf '\\else\n\\echo SKIP: migration already applied by a concurrent runner\n\\endif\nCOMMIT;\n'
   } | psql_admin -q; then
     echo "BLOCKED: $name failed; migration and ledger insertion rolled back." >&2

@@ -447,5 +447,38 @@
     "releaseDecision": "NO-GO",
     "externalAcceptance": "UNVERIFIED: public HTTPS staging, two-user Entra, real Stripe TEST 0/7, independent two-tenant RLS, encrypted staging restore/rollback, 375px/desktop RTL browser UAT, pricing/legal/support",
     "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
+  },
+  "latestReviewOnlyIntegration": {
+    "label": "Q23",
+    "date": "2026-10-31",
+    "branch": "integration/q23-e23-f26-c21-s23-20261031",
+    "baseSha": "57042076e0667fa7ea40431f30e5f4022225c5c1",
+    "candidateSha": null,
+    "ciStatus": "PENDING_EXACT_FINAL_SHA",
+    "releaseDecision": "NO-GO",
+    "sourcePullRequests": [
+      104,
+      105,
+      106,
+      107,
+      108
+    ],
+    "sourceShas": [
+      "d17622a7433e4fcaa7651769ab5eefe6b96aa8d6",
+      "80f9424fd89859f63effa3afe9bad8af80f4f9e0",
+      "f5b6a2c5a9f8a0a2fc6afe75310c0cd7faee1d20",
+      "f182ee89282f4f532b8bc059e6f29775de0cbd17",
+      "4a2364a441b91c1000d5b2e6a2192f069aa5dd2e"
+    ],
+    "sourceWorkflowRuns": [
+      41174674479,
+      41175581672,
+      41175585096,
+      41176551572,
+      41177153603
+    ],
+    "externalAcceptedGates": 0,
+    "providerStripeTestScenariosAccepted": 0,
+    "limitations": "Source CI 4/4 each; no final integration SHA CI yet. No independent provider/staging/browser/legal acceptance."
   }
 }

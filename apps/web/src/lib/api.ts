@@ -2,6 +2,8 @@ import { cookies } from 'next/headers';
 import type { Project, Portfolio, GateSummary, RaidItem, Task } from '@pmo/contracts';
 import { fetchAuthenticatedApi } from './authenticated-api-fetch.mjs';
 import { safeApiFailure } from './safe-api-error.mjs';
+import { readBoundedUpstreamText } from './bounded-upstream-body.mjs';
+import { sessionFailureKind } from './session-failure.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export const SESSION_COOKIE = 'pmo_session';
@@ -26,7 +28,7 @@ async function get<T>(path: string): Promise<T> {
     // Preserve only fixed licensing classifications needed by the UI.
     // Other upstream error bodies can contain secrets or SQL diagnostics and
     // must never be copied into an Error message, detail, or server logs.
-    const licenseBody = res.status === 403 ? await res.text().catch(() => '') : '';
+    const licenseBody = res.status === 403 ? await readBoundedUpstreamText(res, 4096) : '';
     const failure = safeApiFailure(res.status, licenseBody);
     throw new ApiError(failure.status, failure.message, failure.detail);
   }
@@ -42,6 +44,21 @@ export type Session =
 export async function getSession(): Promise<Session> {
   try { return await get<Session>('/auth/session'); }
   catch { return { authenticated: false }; }
+}
+
+/**
+ * Strict layout-only lookup: distinguish a genuine signed-out session from
+ * a temporary API outage. Never clear the cookie or redirect to login when
+ * session verification could not complete.
+ */
+export async function getLayoutSession(): Promise<Session | { authenticated: false; unavailable: true }> {
+  try { return await get<Session>('/auth/session'); }
+  catch (error) {
+    const status = error instanceof ApiError ? error.status : null;
+    return sessionFailureKind(status) === 'signed-out'
+      ? { authenticated: false }
+      : { authenticated: false, unavailable: true };
+  }
 }
 
 export type OnboardingStatus = {

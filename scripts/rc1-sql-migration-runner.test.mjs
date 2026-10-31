@@ -25,6 +25,14 @@ if (args.includes('-c')) {
   } else if (sql.includes('SELECT 1 FROM public.schema_migrations')) {
     const name = /filename = '([^']+)'/.exec(sql)?.[1];
     if (applied.includes(name)) console.log('1');
+  } else if (sql.includes('SELECT COALESCE(source_sha256')) {
+    const name = /filename = '([^']+)'/.exec(sql)?.[1];
+    if (applied.includes(name)) {
+      const {createHash}=require('node:crypto');
+      const {join}=require('node:path');
+      const digest=createHash('sha256').update(fs.readFileSync(join(process.cwd(),'packages/db/migrations',name))).digest('hex');
+      console.log(process.env.EPMO_TEST_RECORDED_DIGEST || digest);
+    }
   } else if (sql.includes('SELECT filename FROM public.schema_migrations')) {
     console.log([...applied].sort().join('\\n'));
   } else process.exit(4);
@@ -115,4 +123,23 @@ test('CI invokes the SQL runner with an admin role before applying RLS', () => {
   assert.ok(ci.indexOf('run: bash scripts/apply-sql-migrations.sh') < ci.indexOf('name: Apply RLS policies'));
   assert.match(ci,/PGUSER: postgres/);
   assert.match(ci,/PGPASSWORD: postgres/);
+});
+
+test('runner refuses legacy unattested SQL ledger rows rather than backfilling', () => {
+  const f=fixture();
+  try {
+    assert.equal(f.run().status,0);
+    const blocked=f.run({EPMO_TEST_RECORDED_DIGEST:'UNATTESTED'});
+    assert.equal(blocked.status,1,blocked.stderr);
+    assert.match(blocked.stderr,/never auto-backfill/);
+    assert.equal(f.applied().length,expectedCount);
+  } finally {f.cleanup();}
+});
+test('runner binds new SQL-byte attestation and concurrent check to DDL transaction', () => {
+  const source=readFileSync(runner,'utf8');
+  assert.match(source,/ALTER TABLE public\.schema_migrations ADD COLUMN IF NOT EXISTS source_sha256/);
+  assert.match(source,/source_sha256 IS DISTINCT FROM '\$digest'/);
+  assert.match(source,/UPDATE public\.schema_migrations SET source_sha256/);
+  assert.ok(source.indexOf('source_sha256 IS DISTINCT FROM') < source.indexOf('AS needs_apply'));
+  assert.ok(source.indexOf('AS needs_apply') < source.indexOf('UPDATE public.schema_migrations SET source_sha256'));
 });
