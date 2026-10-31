@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers';
 import type { Project, Portfolio, GateSummary, RaidItem, Task } from '@pmo/contracts';
 import { fetchAuthenticatedApi } from './authenticated-api-fetch.mjs';
+import { safeApiFailure } from './safe-api-error.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export const SESSION_COOKIE = 'pmo_session';
@@ -22,10 +23,12 @@ export class ApiError extends Error {
 async function get<T>(path: string): Promise<T> {
   const res = await fetchAuthenticatedApi(fetch, `${BASE}${path}`, await authHeader());
   if (!res.ok) {
-    const body = await res.text().catch(() => '');
-    let detail = body;
-    try { detail = JSON.parse(body)?.message ?? body; } catch { /* not json */ }
-    throw new ApiError(res.status, `${res.status} ${res.statusText}${detail ? ` — ${String(detail).slice(0, 200)}` : ''}`, String(detail));
+    // Preserve only fixed licensing classifications needed by the UI.
+    // Other upstream error bodies can contain secrets or SQL diagnostics and
+    // must never be copied into an Error message, detail, or server logs.
+    const licenseBody = res.status === 403 ? await res.text().catch(() => '') : '';
+    const failure = safeApiFailure(res.status, licenseBody);
+    throw new ApiError(failure.status, failure.message, failure.detail);
   }
   return res.json() as Promise<T>;
 }
