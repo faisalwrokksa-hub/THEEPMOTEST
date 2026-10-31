@@ -10,7 +10,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requireCapability } from '../common/require-capability';
 import { can } from '@pmo/contracts';
 import { redactMicrosoftConnection } from './connection-policy';
-import { canUseDelegatedMicrosoftConnection } from './delegated-user-policy';
+import { canUseDelegatedMicrosoftConnection, isActiveDelegatedMicrosoftConnection } from './delegated-user-policy';
 import { deploymentAllowsTenant, parseRuntimeDeployment } from '../tenancy/deployment-runtime';
 import { seal, open, canSealTokens } from './crypto';
 import { msConfig, authorizeUrl, exchangeCode, refresh, readIdToken, call, callAll,
@@ -332,7 +332,7 @@ export class MicrosoftService {
     }
     // A failed/revoked connection must not keep serving a previously cached
     // Graph or Power BI access token. Revocation applies across resources.
-    if (row.status !== 'connected') {
+    if (!isActiveDelegatedMicrosoftConnection(row.status)) {
       this.invalidateTenantTokens(tenantId);
       throw new ConflictException('Microsoft connection is inactive. Reconnect the account.');
     }
