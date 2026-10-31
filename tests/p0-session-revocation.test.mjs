@@ -34,10 +34,11 @@ test('API removes the browser cookie only after server-side revocation succeeds'
 });
 test('ordinary browser logout does not hide backend failures', () => {
   assert.doesNotMatch(single, /\.catch\(\(\) => \{\}\)/);
-  assert.match(single, /if \(!result\.ok\) throw/);
+  assert.match(single, /if \(!result\?\.ok\) throw/);
+  assert.match(single, /fetchTenantMutation\(fetch,/);
   assert.match(single, /catch \{[\s\S]*?return logoutFailureResponse\(req, false\)/);
   assert.match(recovery, /status: 503/);
-  assert.ok(single.indexOf('if (!result.ok)') < single.indexOf('out.cookies.delete'));
+  assert.ok(single.indexOf('if (!result?.ok)') < single.indexOf('out.cookies.delete'));
 });
 test('browser logout-all requires trusted mutation provenance and a cookie', () => {
   assert.match(all, /rejectUnsafeBrowserMutation\(req\)/);
@@ -46,11 +47,12 @@ test('browser logout-all requires trusted mutation provenance and a cookie', () 
   assert.match(all, /if \(!token\) return/);
 });
 test('browser logout-all never claims success when the API is unavailable', () => {
-  assert.match(all, /if \(!response\.ok\) throw/);
+  assert.match(all, /if \(!response\?\.ok\) throw/);
+  assert.match(all, /fetchTenantMutation\(fetch,/);
   assert.match(all, /catch \{/);
   assert.match(all, /catch \{[\s\S]*?return logoutFailureResponse\(req, true\)/);
   assert.match(recovery, /status: 503/);
-  assert.ok(all.indexOf('if (!response.ok)') < all.indexOf('result.cookies.delete'));
+  assert.ok(all.indexOf('if (!response?.ok)') < all.indexOf('result.cookies.delete'));
 });
 test('account menu offers a form POST for all-device revocation', () => {
   assert.match(switcher, /<form method="post" action="\/api\/session\/logout-all">/);

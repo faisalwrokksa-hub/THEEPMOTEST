@@ -1,5 +1,6 @@
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { logoutFailureResponse } from '@/lib/logout-recovery';
+import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -13,10 +14,10 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get(SESSION)?.value;
   if (token) {
     try {
-      const result = await fetch(`${BASE}/auth/logout`, {
+      const result = await fetchTenantMutation(fetch, `${BASE}/auth/logout`, {
         method: 'POST', headers: { cookie: `${SESSION}=${token}` }, cache: 'no-store',
       });
-      if (!result.ok) throw new Error('Session revocation failed');
+      if (!result?.ok) throw new Error('Session revocation failed');
     } catch {
       // Do not claim success or clear the cookie if revocation is unconfirmed.
       return logoutFailureResponse(req, false);
