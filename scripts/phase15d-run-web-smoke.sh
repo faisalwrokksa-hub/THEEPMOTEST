@@ -62,3 +62,10 @@ if ! PHASE15D_WEB_URL=http://127.0.0.1:3000 node scripts/phase15d-web-smoke.mjs;
   tail -n 50 "$LOG" >&2
   exit 1
 fi
+
+# Browser screenshots/traces are LOCAL, PUBLIC and credential-free. The
+# synthetic authenticated journey is opt-in for a disposable local fixture only.
+if [[ "${EPMO_BROWSER_UAT:-0}" == "1" ]]; then
+  EPMO_UAT_MODE=public EPMO_UAT_URL=http://127.0.0.1:3000 \
+    EPMO_UAT_OUT=/tmp/epmo-browser-uat node scripts/frontend-browser-uat.mjs
+fi
