@@ -32,10 +32,14 @@ export function checkStagingSecurity(env) {
     ['Loopback-only web bind', (env.WEB_BIND || '') === '127.0.0.1'],
     ['Public HTTPS web origin', publicHttpsOrigin(env.WEB_ORIGIN)],
     ['Public HTTPS API origin', publicHttpsOrigin(env.PUBLIC_API_URL)],
+    // The generic HTTPS check alone previously accepted production endpoints in staging.
+    // Pin the two approved canonical hosts; alternate DNS requires a reviewed contract change.
+    ['Canonical staging web origin', env.WEB_ORIGIN === 'https://staging.theepmo.com'],
+    ['Canonical staging API origin', env.PUBLIC_API_URL === 'https://api-staging.theepmo.com'],
     ['Distinct API and web origins', !!env.PUBLIC_API_URL && env.PUBLIC_API_URL !== env.WEB_ORIGIN],
     ['Database connection has non-placeholder credentials', dbUrl(env.DATABASE_URL)],
     ['Redis connection has non-placeholder password', (() => {try {const u=new URL(env.REDIS_URL);return ['redis:','rediss:'].includes(u.protocol) && validSecret(decodeURIComponent(u.password));}catch{return false;}})()],
-    ['Stripe configuration never uses live key in staging', !String(env.STRIPE_SECRET_KEY || '').startsWith('sk_live_')],
+    ['Stripe configuration never uses live key in staging', !/^(?:sk|rk)_live_/.test(String(env.STRIPE_SECRET_KEY || ''))],
     ['Reference billing webhook disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
     ['No production deployment mode', env.NODE_ENV !== 'development' && env.DEPLOYMENT_ENV !== 'production'],
   ];

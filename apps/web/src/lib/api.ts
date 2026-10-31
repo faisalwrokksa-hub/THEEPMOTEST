@@ -1,5 +1,6 @@
 import { cookies } from 'next/headers';
 import type { Project, Portfolio, GateSummary, RaidItem, Task } from '@pmo/contracts';
+import { fetchAuthenticatedApi } from './authenticated-api-fetch.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export const SESSION_COOKIE = 'pmo_session';
@@ -19,7 +20,7 @@ export class ApiError extends Error {
 }
 
 async function get<T>(path: string): Promise<T> {
-  const res = await fetch(`${BASE}${path}`, { headers: await authHeader(), cache: 'no-store' });
+  const res = await fetchAuthenticatedApi(fetch, `${BASE}${path}`, await authHeader());
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     let detail = body;
