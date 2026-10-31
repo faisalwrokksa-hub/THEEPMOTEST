@@ -55,9 +55,9 @@ test('billing proxy forbids credentialed upstream redirects and never reflects b
 
 test('subscription cancellation proxy also forbids session-cookie redirects', () => {
   const source = readFileSync(new URL('../app/api/billing/subscription/route.ts', import.meta.url), 'utf8');
-  assert.match(source, /rejectUnsafeBrowserMutation\\(req\\)/);
+  assert.match(source, /rejectUnsafeBrowserMutation\(req\)/);
   assert.match(source, /redirect: 'error'/);
-  assert.match(source, /response\\.redirected/);
-  assert.match(source, /response\\.status >= 300/);
+  assert.match(source, /response\.redirected/);
+  assert.match(source, /response\.status >= 300/);
   assert.match(source, /subscription-action-failed/);
 });
