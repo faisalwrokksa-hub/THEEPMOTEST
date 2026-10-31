@@ -124,6 +124,37 @@ test('independent captured PaymentIntent and invoice payment references must agr
   }));
 });
 
+test('Stripe pagination and conflicting price representations fail closed', () => {
+  const line = invoice.lines.data[0];
+  const item = subscription.items.data[0];
+  const payment = { payment: { payment_intent: 'pi_TEST123' } };
+  for (const page of [
+    { data: [line], has_more: true },
+    { data: [line], has_more: 'false' },
+    { data: [line], total_count: 2 },
+  ]) assert.throws(() => verify(candidate, { ...invoice, lines: page }));
+  for (const page of [
+    { data: [item], has_more: true },
+    { data: [item], total_count: 2 },
+  ]) assert.throws(() => verify(candidate, invoice, { ...subscription, items: page }));
+  for (const page of [
+    { data: [payment], has_more: true },
+    { data: [payment], total_count: 2 },
+    { data: [], has_more: false },
+    { data: [payment, payment], has_more: false },
+    { data: 'not-a-list' },
+  ]) assert.throws(() => verify(candidate, { ...invoice, payments: page }));
+  assert.throws(() => verify(candidate, {
+    ...invoice, lines: { data: [{ ...line,
+      pricing: { price_details: { price: 'price_DIFFERENT' } } }] },
+  }));
+  assert.equal(verify(candidate, {
+    ...invoice, lines: { data: [{ ...line,
+      pricing: { price_details: { price: 'price_TEST123' } } }], has_more: false },
+    payments: { data: [payment], has_more: false, total_count: 1 },
+  }).paymentIntentId, 'pi_TEST123');
+});
+
 test('no DB writes, tenant inference or entitlement grant occurs in the verifier', () => {
   const source = readFileSync(new URL('./stripe-recurring-reconciliation.ts', import.meta.url), 'utf8');
   assert.doesNotMatch(source, /withTenant\(|UPDATE tenant_subscriptions|INSERT INTO billing_payments/);
