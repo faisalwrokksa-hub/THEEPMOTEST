@@ -4,6 +4,7 @@ import { assertMicrosoftPageVisit, microsoftPageItems } from './pagination-polic
 import { parseMicrosoftTokenPayload } from './token-response-policy';
 import { microsoftAuthority } from './authority-policy';
 import { safeMicrosoftApiFailure } from './api-error-policy';
+import { safeMicrosoftOAuthFailure } from './oauth-error-policy';
 import { readBoundedMicrosoftJson, MAX_MICROSOFT_TOKEN_RESPONSE_BYTES,
          MAX_MICROSOFT_API_RESPONSE_BYTES } from './response-policy';
 
@@ -95,11 +96,8 @@ async function token(cfg: MsConfig, body: Record<string, string>): Promise<Token
   });
   const j: unknown = await readBoundedMicrosoftJson(res, MAX_MICROSOFT_TOKEN_RESPONSE_BYTES);
   if (!res.ok) {
-    const error: Record<string, unknown> = j && typeof j === 'object' ? j as Record<string, unknown> : {};
-    throw new MsAuthError(
-      typeof error.error === 'string' ? error.error : 'invalid_request',
-      typeof error.error_description === 'string' ? error.error_description : `HTTP ${res.status}`,
-    );
+    const failure = safeMicrosoftOAuthFailure(j);
+    throw new MsAuthError(failure.code, failure.message, failure.consentRequired);
   }
   // Fail closed rather than caching an undefined access token or a malformed
   // expiration returned by a broken/misconfigured token endpoint.
@@ -127,13 +125,13 @@ export const refresh = (cfg: MsConfig, refreshToken: string, resource: Resource)
  * from scratch and lose the half that works.
  */
 export class MsAuthError extends Error {
-  constructor(readonly code: string, message: string) {
+  constructor(readonly code: string, message: string, private readonly consentRequired = false) {
     super(message);
     this.name = 'MsAuthError';
   }
-  /** AADSTS65001 is "the user or administrator has not consented". */
+  /** Preserve only a boolean consent signal; never store Microsoft's raw text. */
   get needsConsent() {
-    return this.code === 'invalid_grant' && /AADSTS65001|consent/i.test(this.message);
+    return this.consentRequired;
   }
   /** The refresh token itself is dead — revoked, expired, or password changed. */
   get needsReconnect() {
