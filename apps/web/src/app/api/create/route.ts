@@ -44,7 +44,7 @@ export async function POST(req: NextRequest) {
 
   // A temporarily unreachable API should be a recoverable form error,
   // never an unhandled Next.js exception that loses the user's typed values.
-  let res: Response;
+  let res: Response | null;
   try {
     res = await fetchTenantMutation(fetch, `${BASE}/api/v1/create/${kind}`, {
       method: 'POST',
