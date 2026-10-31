@@ -336,7 +336,7 @@
   },
   "latestIndependentQaReviewOnlyIntegration": {
     "reviewDateUtc": "2026-10-31",
-    "prUrl": "PENDING_Q19_PR_CREATION",
+    "prUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/85",
     "branch": "integration/q19-e19-f20-c16-s18-20261031",
     "baseline": {
       "pr": 78,
