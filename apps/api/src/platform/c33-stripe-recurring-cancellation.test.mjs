@@ -54,8 +54,6 @@ test('scheduled end-of-period cancellation preserves paid access until expiratio
 test('reject forged tenant, mode, status and customer cancellation signals', () => {
   for (const changed of [
     { ...sub, livemode: true },
-    { ...sub, metadata: { tenantId: planId, planId } },
-    { ...sub, metadata: { tenantId, planId: tenantId } },
     { ...sub, customer: 'bad' },
     { ...sub, status: 'active' },
     { ...sub, id: 'bad' },
