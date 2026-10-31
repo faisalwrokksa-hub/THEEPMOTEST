@@ -66,11 +66,23 @@ export class StripeBillingService {
       if (!latest || latest.id !== invoice.subscriptionId)
         throw new ConflictException('Invoice belongs to a previous subscription');
 
+      // A Stripe-signed async failure or expiry is terminal even if the
+      // originally recorded expires_at is still in the future. Exclude such
+      // sessions from reuse using the append-only, tenant-scoped event ledger:
+      // never rewrite the historical Stripe session expiry or its payment URL.
       const existing = rows(await tx.execute(sql`
-        SELECT stripe_session_id AS "sessionId", checkout_url AS url,
-               expires_at AS "expiresAt" FROM billing_stripe_checkout_sessions
-        WHERE tenant_id = ${tenantId} AND invoice_id = ${invoiceId} AND expires_at > now() + interval '60 seconds'
-        ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
+        SELECT s.stripe_session_id AS "sessionId", s.checkout_url AS url,
+               s.expires_at AS "expiresAt" FROM billing_stripe_checkout_sessions s
+        WHERE s.tenant_id = ${tenantId} AND s.invoice_id = ${invoiceId}
+          AND s.expires_at > now() + interval '60 seconds'
+          AND NOT EXISTS (
+            SELECT 1 FROM subscription_events e
+            WHERE e.tenant_id = s.tenant_id
+              AND e.subscription_id = ${invoice.subscriptionId}
+              AND e.event_type = 'billing.stripe_checkout_unpaid'
+              AND e.details ->> 'stripeSessionId' = s.stripe_session_id
+          )
+        ORDER BY s.created_at DESC, s.id DESC LIMIT 1`))[0];
       if (existing) {
         // Reused database references cross the same outbound payment-navigation
         // boundary as a fresh Stripe response. Never return a corrupted URL or

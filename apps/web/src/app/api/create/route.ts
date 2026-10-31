@@ -4,6 +4,7 @@ import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { validCreateKind } from '@/lib/create-kind.mjs';
 import { safeMutationError, safeCreateIssues } from '@/lib/safe-mutation-feedback.mjs';
 import { readBoundedUpstreamJson } from '@/lib/bounded-upstream-body.mjs';
+import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -27,7 +28,12 @@ export async function POST(req: NextRequest) {
       : NextResponse.redirect(login, 303);
   }
 
-  const f = await req.formData();
+  const parsed = await readBoundedBrowserForm(req);
+  if (!parsed.form) return NextResponse.json({
+    error: parsed.error === 'too-large'
+      ? 'Form submission exceeds the size limit.' : 'Invalid form submission.',
+  }, { status: parsed.error === 'too-large' ? 413 : 400 });
+  const f = parsed.form;
   // `__`-prefixed fields route the request; everything else is the record.
   // They were once called `kind` and `returnTo`, which meant any record with a
   // `kind` of its own — RAID items, cost lines, documents, updates — had that
@@ -88,7 +94,7 @@ export async function POST(req: NextRequest) {
     // A newly created project already has its first governance gate. Take the
     // customer straight there instead of leaving them hunting through a list.
     if (kind === 'project') {
-      const created = await res.json().catch(() => ({}));
+      const created = await readBoundedUpstreamJson(res, 16384) ?? {};
       if (typeof created?.id === 'string' &&
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(created.id)) {
         url = publicUrl(req, `/governance/${created.id}`);
