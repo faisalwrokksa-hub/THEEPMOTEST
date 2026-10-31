@@ -200,14 +200,10 @@ export class MicrosoftService {
     let tok;
     try {
       tok = await exchangeCode(cfg, code, resource);
-    } catch (e) {
-      const msg = 'Microsoft authorization failed. Reconnect and try again.';
-      await withTenant(tenantId, async (tx) => {
-        await tx.execute(sql`
-          UPDATE integration_connections SET status = 'error', last_error = ${msg}, updated_at = now()
-          WHERE provider = ${PROVIDER} AND connected_by = ${st.user_id}`);
-      });
-      throw new BadRequestException(`Microsoft refused the connection: ${msg}`);
+    } catch {
+      // A failed or transient *new* authorization attempt must not revoke an
+      // existing, still-valid delegated connection. No credentials were changed.
+      throw new BadRequestException('Microsoft authorization failed. Reconnect and try again.');
     }
     if (!tok.refreshToken) {
       throw new BadRequestException(
@@ -349,6 +345,13 @@ export class MicrosoftService {
           resource === 'powerbi'
             ? 'Power BI has not been approved for this workspace yet. Connect Power BI to grant it.'
             : 'Microsoft needs to be connected again to grant this permission.');
+      }
+      // Network errors, 429/5xx responses, invalid provider payloads and
+      // misconfigured app credentials do not prove the *user's* refresh token
+      // was revoked. Preserve the stored connection and retry later.
+      if (!(e instanceof MsAuthError && e.needsReconnect)) {
+        throw new ServiceUnavailableException(
+          'Microsoft token refresh is temporarily unavailable. Please retry later.');
       }
       this.invalidateTenantTokens(tenantId);
       const msg = 'Microsoft credentials are invalid or have expired. Reconnect the account.';
