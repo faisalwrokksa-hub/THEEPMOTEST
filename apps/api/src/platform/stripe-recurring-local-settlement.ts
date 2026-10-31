@@ -31,7 +31,7 @@ export function assertRecurringLocalSettlement(
       start >= end || end <= now || localStart >= localEnd)
     throw new Error('Recurring entitlement period is invalid or already expired');
   if (binding.status === 'pending') {
-    if (binding.lastPeriodEndsAt !== null || local.status !== 'trialing' ||
+    if (binding.lastPeriodEndsAt !== null || !['trialing', 'past_due'].includes(local.status) ||
         start < localStart)
       throw new Error('Initial recurring invoice cannot activate this subscription');
   } else if (binding.status === 'active') {

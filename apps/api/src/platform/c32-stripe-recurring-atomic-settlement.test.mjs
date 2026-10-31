@@ -25,6 +25,10 @@ const check = (b = binding, l = local, v = verified, latest = subscriptionId, ti
 test('initial signed and independently verified TEST invoice may advance an expired trial', () => {
   assert.doesNotThrow(() => check());
 });
+test('pending failed invoice can later settle only after verified paid provider evidence', () => {
+  assert.doesNotThrow(() => check(binding, { ...local, status: 'past_due' }));
+  assert.throws(() => check({ ...binding, status: 'active' }, { ...local, status: 'past_due' }));
+});
 test('renewal requires matching active ledger and contiguous local period', () => {
   const active = { ...binding, status: 'active', lastPeriodEndsAt: verified.periodEndsAt };
   const subscribed = { ...local, status: 'active', periodStartsAt: verified.periodStartsAt,
