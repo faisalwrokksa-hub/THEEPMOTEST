@@ -63,6 +63,48 @@ test('rejects cross-environment URLs, wrong candidate images and live Stripe', (
   assert.ok(failed(model).some(x => x.includes('Stripe')));
   assert.ok(failed(model).some(x => x.includes('images')));
 });
+test('S33 blocks hosts-file and DNS overrides that bypass service-name isolation', () => {
+  for (const name of ['postgres', 'redis', 'api', 'web', 'staging-edge']) {
+    for (const [field, value] of [
+      ['extra_hosts', ['postgres=203.0.113.50']],
+      ['dns', ['203.0.113.53']],
+      ['dns_search', ['prod.example']],
+      ['dns_opt', ['ndots:0']],
+      ['links', ['postgres:postgres']],
+      ['external_links', ['pmo-prod_postgres:postgres']],
+      ['hostname', 'postgres'],
+      ['domainname', 'prod.example'],
+      ['container_name', 'pmo-prod_api'],
+      ['env_file', ['/tmp/production.env']],
+    ]) {
+      const model = fixture();
+      model.services[name][field] = value;
+      assert.ok(failed(model).some(x => x.includes('custom DNS')), name + ':' + field);
+    }
+  }
+});
+
+test('S33 blocks network aliases and fixed network IPs on every staging service', () => {
+  for (const name of ['postgres', 'redis', 'api', 'web', 'staging-edge']) {
+    const network = Object.keys(fixture().services[name].networks)[0];
+    for (const override of [{ aliases: ['postgres'] }, { ipv4_address: '203.0.113.50' },
+      { link_local_ips: ['169.254.1.2'] }]) {
+      const model = fixture();
+      model.services[name].networks[network] = override;
+      assert.ok(failed(model).some(x => x.includes('custom DNS')), name + ':' + JSON.stringify(override));
+    }
+  }
+});
+
+test('S33 blocks PostgreSQL environment redirects while retaining approved DATABASE_URL', () => {
+  for (const field of ['PGHOST', 'PGHOSTADDR', 'PGPORT', 'PGDATABASE',
+    'PGSERVICE', 'PGSERVICEFILE', 'PGOPTIONS', 'PGUSER', 'PGPASSWORD']) {
+    const model = fixture();
+    model.services.api.environment[field] = '203.0.113.50';
+    assert.ok(failed(model).some(x => x.includes('PG variables')), field);
+  }
+});
+
 test('rejects wrong candidate SHA and invalid resolved JSON without leaking secret values', () => {
   const model = fixture();
   assert.ok(inspectResolvedStagingCompose(model, 'b'.repeat(40)).some(c => !c.passed));
