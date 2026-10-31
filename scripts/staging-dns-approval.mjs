@@ -41,6 +41,7 @@ export function validateSignedDnsApproval({ plan, approval, trustedPublicKeyPem,
     return issues;
   }
   try {
+    if (typeof trustedPublicKeyPem !== 'string' || !/^-----BEGIN PUBLIC KEY-----\r?\n/.test(trustedPublicKeyPem)) throw new Error('Only public key PEM allowed');
     const key = createPublicKey(trustedPublicKeyPem);
     if (key.asymmetricKeyType !== 'ed25519') throw new Error('Not Ed25519');
     if (sha256(key.export({ type: 'spki', format: 'der' })) !== trustedKeySha256)
