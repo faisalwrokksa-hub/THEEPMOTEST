@@ -39,10 +39,8 @@ test('oversized streaming bodies are rejected and cancelled before formData pars
 });
 
 test('forged oversized content length is rejected without consuming the body', async () => {
-  let consumed = false;
-  const body = new ReadableStream({
-    pull() { consumed = true; },
-  });
+  let readerRequested = false;
+  const body = { getReader() { readerRequested = true; throw new Error('must not read'); } };
   const result = await readBoundedBrowserForm({
     url, headers: new Headers({
       'content-type': 'application/x-www-form-urlencoded',
@@ -50,7 +48,7 @@ test('forged oversized content length is rejected without consuming the body', a
     }), body,
   });
   assert.equal(result.error, 'too-large');
-  assert.equal(consumed, false);
+  assert.equal(readerRequested, false);
 });
 
 test('malformed content types and multipart bodies fail closed', async () => {
