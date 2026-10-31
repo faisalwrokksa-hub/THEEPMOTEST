@@ -17,6 +17,8 @@ export async function postRecoveryToApi(fetcher, endpoint, payload) {
       body: JSON.stringify(payload),
       cache: 'no-store',
       redirect: 'error',
+      // A stalled recovery API must not retain a credential-bearing request indefinitely.
+      signal: AbortSignal.timeout(15_000),
     });
     if (response.ok) return 200;
     // A redirect or malformed upstream status is never forwarded to clients.
