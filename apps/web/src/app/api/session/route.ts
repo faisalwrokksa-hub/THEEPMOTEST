@@ -1,6 +1,7 @@
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
+import { postLoginToApi } from '@/lib/login-proxy.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const SESSION = 'pmo_session';
@@ -25,17 +26,9 @@ export async function POST(req: NextRequest) {
 
   if (!identifier || !password) return back('missing');
 
-  let res: Response;
-  try {
-    res = await fetch(`${BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ identifier, password }),
-      cache: 'no-store',
-    });
-  } catch {
-    return back('unavailable');
-  }
+  // Never replay a user's password to an upstream redirect target.
+  const res = await postLoginToApi(fetch, `${BASE}/auth/login`, { identifier, password });
+  if (!res) return back('unavailable');
 
   if (!res.ok) {
     // API errors can include internal details. Never put them into redirect URLs.
