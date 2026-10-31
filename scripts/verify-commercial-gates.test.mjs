@@ -69,3 +69,25 @@ test('Q31: unsupported GO assertion is flagged rather than accepted', () => {
   delete m.gates.stripe_test_billing.scenarios.entitlement_activation;
   assert.equal(evaluateCommercialManifest(m, NOW).manifestDecisionConsistent, false);
 });
+
+test('Q36: reserved example domains and secret-bearing URLs cannot count as launch evidence', () => {
+  const invalidUrls = [
+    'https://example.com/receipt',
+    'https://sub.example.org/evidence/123',
+    'https://example.net/evidence/123',
+    'https://evidence.theepmo.com/receipt?access_token=do-not-store',
+    'https://evidence.theepmo.com/receipt?api_key=do-not-store',
+    'https://evidence.theepmo.com/receipt?signature=do-not-store',
+    'https://evidence.theepmo.com/receipt?credential=do-not-store',
+    'https://evidence.theepmo.com/receipt?password=do-not-store',
+  ];
+  for (const artifactUrl of invalidUrls) {
+    const m = acceptedManifest();
+    m.gates.staging_smoke.artifactUrl = artifactUrl;
+    assert.equal(evaluateCommercialManifest(m, NOW).evidenceReady, false, artifactUrl);
+  }
+  // A public HTTPS evidence URL with a non-sensitive query remains usable.
+  const m = acceptedManifest();
+  m.gates.staging_smoke.artifactUrl = 'https://github.com/org/repo/actions/runs/123?check_suite_focus=true';
+  assert.equal(evaluateCommercialManifest(m, NOW).evidenceReady, true);
+});

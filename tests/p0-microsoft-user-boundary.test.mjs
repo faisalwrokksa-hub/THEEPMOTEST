@@ -59,7 +59,10 @@ test('OAuth callback cannot replace another consenting user or mark their connec
   assert.match(complete, /WHERE integration_connections\.connected_by = EXCLUDED\.connected_by/);
   assert.match(complete, /RETURNING id`\)\)/);
   assert.match(complete, /if \(!saved\)/);
-  assert.match(complete, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{st\.user_id\}/);
+  const failedExchange = complete.slice(complete.indexOf('tok = await exchangeCode('),
+    complete.indexOf('if (!tok.refreshToken)'));
+  assert.ok(failedExchange.length > 0);
+  assert.doesNotMatch(failedExchange, /UPDATE integration_connections|status\s*=\s*'error'/);
 });
 
 test('only the owner can disconnect a delegated connection; legacy unowned cleanup remains possible', () => {
