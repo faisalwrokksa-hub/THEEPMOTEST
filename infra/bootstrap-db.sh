@@ -82,16 +82,26 @@ BEGIN;
 SELECT pg_advisory_xact_lock(1717, 2026);
 CREATE TABLE IF NOT EXISTS schema_migrations (
   filename text PRIMARY KEY,
-  applied_at timestamptz NOT NULL DEFAULT now()
+  applied_at timestamptz NOT NULL DEFAULT now(),
+  source_sha256 text
 );
+-- Do not backfill legacy filename-only rows: their historical bytes are unknown.
+ALTER TABLE public.schema_migrations ADD COLUMN IF NOT EXISTS source_sha256 text;
 COMMIT;
 SQL
 for f in packages/db/migrations/*.sql; do
   name=$(basename "$f")
-  done_already=$(dc exec -T postgres psql -tA -U "$PG_USER" -d "${PG_DB:-pmo}" \
+  digest=$(node -e 'const {createHash}=require("node:crypto");const {readFileSync}=require("node:fs");process.stdout.write(createHash("sha256").update(readFileSync(process.argv[1])).digest("hex"))' "$f")
+  done_already=$(dc exec -T postgres psql -tA -v ON_ERROR_STOP=1 -U "$PG_USER" -d "${PG_DB:-pmo}" \
     -c "SELECT 1 FROM schema_migrations WHERE filename = '$name'" </dev/null | tr -d '[:space:]')
   if [ "$done_already" = "1" ]; then
-    echo "    $name  (already applied)"
+    recorded=$(dc exec -T postgres psql -tA -v ON_ERROR_STOP=1 -U "$PG_USER" -d "${PG_DB:-pmo}" \
+      -c "SELECT COALESCE(source_sha256, 'UNATTESTED') FROM schema_migrations WHERE filename = '$name'" </dev/null | tr -d '[:space:]')
+    if [ "$recorded" != "$digest" ]; then
+      echo "BLOCKED: $name has no trustworthy SQL-byte attestation or recorded digest differs. Independently verify historical evidence; never auto-backfill." >&2
+      exit 1
+    fi
+    echo "    $name  (SHA-256 verified)"
     continue
   fi
   echo "    $name"
@@ -101,10 +111,19 @@ for f in packages/db/migrations/*.sql; do
   # atomically, or skips DDL when the other process committed first.
   if ! {
     printf 'BEGIN;\nLOCK TABLE public.schema_migrations IN EXCLUSIVE MODE;\n'
+    cat <<SQL
+DO \$ledger\$ BEGIN
+  IF EXISTS (SELECT 1 FROM public.schema_migrations
+             WHERE filename = '$name' AND source_sha256 IS DISTINCT FROM '$digest') THEN
+    RAISE EXCEPTION 'Existing SQL migration has missing or mismatched source attestation';
+  END IF;
+END \$ledger\$;
+SQL
     printf "SELECT NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE filename = '%s') AS needs_apply \\gset\n" "$name"
     printf '\\if :needs_apply\n'
     cat "$f"
     printf "\nINSERT INTO public.schema_migrations (filename) VALUES ('%s');\n" "$name"
+    printf "UPDATE public.schema_migrations SET source_sha256 = '%s' WHERE filename = '%s' AND source_sha256 IS NULL;\n" "$digest" "$name"
     printf '\\else\n\\echo SKIP: migration already applied by a concurrent runner\n\\endif\nCOMMIT;\n'
   } | dc exec -T postgres psql -q -v ON_ERROR_STOP=1 -U "$PG_USER" -d "${PG_DB:-pmo}"; then
     echo "    ^ FAILED — migration and ledger transaction rolled back; stopping." >&2
