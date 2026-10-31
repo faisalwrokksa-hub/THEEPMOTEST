@@ -23,6 +23,7 @@
     "0018_payment_exceptions.sql": "39eaa3a8ca600dc82fdad9dd47f9bb73f7bcee800dd5b2626ead91744d709d1c",
     "0019_password_recovery.sql": "4bbe5ee55becbf9394b0883314681d56135491c67f9e82ab4e23b6d60a050f74",
     "0020_microsoft_user_connections.sql": "998d8546c6ec7340fa60cac50c02bdecfe62e78aa51b015516741a8b851a5cce",
-    "0021_stripe_recurring_ledger.sql": "1ae6b866f45f7931d59c93cc3db11df12efff049aa957cb6a5474227ca9d2903"
+    "0021_stripe_recurring_ledger.sql": "1ae6b866f45f7931d59c93cc3db11df12efff049aa957cb6a5474227ca9d2903",
+    "0022_microsoft_user_owner_rls.sql": "84e2a1c90349c27eecf65f2b43bfc505fc2559db5c13a12f95d6faf5e8435f29"
   }
 }

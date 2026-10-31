@@ -155,6 +155,13 @@
       "when": 1789238218559,
       "tag": "0021_stripe_recurring_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1789238219559,
+      "tag": "0022_microsoft_user_owner_rls",
+      "breakpoints": true
     }
   ]
 }
