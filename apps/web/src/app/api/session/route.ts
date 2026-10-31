@@ -2,6 +2,7 @@ import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { postLoginToApi } from '@/lib/login-proxy.mjs';
+import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const SESSION = 'pmo_session';
@@ -17,13 +18,21 @@ const SESSION = 'pmo_session';
 export async function POST(req: NextRequest) {
   const blocked = rejectUnsafeBrowserMutation(req);
   if (blocked) return blocked;
-  const form = await req.formData();
-  const identifier = String(form.get('identifier') ?? form.get('email') ?? '').trim();
-  const password = String(form.get('password') ?? '');
   type LoginErrorCode = 'missing' | 'invalid' | 'unavailable' | 'rate_limited' | 'session_missing';
   const back = (code: LoginErrorCode) =>
     NextResponse.redirect(publicUrl(req, `/login?error=${code}`), 303);
 
+  // Limit credential bodies before parsing, without echoing either secret.
+  const parsed = await readBoundedBrowserForm(req, 16384);
+  if (!parsed.form) return parsed.error === 'too-large'
+    ? NextResponse.json({ error: 'Sign-in submission is too large.' },
+      { status: 413, headers: { 'cache-control': 'no-store' } })
+    : back('invalid');
+  const identifierField = parsed.form.get('identifier') ?? parsed.form.get('email');
+  const passwordField = parsed.form.get('password');
+  if (typeof identifierField !== 'string' || typeof passwordField !== 'string') return back('invalid');
+  const identifier = identifierField.trim();
+  const password = passwordField;
   if (!identifier || !password) return back('missing');
 
   // Never replay a user's password to an upstream redirect target.
