@@ -32,3 +32,9 @@ test('S26 rejects debug, test, preview and missing NODE_ENV for staging', () => 
  for (const mode of ['development', 'test', 'preview', '', undefined])
   assert.ok(failed({...env,NODE_ENV:mode}).includes('Production Node runtime required for staging'), String(mode));
 });
+
+test('S26 rejects PostgreSQL URI query redirects and fragments', () => {
+ for (const suffix of ['?host=prod.example', '?hostaddr=203.0.113.1', '?sslmode=disable', '#ignored'])
+  assert.ok(failed({...env,DATABASE_URL:env.DATABASE_URL + suffix})
+    .includes('Database connection has non-placeholder credentials'), suffix);
+});
