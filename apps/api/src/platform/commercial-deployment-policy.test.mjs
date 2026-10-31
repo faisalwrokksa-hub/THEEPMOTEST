@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { resolveCommercialBillingPolicy, stripeTestOnlyKey } from './commercial-deployment-policy.ts';
+const tenant='2bb4c19e-ac7d-47a3-8fa1-f917640e127a';
+const binding={tenantId:tenant,deploymentId:'dep',region:'sa-riyadh',profile:'dedicated',dataResidency:'SA'};
+const runtime=(profile)=>({profile,deploymentId:'dep',region:'sa-riyadh',tenantBindings:new Map([[tenant,{...binding,profile}]])});
+test('dedicated tenant always requires quote and approval',()=>{const p=resolveCommercialBillingPolicy(runtime('dedicated'),tenant,'test','development');assert.equal(p.selfServiceBilling,false);assert.equal(p.approvalRequired,true);});
+test('wrong tenant and missing deployed inventory deny billing',()=>{assert.equal(resolveCommercialBillingPolicy(runtime('shared'),'other').billingMode,'disabled');assert.equal(resolveCommercialBillingPolicy(null,tenant,'production','production').billingMode,'disabled');});
+test('shared verified deployment permits only test checkout policy',()=>{const p=resolveCommercialBillingPolicy(runtime('shared'),tenant);assert.equal(p.billingMode,'test-checkout');});
+test('reject live Stripe credentials',()=>{assert.equal(stripeTestOnlyKey('sk_live_123'),false);assert.equal(stripeTestOnlyKey('sk_test_ABC123'),true);});
