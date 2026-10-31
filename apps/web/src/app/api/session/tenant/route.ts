@@ -1,4 +1,5 @@
 import { safeReturnPath } from '@/lib/browser-mutation';
+import { tenantSwitchLandingPath } from '@/lib/tenant-switch-landing.mjs';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
@@ -42,5 +43,9 @@ export async function POST(req: NextRequest) {
     failure.searchParams.set('error', safeMutationError(response?.status ?? 503));
     return NextResponse.redirect(failure, 303);
   }
-  return NextResponse.redirect(publicUrl(req, safeReturnPath(to, '/')), 303);
+  // A project or programme deep link belongs to the previous workspace.
+  // Preserve only shared index routes, dropping old filters and flash messages.
+  const safeTo = safeReturnPath(to, '/');
+  const landing = tenantSwitchLandingPath(to === safeTo ? safeTo : '/');
+  return NextResponse.redirect(publicUrl(req, landing), 303);
 }
