@@ -8,12 +8,12 @@ const invoiceId = 'ae6c076e-c4fe-4cb0-9eda-476ea8d59024';
 const subscriptionId = '72c72f05-c371-43c0-9f2a-9eb4b9945805';
 const charge = { object: 'charge', id: 'ch_123', payment_intent: 'pi_123',
   currency: 'sar', amount: 12000, amount_refunded: 12000 };
-const dispute = { object: 'dispute', id: 'dp_123', payment_intent: 'pi_123',
+const dispute = { object: 'dispute', id: 'dp_123', charge: 'ch_123', payment_intent: 'pi_123',
   currency: 'sar', amount: 12000, status: 'needs_response' };
 const event = (type, object, live = false) => Buffer.from(JSON.stringify({ id: 'evt_123',
   livemode: live, type, data: { object } }));
 const intent = { object: 'payment_intent', id: 'pi_123', livemode: false,
-  amount: 12000, currency: 'sar', status: 'succeeded', metadata: { tenantId, invoiceId } };
+  latest_charge: 'ch_123', amount: 12000, currency: 'sar', status: 'succeeded', metadata: { tenantId, invoiceId } };
 const invoice = { id: invoiceId, tenantId, subscriptionId, amountMinor: 12000, currency: 'SAR',
   periodEndsAt: '2026-12-01' };
 const session = { id: 'cs_test_123', client_reference_id: invoiceId,
@@ -24,6 +24,7 @@ const subscription = { id: subscriptionId, status: 'active', periodEndsAt: '2026
 test('full refund is recognized and is never a paid event', () => {
  const result = parseStripePaymentException(event('charge.refunded', charge), false);
  assert.equal(result.type, 'full_refund'); assert.equal(result.amountMinor, 12000);
+ assert.equal(result.chargeId, 'ch_123');
 });
 test('partial refund is tracked but does not auto-pause', () => {
  const result = parseStripePaymentException(event('charge.refunded', {...charge, amount_refunded: 4000}), false);
@@ -32,7 +33,7 @@ test('partial refund is tracked but does not auto-pause', () => {
 });
 test('valid open dispute pauses only the matching current period', () => {
  const result = parseStripePaymentException(event('charge.dispute.created', dispute), false);
- assert.equal(result.type, 'dispute_opened');
+ assert.equal(result.type, 'dispute_opened'); assert.equal(result.chargeId, 'ch_123');
  assert.equal(shouldPauseOnPaymentException(result.type, subscription, invoice, subscriptionId, '2026-11-15'), true);
 });
 test('won/lost dispute close is for manual review, not auto-reactivation', () => {
@@ -77,6 +78,8 @@ test('unknown, wrong-tenant and non-succeeded PaymentIntents rejected', () => {
   {...intent, id:'pi_wrong'}, {...intent, metadata:{...intent.metadata,tenantId:'other'}},
   {...intent,metadata:{}}, {...intent,status:'requires_payment_method'},
   {...intent,amount:1000}, {...intent,livemode:true}, {...intent,currency:'usd'},
+  {...intent,latest_charge:'ch_unrelated'}, {...intent,latest_charge:null},
+  {...intent,latest_charge:{id:'ch_123'}},
  ]) assert.throws(()=>assertStripeExceptionIntent(changed,reversal,false));
 });
 test('Checkout creates PaymentIntent metadata for future refunds', () => {
@@ -103,4 +106,18 @@ test('only a full invoice refund may pause an active entitlement', () => {
  const service = readFileSync(new URL('./stripe.service.ts',import.meta.url),'utf8');
  assert.match(service,/refundCoversPaidInvoice\(event\.amountMinor, matched\.amountMinor\)/);
  assert.match(service,/!!affected && refundCoversInvoice && shouldPauseOnPaymentException/);
+});
+
+// A Stripe-signed dispute/refund is not proof it reverses this invoice's captured charge.
+test('signed dispute must identify a valid charge, not just a matching PaymentIntent', () => {
+ for (const chargeId of [undefined, null, 'ch_bad-id', 'ch_']) {
+  assert.throws(() => parseStripePaymentException(event('charge.dispute.created',
+   {...dispute, charge: chargeId}), false));
+ }
+});
+test('a reversal of another charge on the same PaymentIntent cannot revoke access', () => {
+ const reversal = parseStripePaymentException(event('charge.refunded',
+  {...charge, id: 'ch_older'}), false);
+ assert.equal(reversal.chargeId, 'ch_older');
+ assert.throws(() => assertStripeExceptionIntent(intent, reversal, false));
 });
