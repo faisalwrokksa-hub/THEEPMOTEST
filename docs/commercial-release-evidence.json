@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "candidateSha": null,
   "decision": "NO-GO",
-  "description": "2026-10-30 10:35 UTC: Commercial PR #9 ecb67fd CI #41027800383 SUCCESS 4/4; Frontend PR #11 5a4a9d8 CI #41040612826 SUCCESS 4/4; Engineering test correction PR #13 2cdb8e1 CI #41037707742 SUCCESS 4/4 after PR #12 failed stale source assertion. PR #11 and PR #13 are divergent branches, not a combined SHA. New Commercial handoff documentation commit 4752200 not yet CI-accepted. No real Stripe TEST, Entra, HTTPS staging, browser UAT, recovery or business/legal acceptance. Nine gates non-PASS; Stripe 0/7; candidateSha null; NO-GO.",
+  "description": "2026-10-31 Q35 review-only integration: E34 PR #157 SHA f36d4a8 CI #41199316630 success; F38 PR #158 SHA 9db7636 CI #41200475462 success; C28 PR #159 SHA c15ba0d CI #41201098063 success; S31 PR #160 SHA 16b39ac CI #41202343715 success. Integrated E34/C28 overlapping Microsoft boundary regression with migration #0021 journal assertion preserved. Final Q35 exact-SHA CI pending at evidence commit; no deployed browser, Stripe TEST, Entra two-user, independent staging RLS, public HTTPS, encrypted recovery, or legal/support acceptance receipts. Nine gates remain non-PASS, Stripe 0/7, candidateSha null, decision NO-GO. Never count source PR CI as integrated final-SHA acceptance.",
   "gates": {
     "dependency_security": {
       "status": "BLOCKED",

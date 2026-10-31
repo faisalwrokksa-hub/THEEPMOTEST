@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { verifyRepositoryMigrations } from './verify-migration-chain.mjs';
 
 export const DISPOSABLE_ACK = 'YES_RESEED_DISPOSABLE_TEST_DATABASE';
 const LOCALHOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
@@ -50,6 +51,9 @@ export const DATA_CHECK_SQL = `SELECT json_build_object(
 
 export function runRestoreDrill(env = process.env) {
   const cfg = disposableRestoreConfig(env);
+  // Match the exact pinned SQL migration inventory, never a stale fixed count.
+  // The source must already have executed every migration before any backup.
+  const expectedMigrations = verifyRepositoryMigrations().count;
   const scratch = mkdtempSync(join(tmpdir(), 'epmo-ci-restore-'));
   const archive = join(scratch, 'seeded.dump');
   const destination = `epmo_restore_ci_${randomBytes(10).toString('hex')}`;
@@ -75,7 +79,7 @@ export function runRestoreDrill(env = process.env) {
   try {
     const before = counts(cfg.database);
     if (Number(before.users) < 2 || Number(before.tenants) < 2 ||
-        Number(before.memberships) < 2 || Number(before.migrations) !== 21)
+        Number(before.memberships) < 2 || Number(before.migrations) !== expectedMigrations)
       throw new Error('Blocked: CI source has not been migrated and seeded with the expected fixtures');
     exec('pg_dump', [...args, '-d', cfg.database, '--format=custom', '--no-owner', '--no-acl', '--file', archive]);
     if (statSync(archive).size < 100) throw new Error('Blocked: database backup is empty');
