@@ -38,8 +38,13 @@ export type VerifiedRecurringSettlement = Readonly<{
 }>;
 
 function oneItem(value: unknown, message: string): any {
-  const items = (value as any)?.data;
-  if (!Array.isArray(items) || items.length !== 1 || !items[0] || typeof items[0] !== 'object')
+  const page = value as any;
+  const items = page?.data;
+  // Stripe list endpoints can return one item while more items remain on a
+  // subsequent page. Never settle from a truncated invoice or price list.
+  if (!Array.isArray(items) || items.length !== 1 || !items[0] || typeof items[0] !== 'object' ||
+      (page.has_more !== undefined && page.has_more !== false) ||
+      (page.total_count !== undefined && page.total_count !== 1))
     throw new Error(message);
   return items[0];
 }
@@ -112,7 +117,13 @@ export function assertRecurringProviderSettlement(
       invoice.total !== plan.priceMinor || invoice.amount_remaining !== 0)
     throw new Error('Stripe Invoice GET does not confirm the signed paid invoice');
   const line = oneItem(invoice.lines, 'Recurring invoice must contain exactly one service line');
-  const linePrice = reference(line.price) ?? line.pricing?.price_details?.price;
+  const legacyLinePrice = reference(line.price);
+  const currentLinePrice = reference(line.pricing?.price_details?.price);
+  // Stripe may expose both API-version shapes; disagreement is not a safe
+  // basis for a recurring entitlement.
+  if (legacyLinePrice && currentLinePrice && legacyLinePrice !== currentLinePrice)
+    throw new Error('Conflicting Stripe invoice line price references');
+  const linePrice = legacyLinePrice ?? currentLinePrice;
   if (linePrice !== binding.stripePriceId || line.quantity !== 1 ||
       line.amount !== plan.priceMinor || line.proration === true ||
       (line.type != null && line.type !== 'subscription'))
@@ -141,11 +152,16 @@ export function assertRecurringProviderSettlement(
     throw new Error('Recurring subscription has a different price or quantity');
 
   const paymentRef = reference(invoice.payment_intent);
-  const invoicePayment = invoice.payments?.data;
-  const paymentFromList = Array.isArray(invoicePayment) && invoicePayment.length === 1 ?
-    reference(invoicePayment[0]?.payment?.payment_intent) : null;
-  if (Array.isArray(invoicePayment) && invoicePayment.length !== 1)
+  const invoicePayments = invoice.payments;
+  // An optional payments list must be complete and unambiguous. A single
+  // returned row with has_more=true can conceal a second payment.
+  if (invoicePayments != null &&
+      (!Array.isArray(invoicePayments.data) || invoicePayments.data.length !== 1 ||
+       (invoicePayments.has_more !== undefined && invoicePayments.has_more !== false) ||
+       (invoicePayments.total_count !== undefined && invoicePayments.total_count !== 1)))
     throw new Error('Recurring invoice has ambiguous payment records');
+  const paymentFromList = invoicePayments == null ? null :
+    reference(invoicePayments.data[0]?.payment?.payment_intent);
   if (paymentRef && paymentFromList && paymentRef !== paymentFromList)
     throw new Error('Conflicting Stripe invoice payment references');
   const paymentIntentId = paymentRef ?? paymentFromList;
