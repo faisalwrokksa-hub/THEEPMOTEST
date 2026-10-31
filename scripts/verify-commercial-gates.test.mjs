@@ -49,6 +49,21 @@ test('Q31: stale SHA, missing scenario, absent reviewer or untrusted URL block a
     assert.equal(evaluateCommercialManifest(manifest, NOW).evidenceReady, false);
   }
 });
+test('Q34: private and fixture HTTPS receipt hosts never satisfy a commercial gate', () => {
+  const urls = [
+    'https://localhost/receipt', 'https://localhost.local/receipt',
+    'https://127.0.0.1/receipt', 'https://10.0.0.1/receipt',
+    'https://[::1]/receipt', 'https://evidence.internal/receipt',
+    'https://evidence.invalid/receipt', 'https://evidence.example/receipt',
+  ];
+  for (const url of urls) {
+    const m = acceptedManifest();
+    m.gates.staging_smoke.artifactUrl = url;
+    assert.equal(evaluateCommercialManifest(m, NOW).evidenceReady, false, url);
+  }
+  // Preserve ordinary public HTTPS receipt links.
+  assert.equal(evaluateCommercialManifest(acceptedManifest(), NOW).evidenceReady, true);
+});
 test('Q31: unsupported GO assertion is flagged rather than accepted', () => {
   const m = acceptedManifest(); m.decision = 'GO';
   delete m.gates.stripe_test_billing.scenarios.entitlement_activation;
