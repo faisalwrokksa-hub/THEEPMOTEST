@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
     // A newly created project already has its first governance gate. Take the
     // customer straight there instead of leaving them hunting through a list.
     if (kind === 'project') {
-      const created = await res.json().catch(() => ({}));
+      const created = await readBoundedUpstreamJson(res, 16384) ?? {};
       if (typeof created?.id === 'string' &&
           /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(created.id)) {
         url = publicUrl(req, `/governance/${created.id}`);
