@@ -9,6 +9,7 @@ const service=read('apps/api/src/auth/recovery.service.ts');
 const controller=read('apps/api/src/auth/auth.controller.ts');
 const requestProxy=read('apps/web/src/app/api/password-recovery/request/route.ts');
 const resetProxy=read('apps/web/src/app/api/password-recovery/reset/route.ts');
+const recoveryProxy=read('apps/web/src/lib/recovery-proxy.mjs');
 const client=read('apps/web/src/app/reset-password/ResetPasswordForm.tsx');
 const page=read('apps/web/src/app/reset-password/page.tsx');
 const login=read('apps/web/src/app/login/page.tsx');
@@ -68,9 +69,13 @@ test('public endpoints are IP rate limited and schema validated',()=>{
 test('proxies reject CSRF and never return recovery bearer data',()=>{
  for(const p of [requestProxy,resetProxy]) {
   assert.match(p,/rejectUnsafeBrowserMutation\(req\)/);
-  assert.match(p,/cache: 'no-store'/);
+  assert.match(p,/postRecoveryToApi\(fetch,/);
+  assert.match(p,/headers: NO_STORE/);
   assert.doesNotMatch(p, /res\.json\(\)/);
  }
+ assert.match(recoveryProxy,/cache: 'no-store'/);
+ assert.match(recoveryProxy,/redirect: 'error'/);
+ assert.doesNotMatch(recoveryProxy,/response\.(?:json|text)\(/);
 });
 test('web page uses fragment token only and erases it immediately',()=>{
  assert.match(client,/window\.location\.hash/);

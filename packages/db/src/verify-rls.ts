@@ -1,6 +1,7 @@
 import './env';
 import postgres from 'postgres';
 import { assertRestrictedVerifierRole, tenantRowsVisibleAndIsolated } from './rls-verification-policy';
+import { assertTenantRlsCatalog } from './tenant-rls-catalog-policy';
 
 /**
  * Proves the tenant boundary is enforced by Postgres, not by application code.
@@ -28,6 +29,25 @@ async function main() {
   if (!policy?.enabled || !policy?.forced) {
     throw new Error('RLS verification requires ENABLE and FORCE ROW LEVEL SECURITY on projects');
   }
+
+  // Inspect EVERY tenant_id table, not just projects. An additional permissive
+  // policy can OR around tenant_isolation even when RLS is enabled and forced.
+  const catalog = await sql`
+    SELECT c.relname AS table_name, c.relrowsecurity AS enabled,
+           c.relforcerowsecurity AS forced, p.policyname AS policy_name,
+           p.permissive, p.cmd AS command, p.qual AS using_expression,
+           p.with_check AS check_expression
+    FROM pg_class c
+    JOIN pg_namespace n ON n.oid = c.relnamespace
+    JOIN pg_attribute a ON a.attrelid = c.oid AND a.attname = 'tenant_id'
+      AND NOT a.attisdropped
+    LEFT JOIN pg_policies p ON p.schemaname = n.nspname
+      AND p.tablename = c.relname
+    WHERE n.nspname = 'public' AND c.relkind IN ('r', 'p')
+    ORDER BY c.relname, p.policyname
+  `;
+  const checkedTables = assertTenantRlsCatalog(catalog as unknown as Parameters<typeof assertTenantRlsCatalog>[0]);
+  console.log(`${ok(true)}  ${checkedTables} tenant-scoped tables have enforced RLS and no permissive bypass policies`);
 
   const tenants = await sql`select id, name from tenants order by name`;
   if (tenants.length < 2) throw new Error('Run `pnpm db:seed` first.');

@@ -55,7 +55,7 @@ export function parsePaidStripeEvent(rawBody: Buffer, liveMode: boolean):
   if (!session || typeof session !== 'object' || session.object !== 'checkout.session' ||
       typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id))
     throw new Error('Stripe Checkout session is missing or invalid');
-  if (session.livemode !== liveMode)
+  if (session.livemode !== liveMode || session.id.startsWith('cs_live_') !== liveMode)
     throw new Error('Stripe Checkout session mode mismatch');
   if (session.mode !== 'payment' || session.status !== 'complete' || session.payment_status !== 'paid')
     return null; // Never grant on an unpaid/async-pending checkout.
