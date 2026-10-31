@@ -39,5 +39,5 @@ test('all credentialed Stripe API responses use the bounded JSON reader, includi
   // The recurring Price and Checkout requests add two bounded reads.
   // Future endpoints may add more; do not hard-code the total call count.
   assert.ok((service.match(/await readStripeApiJson\(/g) || []).length >= 5);
-  assert.doesNotMatch(service, /await [A-Za-z_$][\\w$]*\.json\(\)/);
+  assert.doesNotMatch(service, /await [A-Za-z_$][\w$]*\.json\(\)/);
 });
