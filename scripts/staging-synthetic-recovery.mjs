@@ -112,9 +112,10 @@ function restore(name, archive, docker) {
   if (query(name, docker) !== expected) throw new Error('Synthetic restored rows do not match fixture');
 }
 
-export async function runSyntheticDrill(env = process.env) {
+export async function runSyntheticDrill(env = process.env, deps = {}) {
   const { key, image, remote } = validateDrillEnvironment(env);
-  assertSyntheticRecoveryRuntime(env);
+  // Dependency injection is for non-networked regression fixtures; CLI never passes deps.
+  assertSyntheticRecoveryRuntime(env, deps.socketCheck);
   const { docker, aws } = makeIsolatedClients(env);
   const id = randomBytes(12).toString('hex');
   const objectKey = remote.prefix + '/' + id + '.pgdump.aes256gcm';
