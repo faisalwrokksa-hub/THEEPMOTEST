@@ -449,23 +449,21 @@
     "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
   },
   "latestReviewOnlyIntegration": {
-    "label": "Q28",
-    "baseSha": "7811565519ca47d183362a16888c2c9fdd36215d",
-    "branch": "integration/q28-e29-f36-20261031",
-    "recordedAtUtc": "2026-10-31T10:18:43Z",
+    "label": "Q29",
+    "baseSha": "d5289c781b5e4ba28c803f09db17ca239595bba7",
+    "branch": "integration/q29-c26-e30-20261031",
+    "recordedAtUtc": "2026-10-31T10:26:00Z",
     "finalSha": null,
     "finalShaCi": "PENDING",
     "sourcePullRequests": [
-      135,
-      136,
-      137,
-      138
+      139,
+      141
     ],
-    "sourceFiles": 8,
-    "sourceCi": "four exact-source PR heads completed GitHub Actions successfully; final integration CI pending",
+    "sourceFiles": 5,
+    "sourceCi": "two exact-source PR heads completed four successful jobs each",
     "decision": "NO-GO",
     "acceptedCommercialGates": 0,
-    "notes": "Source-path disjoint and source blobs matched; no real Stripe TEST, Entra two-user, public HTTPS staging, browser RTL, independent tenant RLS, encrypted recovery or legal/support acceptance."
+    "notes": "C26 recurring invoice reconciliation primitive and E30 Microsoft upstream error redaction integrated; neither proves real Stripe TEST lifecycle or Microsoft Entra two-user; no public HTTPS staging, browser RTL, independent RLS, encrypted recovery or legal/support acceptance."
   },
   "lastIndependentIntegrationQ23Ci": {
     "pr": 109,
@@ -494,5 +492,12 @@
     "workflowRun": 41190228181,
     "ci": "SUCCESS_4_OF_4",
     "scope": "CI-local only; no external provider/staging/browser/recovery acceptance"
+  },
+  "lastIndependentIntegrationQ28Ci": {
+    "pr": 140,
+    "sha": "d5289c781b5e4ba28c803f09db17ca239595bba7",
+    "workflowRun": 41192336834,
+    "ci": "SUCCESS_4_OF_4_85_OF_85_STEPS",
+    "scope": "CI-local only; external provider/staging/browser/recovery acceptance absent"
   }
 }
