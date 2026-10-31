@@ -28,10 +28,12 @@ test('OAuth completion rechecks active administrator membership before storing t
 });
 
 test('membership validation and token upsert share one tenant-scoped transaction', () => {
-  const transaction = callback.indexOf('await withTenant(tenantId, async (tx) => {', callback.indexOf('const who = readIdToken('));
+  // Preview mode has an earlier, separate owner-scoped audit transaction.
+  // Locate the legacy transaction relative to its own membership guard.
   const guard = callback.indexOf('FROM memberships AS m');
-  const upsert = callback.indexOf('INSERT INTO integration_connections');
-  const audit = callback.indexOf("action: 'microsoft.connected'");
+  const transaction = callback.lastIndexOf('await withTenant(tenantId, async (tx) => {', guard);
+  const upsert = callback.indexOf('INSERT INTO integration_connections', guard);
+  const audit = callback.indexOf("action: 'microsoft.connected'", upsert);
   assert.ok(transaction >= 0 && guard > transaction && upsert > guard && audit > upsert);
   assert.match(callback, /WHERE integration_connections\.connected_by = EXCLUDED\.connected_by/);
 });
@@ -47,4 +49,13 @@ test('public Microsoft callback rejects cross-deployment state before database o
   const denied = callback.slice(validation, tenantDb);
   assert.match(denied, /throw new BadRequestException\(/);
   assert.match(denied, /That sign-in link has expired or has already been used/);
+});
+
+test('preview callback persists only the state owner using DAO membership locking', () => {
+  const store = readFileSync(new URL('../apps/api/src/microsoft/user-connection-store.ts', import.meta.url), 'utf8');
+  assert.match(callback, /if \(this\.perUserPreview\(\)\)/);
+  assert.match(callback, /saveUserMicrosoftConsent\(tenantId, st\.user_id,/);
+  assert.match(store, /m\.role IN \('owner', 'admin', 'client_admin'\)/);
+  assert.match(store, /FOR SHARE OF m, u/);
+  assert.match(store, /ON CONFLICT \(tenant_id, user_id, provider\)/);
 });
