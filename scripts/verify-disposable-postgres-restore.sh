@@ -33,10 +33,18 @@ if not valid:
     sys.exit(2)
 PY
 then exit 2; fi
-pg_restore --list "$BACKUP_FILE" >/dev/null
+# Reject valid-but-empty or data-only archives before opening a database connection.
+# A complete pg_dump custom archive has at least one TABLE definition in its TOC.
+archive_toc="$(pg_restore --list "$BACKUP_FILE")"
+if ! grep -Eq '^[[:space:]]*[0-9]+;[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+TABLE[[:space:]]' <<<"$archive_toc"; then
+  echo "BLOCKED: archive has no TABLE definitions; not a complete application restore" >&2
+  exit 2
+fi
+unset archive_toc
 # No --clean: require an empty isolated database, avoiding destructive overwrite.
 count="$(psql "$RESTORE_DATABASE_URL" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' AND c.relkind IN ('r','p','v','m','S','f')" | tr -d '[:space:]')"
-[[ "$count" == "0" ]] || { echo "BLOCKED: restore target contains user relations" >&2; exit 2; }
+[[ "$count" =~ ^[0-9]+$ && "$count" == "0" ]] || { echo "BLOCKED: restore target contains user relations or returned an invalid inventory" >&2; exit 2; }
 pg_restore --exit-on-error --single-transaction --no-owner --no-acl --dbname="$RESTORE_DATABASE_URL" "$BACKUP_FILE"
-psql "$RESTORE_DATABASE_URL" -X -v ON_ERROR_STOP=1 -c "SELECT count(*) AS restored_tables FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema');"
-echo "PASS: restore command completed on explicitly disposable local database; production recovery, data integrity and RTO/RPO remain unverified."
+restored_count="$(psql "$RESTORE_DATABASE_URL" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_catalog.pg_tables WHERE schemaname NOT IN ('pg_catalog','information_schema')" | tr -d '[:space:]')"
+[[ "$restored_count" =~ ^[0-9]+$ && "$restored_count" -gt 0 ]] || { echo "FAIL: restore completed but no user tables were verified" >&2; exit 2; }
+echo "PASS: $restored_count user tables restored into explicitly disposable local database; production recovery, data integrity and RTO/RPO remain unverified."
