@@ -84,6 +84,6 @@ test('S37 S34 drill rejects remote Docker and AWS profile before any external I/
       AWS_REGION: 'eu-central-1' };
     for (const delta of [{ DOCKER_HOST: 'tcp://prod.example:2376' },
       { AWS_PROFILE: 'production' }, { AWS_ENDPOINT_URL_S3: 'http://127.0.0.1:9000' }])
-      await assert.rejects(runSyntheticDrill({ ...env, ...delta }), /Refusing inherited/);
+      await assert.rejects(runSyntheticDrill({ ...env, ...delta }), /Refusing (?:inherited|ambient)/);
   } finally { rmSync(dir, { recursive: true, force: true }); }
 });
