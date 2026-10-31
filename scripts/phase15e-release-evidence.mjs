@@ -21,6 +21,7 @@ export const LAUNCH_GATES = Object.freeze([
   'microsoft_per_user_auth_live', 'staging_deployment_live', 'disaster_recovery_live',
 ]);
 const ALL_GATES = new Set(LAUNCH_GATES);
+const CI_GATE_SET = new Set(CI_GATES);
 const SHA = /^[a-f0-9]{40}$/i;
 const RUN_ID = /^[1-9][0-9]{0,18}$/;
 
@@ -35,6 +36,10 @@ export function receiptFilename(gate) {
 }
 export function makeReceipt(gate, context, at = new Date()) {
   receiptFilename(gate);
+  // Live/provider gates cannot be stamped PASS by a build or test runner.
+  // Independent verification must use a separately authenticated acceptance path.
+  if (!CI_GATE_SET.has(gate))
+    throw new Error('Independent external acceptance is required; CI cannot mint live-gate receipts');
   const { sha, runId } = assertContext(context);
   if (!Number.isFinite(at.getTime())) throw new Error('Invalid evidence timestamp');
   return { schemaVersion: 1, gate, status: 'passed', sha, runId, timestamp: at.toISOString() };
@@ -53,6 +58,10 @@ export function verifyReceipts(directory, profile, context, now = new Date(), re
   if (!Number.isFinite(now.getTime())) throw new Error('Invalid verifier clock');
   const gates = profile === 'ci' ? CI_GATES : LAUNCH_GATES;
   const checks = gates.map(gate => {
+    // A same-run local JSON file proves only that CI wrote it, not that a real
+    // provider, browser session, deployment or recovery drill was accepted.
+    if (!CI_GATE_SET.has(gate))
+      return { gate, passed: false, reason: 'independent external acceptance cannot be verified from CI receipts' };
     try {
       const receipt = JSON.parse(read(join(directory, receiptFilename(gate)), 'utf8'));
       const instant = Date.parse(receipt.timestamp);
