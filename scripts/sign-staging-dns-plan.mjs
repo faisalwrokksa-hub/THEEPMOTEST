@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /** Offline signer for an independently reviewed staging DNS proposal. No network calls. */
 import { createHash, createPrivateKey, sign } from 'node:crypto';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { lstatSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { validateStagingDnsPlan } from './staging-dns-plan.mjs';
@@ -43,6 +43,10 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     process.exit(2);
   }
   try {
+    const keyStat = lstatSync(args['--private-key']);
+    if (!keyStat.isFile() || keyStat.isSymbolicLink() ||
+        (process.platform !== 'win32' && (keyStat.mode & 0o077) !== 0))
+      throw new Error('Signing key must be a regular private file with owner-only permissions');
     const approval = createStagingDnsApproval(
       JSON.parse(readFileSync(args['--plan'], 'utf8')),
       readFileSync(args['--private-key'], 'utf8'),
