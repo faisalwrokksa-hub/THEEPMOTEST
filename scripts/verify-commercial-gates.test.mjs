@@ -21,9 +21,13 @@ test('Q31: repository evidence cannot claim commercial launch from CI-only progr
   const source = JSON.parse(readFileSync(new URL('../docs/commercial-release-evidence.json', import.meta.url), 'utf8'));
   const result = evaluateCommercialManifest(source, NOW);
   assert.equal(result.decision, 'NO-GO');
-  assert.equal(result.accepted, 0);
   assert.equal(result.total, 9);
-  assert.equal(result.evidenceReady, false);
+  assert.equal(result.manifestDecisionConsistent, true);
+  // Never freeze the test to 0/9: legitimate later evidence must not break CI.
+  if (source.candidateSha === null) {
+    assert.equal(result.accepted, 0);
+    assert.equal(result.evidenceReady, false);
+  }
 });
 test('Q31: complete receipt metadata is still NOT a launch approval', () => {
   const result = evaluateCommercialManifest(acceptedManifest(), NOW);
