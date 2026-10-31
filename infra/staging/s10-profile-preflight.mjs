@@ -19,7 +19,7 @@ export function stagingProfileChecks(env,inventory) {
     result('Runtime API origin uses approved HTTPS staging endpoint',
       env?.EPMO_DEPLOYMENT_API_ORIGIN==='https://api-staging.theepmo.com'),
     result('No real Stripe billing credentials in staging',
-      env?.STRIPE_SECRET_KEY===undefined||(!String(env.STRIPE_SECRET_KEY).startsWith('sk_live_')&&
+      env?.STRIPE_SECRET_KEY===undefined||(!/^(?:sk|rk)_live_/.test(String(env.STRIPE_SECRET_KEY))&&
       env?.STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION!=='false')),
     result('No browser tenant impersonation',env?.ALLOW_HEADER_AUTH!=='true'),
   ];
