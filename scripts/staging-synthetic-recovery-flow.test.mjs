@@ -64,7 +64,7 @@ test('S34 executes synthetic remote roundtrip, injected failure and clean rollba
  try{
   const r=await runSyntheticDrill(env,{socketCheck:()=>true});
   assert.equal(r.result,'synthetic-drill-only');
-  const lines=readFileSync(env.FAKE_LOG,'utf8').trim().split('\n');
+  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x.startsWith('run ')).length,3);
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,2);
   assert.equal(lines.filter(x=>x.startsWith('rm ')).length,3);
@@ -77,7 +77,7 @@ test('S34 corrupted off-host archive blocks restore and cleans disposable source
  const {dir,env}=fixture(true);
  try{
   await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}));
-  const lines=readFileSync(env.FAKE_LOG,'utf8').trim().split('\n');
+  const lines=readFileSync(join(dir,'calls.log'),'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,0);
   assert.equal(lines.filter(x=>x.startsWith('rm ')).length,1);
  }finally{rmSync(dir,{recursive:true,force:true});}
