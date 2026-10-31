@@ -40,9 +40,14 @@ test('token rotation and error updates cannot overwrite a different consenting u
   assert.match(access, /if \(!updated.length\)/);
 });
 
-test('reconnect and disconnect clear every user-scoped token for the workspace', () => {
+test('reconnect, disconnect and revoked credentials clear every resource token for the workspace', () => {
   assert.match(service, /private invalidateTenantTokens\(tenantId: string\)/);
-  assert.equal((service.match(/this.invalidateTenantTokens\(tenantId\)/g) ?? []).length, 2);
+  const callback = service.slice(service.indexOf('async completeConnect('), service.indexOf('async disconnect('));
+  const disconnect = service.slice(service.indexOf('async disconnect('), service.indexOf('private async accessToken('));
+  assert.match(callback, /this.invalidateTenantTokens\(tenantId\)/);
+  assert.match(disconnect, /this.invalidateTenantTokens\(tenantId\)/);
+  assert.match(access, /if \(!isActiveDelegatedMicrosoftConnection\(row.status\)\) \{\s*this.invalidateTenantTokens\(tenantId\)/);
+  assert.match(access, /this.invalidateTenantTokens\(tenantId\);\s*const msg = 'Microsoft credentials/);
 });
 
 const complete = service.slice(service.indexOf('async completeConnect('), service.indexOf('async disconnect('));
