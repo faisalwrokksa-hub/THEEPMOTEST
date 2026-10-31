@@ -106,5 +106,5 @@ test('webhook cancellation uses tenant lock, verified provider and replay digest
   assert.match(method, /UPDATE tenant_subscriptions/);
   assert.match(method, /UPDATE billing_stripe_recurring_bindings/);
   assert.doesNotMatch(method, /SET status = 'active'|INSERT INTO billing_payments/);
-  assert.match(webhook, /Recurring Stripe payment failure requires reconciliation/);
+  assert.match(webhook, /return this\.recordRecurringFailedInvoice\(failedCandidate, sha256\(rawBody\), config\)/);
 });

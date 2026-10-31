@@ -10,6 +10,7 @@ import { parsePaidRecurringInvoice } from './stripe-recurring-invoice';
 import { recurringInvoicePaymentIntentId } from './stripe-recurring-payment-reference';
 import { assertRecurringProviderSettlement, type TrustedRecurringBinding } from './stripe-recurring-reconciliation';
 import { assertRecurringLocalSettlement } from './stripe-recurring-local-settlement';
+import { parseFailedRecurringInvoice, failedInvoicePaymentIntentId, assertFailedRecurringProvider, type FailedRecurringInvoiceCandidate } from './stripe-recurring-failed-invoice';
 import { parseRecurringCancellation, assertRecurringCancellationProvider, type RecurringCancellationCandidate } from './stripe-recurring-cancellation';
 import { parseSignedRecurringCheckout, assertRecurringCheckoutBinding, type RecurringCheckoutCandidate } from './stripe-recurring-checkout-binding';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
@@ -657,6 +658,145 @@ export class StripeBillingService {
   }
 
   /**
+   * C34: TEST-only signed failed recurring invoice reconciliation.
+   * Preserve paid access until its existing expiry, then mark past_due.
+   * Never grant an entitlement or record a paid invoice from a failed event.
+   */
+  private async recordRecurringFailedInvoice(
+    candidate: FailedRecurringInvoiceCandidate, digest: string,
+    config: ReturnType<typeof stripeConfig>) {
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring failure reconciliation is TEST-only and disabled');
+    const getStripe = async (path: string): Promise<any> => {
+      let response: Response;
+      try {
+        response = await stripeApiFetch('https://api.stripe.com/v1/' + path, {
+          headers: { Authorization: 'Bearer ' + config.key },
+          signal: AbortSignal.timeout(12_000),
+        });
+      } catch { throw new BadGatewayException('Recurring failure provider lookup unavailable'); }
+      if (!response.ok) throw new BadGatewayException('Recurring failure provider lookup rejected');
+      try { return await readStripeApiJson(response); }
+      catch { throw new BadGatewayException('Invalid recurring failure provider response'); }
+    };
+    const invoice = await getStripe('invoices/' + candidate.invoiceId);
+    const subscription = await getStripe('subscriptions/' + candidate.stripeSubscriptionId);
+    let paymentIntentId: string | null;
+    try { paymentIntentId = failedInvoicePaymentIntentId(invoice); }
+    catch { throw new ConflictException('Ambiguous failed invoice payment references'); }
+    const intent = paymentIntentId ? await getStripe('payment_intents/' + paymentIntentId) : null;
+    const tenantId = subscription?.metadata?.tenantId;
+    if (typeof tenantId !== 'string' || !UUID.test(tenantId) ||
+        subscription?.id !== candidate.stripeSubscriptionId ||
+        !UUID.test(subscription?.metadata?.planId ?? ''))
+      throw new ConflictException('Recurring failed invoice tenant routing is invalid');
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const record = rows(await tx.execute(sql`
+        SELECT b.tenant_id AS "tenantId", b.subscription_id AS "subscriptionId",
+               b.plan_id AS "planId", b.stripe_subscription_id AS "stripeSubscriptionId",
+               b.stripe_customer_id AS "stripeCustomerId",
+               b.stripe_price_id AS "stripePriceId", b.status,
+               b.last_period_ends_at AS "lastPeriodEndsAt",
+               b.cancel_at_period_end AS "cancelAtPeriodEnd",
+               s.id AS "localId", s.plan_id AS "localPlanId",
+               s.status AS "localStatus",
+               s.period_starts_at AS "localPeriodStartsAt",
+               s.period_ends_at AS "localPeriodEndsAt",
+               s.cancel_at_period_end AS "localCancelAtPeriodEnd",
+               p.code, p.price_minor AS "priceMinor", p.currency,
+               p.billing_interval AS "billingInterval",
+               p.trial_days AS "trialDays", p.is_active AS "isActive"
+        FROM billing_stripe_recurring_bindings b
+        JOIN tenant_subscriptions s ON s.tenant_id = b.tenant_id
+          AND s.id = b.subscription_id AND s.plan_id = b.plan_id
+        JOIN subscription_plans p ON p.id = b.plan_id
+        WHERE b.tenant_id = ${tenantId}
+          AND b.stripe_subscription_id = ${candidate.stripeSubscriptionId}
+          AND b.stripe_customer_id = ${candidate.stripeCustomerId}
+        FOR UPDATE OF b, s`))[0];
+      if (!record) throw new ConflictException('Recurring failure tenant binding missing');
+      const latest = rows(await tx.execute(sql`
+        SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
+        ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
+      const binding: TrustedRecurringBinding = {
+        tenantId: record.tenantId, subscriptionId: record.subscriptionId,
+        planId: record.planId, stripeSubscriptionId: record.stripeSubscriptionId,
+        stripeCustomerId: record.stripeCustomerId, stripePriceId: record.stripePriceId,
+        status: record.status,
+        lastPeriodEndsAt: record.lastPeriodEndsAt == null ? null :
+          new Date(record.lastPeriodEndsAt).toISOString(),
+        cancelAtPeriodEnd: record.cancelAtPeriodEnd,
+      };
+      const plan = {
+        id: record.planId, code: record.code, priceMinor: record.priceMinor,
+        currency: record.currency, billingInterval: record.billingInterval,
+        trialDays: record.trialDays, isActive: record.isActive,
+      } as RecurringPlan;
+      const remotePrice = await getStripe('prices/' + binding.stripePriceId);
+      try { assertRecurringStripePrice(remotePrice, plan, binding.stripePriceId, false); }
+      catch { throw new ConflictException('Failed recurring invoice Price mismatch'); }
+      let verified: ReturnType<typeof assertFailedRecurringProvider>;
+      try {
+        verified = assertFailedRecurringProvider(candidate, invoice, subscription, intent,
+          binding, plan, { id: record.localId, planId: record.localPlanId,
+            status: record.localStatus, cancelAtPeriodEnd: record.localCancelAtPeriodEnd,
+            periodStartsAt: record.localPeriodStartsAt,
+            periodEndsAt: record.localPeriodEndsAt }, latest?.id ?? '', false);
+      } catch { throw new ConflictException('Failed recurring invoice provider or ledger mismatch'); }
+      const paid = rows(await tx.execute(sql`
+        SELECT id FROM subscription_events
+        WHERE tenant_id = ${tenantId} AND subscription_id = ${binding.subscriptionId}
+          AND event_type = 'billing.stripe_recurring_invoice_settled'
+          AND details ->> 'stripeInvoiceId' = ${candidate.invoiceId}
+        LIMIT 1`))[0];
+      if (paid) throw new ConflictException('Recurring invoice is already settled');
+      const previous = rows(await tx.execute(sql`
+        SELECT subscription_id AS "subscriptionId",
+               details ->> 'payloadSha256' AS "payloadSha256",
+               details ->> 'stripeInvoiceId' AS "stripeInvoiceId"
+        FROM subscription_events
+        WHERE tenant_id = ${tenantId}
+          AND event_type = 'billing.stripe_recurring_invoice_failed'
+          AND details ->> 'eventId' = ${candidate.eventId}
+        ORDER BY created_at DESC LIMIT 1`))[0];
+      if (previous) {
+        if (previous.subscriptionId !== binding.subscriptionId ||
+            previous.payloadSha256 !== digest ||
+            previous.stripeInvoiceId !== candidate.invoiceId)
+          throw new ConflictException('Recurring failed invoice event identity was reused');
+        return { received: true, applied: false, duplicate: true,
+          subscriptionId: binding.subscriptionId };
+      }
+      let accessChanged = false;
+      if (verified.shouldPause && ['trialing', 'active'].includes(record.localStatus)) {
+        const changed = rows(await tx.execute(sql`
+          UPDATE tenant_subscriptions
+          SET status = 'past_due', updated_at = now()
+          WHERE tenant_id = ${tenantId} AND id = ${binding.subscriptionId}
+            AND status = ${record.localStatus}
+            AND cancel_at_period_end = false AND period_ends_at <= now()
+          RETURNING id`));
+        if (changed.length !== 1)
+          throw new ConflictException('Recurring failure entitlement changed during reconciliation');
+        accessChanged = true;
+      }
+      await tx.execute(sql`
+        INSERT INTO subscription_events
+          (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${binding.subscriptionId},
+          'billing.stripe_recurring_invoice_failed',
+          ${JSON.stringify({ eventId: candidate.eventId,
+            stripeInvoiceId: candidate.invoiceId,
+            stripeSubscriptionId: candidate.stripeSubscriptionId,
+            payloadSha256: digest, attemptCount: candidate.attemptCount,
+            periodEndsAt: verified.periodEndsAt, accessChanged })}::jsonb)`);
+      return { received: true, applied: true, accessChanged,
+        subscriptionId: binding.subscriptionId };
+    });
+  }
+  /**
    * C32: TEST-only, signed recurring invoice settlement. The provider's
    * subscription metadata is a routing hint only. The immutable Checkout
    * binding and tenant-scoped database rows establish ownership. Every
@@ -920,14 +1060,20 @@ export class StripeBillingService {
     let signedEnvelope: any;
     try { signedEnvelope = JSON.parse(rawBody.toString('utf8')); }
     catch { throw new BadRequestException('Invalid signed Stripe event JSON'); }
-    // Until failed recurring invoice reconciliation is implemented, never
-    // acknowledge a provider failure as ignored: it requires a retry/operator.
     if (signedEnvelope?.type === 'invoice.payment_failed') {
       const failed = signedEnvelope.data?.object;
-      if (failed?.subscription || failed?.parent?.subscription_details?.subscription ||
-          (typeof failed?.billing_reason === 'string' &&
-           failed.billing_reason.startsWith('subscription_')))
-        throw new ServiceUnavailableException('Recurring Stripe payment failure requires reconciliation');
+      const recurring = !!(failed?.subscription ||
+        failed?.parent?.subscription_details?.subscription ||
+        (typeof failed?.billing_reason === 'string' &&
+         failed.billing_reason.startsWith('subscription_')));
+      if (recurring) {
+        let failedCandidate: ReturnType<typeof parseFailedRecurringInvoice>;
+        try { failedCandidate = parseFailedRecurringInvoice(rawBody, config.liveMode); }
+        catch { throw new BadRequestException('Invalid recurring Stripe failed invoice event'); }
+        if (!failedCandidate)
+          throw new ServiceUnavailableException('Unsupported recurring failure needs reconciliation');
+        return this.recordRecurringFailedInvoice(failedCandidate, sha256(rawBody), config);
+      }
     }
     if (signedEnvelope?.type === 'invoice.paid') {
       const invoice = signedEnvelope.data?.object;
