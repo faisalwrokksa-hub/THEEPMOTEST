@@ -23,6 +23,7 @@ function dbUrl(value) {
   try {
     const u = new URL(value);
     return ['postgres:', 'postgresql:'].includes(u.protocol) && !!u.hostname &&
+      !u.search && !u.hash &&
       !!u.username && validSecret(decodeURIComponent(u.password)) && !!u.pathname.slice(1);
   } catch { return false; }
 }
