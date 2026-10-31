@@ -46,7 +46,16 @@ try {
     async function step(name, run) {
       try {
         await run();
-        result.checks.push({ name, status: 'PASS' });
+        // Fixed-name screenshots only; never record authenticated traces or secrets.
+        const capture = new Set([
+          'expired_login_bilingual', 'recovery_503_no_success',
+          'invitation_403_no_acceptance', 'admin_login_and_onboarding',
+          'admin_subscription_read', 'restricted_login_and_no_invitation_form',
+          'restricted_billing_redirect',
+        ]);
+        const screenshot = capture.has(name) ? variant.name + '-' + name + '.png' : undefined;
+        if (screenshot) await page.screenshot({ path: join(cfg.out, screenshot), fullPage: true, animations: 'disabled' });
+        result.checks.push({ name, status: 'PASS', ...(screenshot ? { screenshot } : {}) });
         report.passed++;
       } catch (error) {
         result.checks.push({ name, status: 'FAIL', code: known.has(error?.message) ? error.message : 'browser_journey_failed' });
