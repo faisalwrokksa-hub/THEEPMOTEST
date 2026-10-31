@@ -62,6 +62,37 @@ export function parsePaidStripeEvent(rawBody: Buffer, liveMode: boolean):
   return { eventId: event.id, session };
 }
 
+/** Signed Checkout failures and expirations are audit-only: they never change entitlements.
+ * Bind the provider event to an existing Checkout session and invoice in the service.
+ */
+export function parseUnpaidStripeCheckoutEvent(rawBody: Buffer, liveMode: boolean):
+  { eventId: string; session: StripeCheckoutSession; reason: 'async_payment_failed' | 'expired' } | null {
+  let payload: unknown;
+  try { payload = JSON.parse(rawBody.toString('utf8')); }
+  catch { throw new Error('Invalid Stripe Checkout failure JSON'); }
+  if (!payload || typeof payload !== 'object') throw new Error('Invalid Stripe Checkout failure event');
+  const event = payload as Partial<StripeEvent>;
+  if (typeof event.id !== 'string' || !/^evt_[A-Za-z0-9]+$/.test(event.id) ||
+      typeof event.type !== 'string' || event.livemode !== liveMode)
+    throw new Error('Invalid Stripe Checkout failure identity or mode');
+  if (!['checkout.session.async_payment_failed', 'checkout.session.expired'].includes(event.type))
+    return null;
+  const session = event.data?.object;
+  if (!session || session.object !== 'checkout.session' ||
+      typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id) ||
+      session.livemode !== liveMode || session.id.startsWith('cs_live_') !== liveMode ||
+      session.mode !== 'payment' || session.payment_status !== 'unpaid' ||
+      (event.type === 'checkout.session.expired' ? session.status !== 'expired' : session.status !== 'complete') ||
+      typeof session.metadata?.tenantId !== 'string' || !UUID.test(session.metadata.tenantId) ||
+      typeof session.metadata?.invoiceId !== 'string' || !UUID.test(session.metadata.invoiceId) ||
+      session.client_reference_id !== session.metadata.invoiceId ||
+      !Number.isSafeInteger(session.amount_total) || (session.amount_total as number) <= 0 ||
+      typeof session.currency !== 'string' || !/^[a-z]{3}$/.test(session.currency))
+    throw new Error('Stripe Checkout failure is not linked to a valid invoice');
+  return { eventId: event.id, session,
+    reason: event.type === 'checkout.session.expired' ? 'expired' : 'async_payment_failed' };
+}
+
 /** Production processes normally demand live keys. Staging may explicitly
  * run a production Node build with test keys only when BOTH safety flags are set.
  */
