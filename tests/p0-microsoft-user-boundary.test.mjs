@@ -91,6 +91,6 @@ test('location selection never resets a revoked Microsoft connection to connecte
   const update = location.slice(location.indexOf('UPDATE integration_connections SET'),
     location.indexOf('WHERE provider = ${PROVIDER}', location.indexOf('UPDATE integration_connections SET')));
   assert.ok(update.length > 0);
-  assert.doesNotMatch(update, /status\\s*=\\s*'connected'/);
-  assert.doesNotMatch(update, /last_error\\s*=\\s*NULL/);
+  assert.doesNotMatch(update, /status\s*=\s*'connected'/);
+  assert.doesNotMatch(update, /last_error\s*=\s*NULL/);
 });
