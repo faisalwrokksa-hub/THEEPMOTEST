@@ -3,7 +3,17 @@
 # Run only after approval with:
 # docker compose -f docker-compose.prod.yml -f infra/staging/edge.compose.yml -p pmo-staging --env-file .env.staging config --quiet
 services:
+  # Explicit service networks: web/edge cannot reach PostgreSQL or Redis.
+  postgres:
+    networks: [staging-data]
+  redis:
+    networks: [staging-data]
+  api:
+    networks: [staging-data, staging-app]
+  web:
+    networks: [staging-app]
   staging-edge:
+    networks: [staging-app]
     image: nginx:1.28-alpine # Pin an approved patched digest before deployment.
     restart: unless-stopped
     depends_on:
@@ -32,3 +42,10 @@ services:
       timeout: 4s
       start_period: 15s
       retries: 3
+
+networks:
+  # No external route for database/cache; API bridges to staging-app.
+  staging-data:
+    internal: true
+  # TLS edge host port remains loopback-only until separately approved.
+  staging-app: {}
