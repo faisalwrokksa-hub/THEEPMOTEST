@@ -336,53 +336,20 @@
   },
   "latestIndependentQaReviewOnlyIntegration": {
     "reviewDateUtc": "2026-10-31",
-    "prUrl": null,
-    "branch": "integration/q20-e20-f22-c18-20261031",
-    "baseline": {
-      "pr": 85,
-      "sha": "200abdf19fdfe32259c85a249b5d330aed4aff37",
-      "workflowRun": 41161473739,
-      "result": "PASS_4_OF_4_CI_ONLY"
-    },
-    "included": [
-      {
-        "stream": "Engineering E20",
-        "pr": 86,
-        "sha": "fd4bf3f311561f9a9662d2f5ac7c75dfbdb0bbc4",
-        "workflowRun": 41162385789,
-        "result": "PASS_4_OF_4_CI_ONLY",
-        "paths": 3
-      },
-      {
-        "stream": "Frontend F21+F22",
-        "pr": 88,
-        "sha": "5d850a910e7bee97d1de958aeea86054303e92ab",
-        "workflowRun": 41163391284,
-        "result": "PASS_4_OF_4_CI_ONLY",
-        "paths": 9
-      },
-      {
-        "stream": "Commercial C17+C18",
-        "pr": 90,
-        "sha": "7d814527a20b0dd0906333017f96f9748efe5ca6",
-        "workflowRun": 41164040544,
-        "result": "PASS_4_OF_4_CI_ONLY",
-        "paths": 4
-      },
-      {
-        "stream": "Hosting S19",
-        "pr": 91,
-        "sha": "305fb02e4e4cd09538310eeb73f71520d62402a1",
-        "workflowRun": 41165499290,
-        "result": "PASS_4_OF_4_CI_ONLY",
-        "paths": 2
-      }
+    "prUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/103",
+    "branch": "integration/q22-e22-f24-c20-s21-s22-20261031",
+    "baseSha": "d4a76d2e51f69fd6dbcf33ce5f3a1a6d8d65e7d9",
+    "sourcePrs": [
+      98,
+      99,
+      100,
+      101,
+      102
     ],
-    "integrationMethod": "Review-only Q19 descendant; 18 source file snapshots, four independently green stream heads, no cross-stream overlapping paths; not a Git ancestry merge",
-    "integrationCi": "PENDING_NEW_Q20_EXACT_SHA_CI",
-    "externalAcceptance": "NO_PROVIDER_STAGING_OR_BROWSER_RECEIPTS",
-    "releaseDecision": "NO-GO",
-    "note": "Q19 baseline and source CI pass only their own SHAs. All nine commercial gates remain unaccepted; candidateSha null. No real Stripe TEST, Entra two-user, independent two-tenant staging RLS, public HTTPS, browser 375px/RTL, encrypted recovery/rollback or support/legal acceptance."
+    "sourceFiles": 14,
+    "integrationCi": "PENDING_FINAL_Q22_SHA",
+    "externalAcceptance": "UNVERIFIED: public HTTPS staging, two-user Entra, real Stripe TEST 0/7, independent two-tenant RLS, encrypted staging restore/rollback, 375px/desktop RTL browser UAT, pricing/legal/support",
+    "releaseDecision": "NO-GO"
   },
   "lastIndependentIntegrationQ21": {
     "observedAtUtc": "2026-10-31T04:52:23Z",
@@ -429,5 +396,56 @@
     "commercialGatesAccepted": 0,
     "p0IndependentAcceptance": "BLOCKED: staging RLS, Stripe TEST, Entra two-user, HTTPS staging, encrypted recovery, browser UAT and legal/support receipts",
     "qualification": "Source CI passes do not prove combined compatibility or external launch readiness. candidateSha remains null. No production operations authorized."
+  },
+  "lastIndependentIntegrationQ22": {
+    "dateUtc": "2026-10-31",
+    "pr": 103,
+    "branch": "integration/q22-e22-f24-c20-s21-s22-20261031",
+    "basePr": 97,
+    "baseSha": "d4a76d2e51f69fd6dbcf33ce5f3a1a6d8d65e7d9",
+    "baseRun": 41170391950,
+    "source": [
+      {
+        "owner": "Engineering E22",
+        "pr": 98,
+        "sha": "7fd4e73fe4b6ca4dd21c24dd057acec9936934ca",
+        "run": 41170605352,
+        "paths": 3
+      },
+      {
+        "owner": "Frontend F24",
+        "pr": 99,
+        "sha": "22273568d857e0cc436758d569590c89981d3bc8",
+        "run": 41171883355,
+        "paths": 3
+      },
+      {
+        "owner": "Commercial C20",
+        "pr": 100,
+        "sha": "878c8011ad1e78df8ceda0da69e54d38f5f4da5d",
+        "run": 41172277412,
+        "paths": 4
+      },
+      {
+        "owner": "Hosting S21",
+        "pr": 101,
+        "sha": "a0a8ab89ed80ff460d033c16ad361890ef1af1d7",
+        "run": 41173082428,
+        "paths": 2
+      },
+      {
+        "owner": "Hosting S22",
+        "pr": 102,
+        "sha": "741f3bf486507775a589775c06e0cd0d69282689",
+        "run": 41173138388,
+        "paths": 2
+      }
+    ],
+    "sourceFiles": 14,
+    "sourceCi": "Each of five source heads: 4/4 completed successful jobs; 85/85 successful job steps in returned first-page jobs",
+    "integrationCi": "PENDING_FINAL_Q22_SHA",
+    "releaseDecision": "NO-GO",
+    "externalAcceptance": "UNVERIFIED: public HTTPS staging, two-user Entra, real Stripe TEST 0/7, independent two-tenant RLS, encrypted staging restore/rollback, 375px/desktop RTL browser UAT, pricing/legal/support",
+    "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
   }
 }
