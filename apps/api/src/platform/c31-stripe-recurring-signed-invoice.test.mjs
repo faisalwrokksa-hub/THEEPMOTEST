@@ -99,12 +99,12 @@ test('refund, cancellation and failed-payment events cannot parse as invoice gra
   }
 });
 
-test('signed recurring paid webhook is not silently acknowledged before settlement', () => {
+test('signed recurring paid webhook enters the TEST-only atomic settlement boundary', () => {
   const source = readFileSync(new URL('./stripe.service.ts', import.meta.url), 'utf8');
   const hook = source.slice(source.indexOf('async webhook('));
   assert.match(hook, /verifyStripeSignature\(rawBody, header/);
   assert.match(hook, /signedEnvelope\?\.type === 'invoice.paid'/);
   assert.match(hook, /parsePaidRecurringInvoice\(rawBody, config.liveMode\)/);
-  assert.match(hook, /Recurring Stripe invoice settlement not yet enabled/);
-  assert.match(hook, /throw new ServiceUnavailableException\('Recurring Stripe invoice settlement not yet enabled'\)/);
+  assert.match(hook, /return this\.settleRecurringInvoice\(candidate, sha256\(rawBody\), config\)/);
+  assert.match(hook, /Recurring Stripe settlement is TEST-only and disabled/);
 });
