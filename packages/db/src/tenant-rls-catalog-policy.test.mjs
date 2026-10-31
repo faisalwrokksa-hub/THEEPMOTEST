@@ -70,3 +70,21 @@ test('recognizes only tenant-bound legacy subscription policies from migration 0
     good('subscription_events'), { ...subscriptionLegacy, using_expression: 'tenant_id = app_current_tenant() OR true' },
   ]), /unsafe or incomplete/);
 });
+
+test('migration 0016 workspace profile and invitation policies are tenant-bound', () => {
+  const legacyExpression = "tenant_id = NULLIF(current_setting('app.tenant_id'::text, true), ''::text)::uuid";
+  const profile = {
+    ...good('tenant_profiles'), policy_name: 'tenant_profiles_isolation',
+    using_expression: legacyExpression, check_expression: legacyExpression,
+  };
+  const invitation = {
+    ...good('tenant_invitations'), policy_name: 'tenant_invitations_isolation',
+    using_expression: legacyExpression, check_expression: legacyExpression,
+  };
+  assert.equal(assertTenantRlsCatalog([
+    good('tenant_profiles'), profile, good('tenant_invitations'), invitation,
+  ]), 2);
+  assert.throws(() => assertTenantRlsCatalog([
+    good('tenant_invitations'), { ...invitation, using_expression: 'true' },
+  ]), /unsafe or incomplete/);
+});
