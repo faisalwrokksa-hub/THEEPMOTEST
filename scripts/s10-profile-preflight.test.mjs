@@ -19,6 +19,7 @@ test('S10 designated isolated staging profile passes metadata checks',()=>{
 test('S10 rejects production selection, bad region, missing runtime and live Stripe keys',()=>{
  for(const delta of [{DEPLOYMENT_ENV:'production'},{EPMO_DEPLOYMENT_REGION:'other'},
  {EPMO_DEPLOYMENT_ID:'invalid'},{STRIPE_SECRET_KEY:'sk_live_forbidden'},
+ {STRIPE_SECRET_KEY:'rk_live_forbidden'},
  {ALLOW_HEADER_AUTH:'true'},{EPMO_DEPLOYMENT_PROFILE:'shared'}])
  assert.ok(failures({...env,...delta}).length>0,JSON.stringify(delta));
 });

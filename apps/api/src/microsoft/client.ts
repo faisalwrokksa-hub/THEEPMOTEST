@@ -1,5 +1,6 @@
 import { Logger } from '@nestjs/common';
 import { microsoftApiUrl } from './url-policy';
+import { assertMicrosoftPageVisit, microsoftPageItems } from './pagination-policy';
 
 /**
  * Talking to Microsoft: one app registration, every customer's own tenant.
@@ -198,11 +199,18 @@ export async function call<T>(base: string, accessToken: string, path: string, i
 export async function callAll<T>(base: string, accessToken: string, path: string,
                                  cap = 2000): Promise<T[]> {
   const out: T[] = [];
+  const visited = new Set<string>();
+  let pages = 0;
   let next: string | undefined = path;
   while (next && out.length < cap) {
-    const page: any = await call<any>(base, accessToken, next);
-    out.push(...(page?.value ?? []));
-    next = page?.['@odata.nextLink'];
+    // Normalize before comparing: an absolute nextLink and its relative
+    // equivalent must not evade cycle detection.
+    const url = microsoftApiUrl(base, next);
+    assertMicrosoftPageVisit(url, visited, pages++);
+    const page = await call<unknown>(base, accessToken, url);
+    const batch = microsoftPageItems<T>(page, cap - out.length);
+    out.push(...batch.items);
+    next = batch.next;
   }
   return out;
 }

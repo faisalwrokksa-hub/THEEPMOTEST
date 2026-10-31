@@ -173,7 +173,7 @@ export function stripeCheckoutParams(invoice: { id: string; tenantId: string; am
 /** Signed, Stripe-originated negative payment events. No user-controlled tenant IDs. */
 export type StripePaymentException = {
   eventId: string; type: 'full_refund' | 'partial_refund' | 'dispute_opened' | 'dispute_closed';
-  paymentIntent: string; amountMinor: number; currency: string; providerObjectId: string;
+  paymentIntent: string; chargeId: string; amountMinor: number; currency: string; providerObjectId: string;
 };
 export function parseStripePaymentException(rawBody: Buffer, liveMode: boolean): StripePaymentException | null {
   let data: unknown;
@@ -195,6 +195,11 @@ export function parseStripePaymentException(rawBody: Buffer, liveMode: boolean):
       typeof object.currency !== 'string' || !/^[a-z]{3}$/.test(object.currency) ||
       !Number.isSafeInteger(object.amount) || object.amount <= 0)
     throw new Error('Stripe refund/dispute contains invalid payment reference');
+  // A signed dispute identifies its underlying charge separately from the dispute ID.
+  // Bind reversals to the captured charge, not merely a reusable PaymentIntent ID.
+  const chargeId = dispute ? object.charge : object.id;
+  if (typeof chargeId !== 'string' || !/^ch_[A-Za-z0-9]+$/.test(chargeId))
+    throw new Error('Stripe exception is missing its captured charge identity');
   let type: StripePaymentException['type'];
   let amount: number;
   if (dispute) {
@@ -213,7 +218,7 @@ export function parseStripePaymentException(rawBody: Buffer, liveMode: boolean):
     type = object.amount_refunded === object.amount ? 'full_refund' : 'partial_refund';
     amount = object.amount_refunded; // Stripe reports cumulative refunded amount.
   }
-  return { eventId: event.id, type, paymentIntent: object.payment_intent,
+  return { eventId: event.id, type, paymentIntent: object.payment_intent, chargeId,
     amountMinor: amount, currency: object.currency.toUpperCase(), providerObjectId: object.id };
 }
 
@@ -224,6 +229,7 @@ export function assertStripeExceptionIntent(intent: any, event: StripePaymentExc
       typeof intent.metadata?.tenantId !== 'string' || !UUID.test(intent.metadata.tenantId) ||
       typeof intent.metadata?.invoiceId !== 'string' || !UUID.test(intent.metadata.invoiceId) ||
       !Number.isSafeInteger(intent.amount) || intent.amount < event.amountMinor ||
+      typeof intent.latest_charge !== 'string' || intent.latest_charge !== event.chargeId ||
       intent.currency?.toUpperCase() !== event.currency ||
       intent.status !== 'succeeded')
     throw new Error('PaymentIntent is not verifiably linked to a tenant invoice');
