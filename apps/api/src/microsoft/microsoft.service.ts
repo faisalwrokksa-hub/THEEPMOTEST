@@ -320,7 +320,7 @@ export class MicrosoftService {
     // does not authorize a different workspace administrator to impersonate
     // the person who consented. Unowned legacy rows fail closed.
     const [row] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
-      SELECT refresh_token, connected_by FROM integration_connections WHERE provider = ${PROVIDER}`)));
+      SELECT refresh_token, connected_by, status FROM integration_connections WHERE provider = ${PROVIDER}`)));
     if (!row?.refresh_token) {
       this.tokens.delete(cacheKey);
       throw new ConflictException('Microsoft is not connected to this workspace yet.');
@@ -329,6 +329,12 @@ export class MicrosoftService {
       this.tokens.delete(cacheKey);
       throw new ForbiddenException(
         'This Microsoft connection belongs to another user. Connect your own Microsoft account.');
+    }
+    // A failed/revoked connection must not keep serving a previously cached
+    // Graph or Power BI access token. Revocation applies across resources.
+    if (row.status !== 'connected') {
+      this.invalidateTenantTokens(tenantId);
+      throw new ConflictException('Microsoft connection is inactive. Reconnect the account.');
     }
     const hit = this.tokens.get(cacheKey);
     if (hit && hit.credential === row.refresh_token && hit.expiresAt > Date.now() + 60_000) return hit.accessToken;
@@ -343,7 +349,7 @@ export class MicrosoftService {
             ? 'Power BI has not been approved for this workspace yet. Connect Power BI to grant it.'
             : 'Microsoft needs to be connected again to grant this permission.');
       }
-      this.tokens.delete(cacheKey);
+      this.invalidateTenantTokens(tenantId);
       const msg = 'Microsoft credentials are invalid or have expired. Reconnect the account.';
       await withTenant(tenantId, async (tx) => {
         await tx.execute(sql`
@@ -366,7 +372,7 @@ export class MicrosoftService {
         SET refresh_token = ${credential}, status = 'connected',
             last_error = NULL, last_used_at = now(), updated_at = now()
         WHERE provider = ${PROVIDER} AND connected_by = ${userId}
-          AND refresh_token = ${row.refresh_token}
+          AND status = 'connected' AND refresh_token = ${row.refresh_token}
         RETURNING id`)));
     if (!updated.length) {
       this.tokens.delete(cacheKey);
