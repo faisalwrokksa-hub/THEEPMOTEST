@@ -74,6 +74,9 @@ test('C32 signed webhook wiring is TEST-only, tenant-locked and atomic', () => {
   assert.match(method, /invoices\/\$\{candidate\.invoiceId\}/);
   assert.match(method, /subscriptions\/\$\{candidate\.subscriptionId\}/);
   assert.match(method, /payment_intents\/\$\{paymentIntentId\}/);
+  assert.match(method, /prices\/\$\{binding\.stripePriceId\}/);
+  assert.match(method, /assertRecurringStripePrice\(remotePrice, plan, binding\.stripePriceId, false\)/);
+  assert.match(method, /Recurring invoice paid-state update failed/);
   assert.match(method, /withTenant\(tenantId, async tx =>/);
   assert.match(method, /pg_advisory_xact_lock/);
   assert.match(method, /FOR UPDATE OF b, s/);
