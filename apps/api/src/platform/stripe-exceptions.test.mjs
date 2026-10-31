@@ -121,3 +121,10 @@ test('a reversal of another charge on the same PaymentIntent cannot revoke acces
  assert.equal(reversal.chargeId, 'ch_older');
  assert.throws(() => assertStripeExceptionIntent(intent, reversal, false));
 });
+
+test('a dispute for a different charge on the same PaymentIntent is quarantined', () => {
+ const reversal = parseStripePaymentException(event('charge.dispute.created',
+  {...dispute, charge: 'ch_other'}), false);
+ assert.equal(reversal.chargeId, 'ch_other');
+ assert.throws(() => assertStripeExceptionIntent(intent, reversal, false));
+});
