@@ -28,7 +28,7 @@ export function stagingEdgeChecks(env) {
     ['Web port is non-privileged', portOk(webPort)],
     ['TLS edge port is non-privileged and distinct from web port',
       portOk(edgePort) && String(edgePort) !== String(webPort)],
-    ['No live Stripe credentials', !String(env.STRIPE_SECRET_KEY || '').startsWith('sk_live_')],
+    ['No live Stripe credentials', !/^(?:sk|rk)_live_/.test(String(env.STRIPE_SECRET_KEY || ''))],
     ['Development header authentication disabled', env.ALLOW_HEADER_AUTH !== 'true'],
     ['No production deployment selected', env.NODE_ENV !== 'development' && env.DEPLOYMENT_ENV !== 'production'],
     ['Certificate and key paths are distinct absolute paths',
