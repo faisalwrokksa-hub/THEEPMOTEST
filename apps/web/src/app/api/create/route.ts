@@ -1,6 +1,7 @@
 import { safeReturnPath } from '@/lib/browser-mutation';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
+import { validCreateKind } from '@/lib/create-kind.mjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -29,8 +30,17 @@ export async function POST(req: NextRequest) {
   // They were once called `kind` and `returnTo`, which meant any record with a
   // `kind` of its own — RAID items, cost lines, documents, updates — had that
   // value stripped before it ever reached the API.
-  const kind = String(f.get('__kind') ?? '');
+  const kind = validCreateKind(f.get('__kind'));
   const back = String(f.get('__returnTo') ?? '/');
+  if (!kind) {
+    // A browser form must not turn an arbitrary kind into a tenant-authenticated
+    // API path (including traversal or the retired direct-member endpoint).
+    const message = 'Unsupported record type';
+    if (wantsJson) return NextResponse.json({ error: message, issues: [] }, { status: 400 });
+    const url = publicUrl(req, safeReturnPath(back, '/'));
+    url.searchParams.set('error', message);
+    return NextResponse.redirect(url, 303);
+  }
 
   const body: Record<string, unknown> = {};
   for (const [k, v] of f.entries()) {
