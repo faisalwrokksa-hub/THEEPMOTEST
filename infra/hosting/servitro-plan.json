@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "mode": "review-only",
+  "providerChoice": "Servitro for synthetic staging only",
+  "dns": {
+    "zone": "theepmo.com",
+    "authority": "existing registrar and authoritative DNS",
+    "changeAuthorized": false,
+    "recordsToApply": [],
+    "stagingWeb": "staging.theepmo.com",
+    "stagingApi": "api-staging.theepmo.com",
+    "productionWeb": "app.theepmo.com",
+    "productionUntouched": true
+  },
+  "environments": {
+    "staging": {
+      "id": "staging",
+      "hostProvider": "Servitro",
+      "hostLocation": "Frankfurt, Germany",
+      "provisioned": false,
+      "exposure": "loopback-only until separate authorization",
+      "syntheticDataOnly": true,
+      "productionCredentialsAllowed": false,
+      "sharedSaudiTenantDataAllowed": false,
+      "isolatedComposeProject": "pmo-staging",
+      "apiDatabaseNetwork": "internal-only",
+      "tls": "pending externally verified public HTTPS",
+      "backups": "encrypted off-host with isolated restore pending"
+    },
+    "sharedSaudiSaas": {
+      "id": "shared-saudi-saas",
+      "hostProvider": null,
+      "requiredCountry": "SA",
+      "hostLocationVerified": false,
+      "provisioned": false,
+      "tenantIsolation": [
+        "postgresql-rls",
+        "tenant-bound-foreign-keys",
+        "restricted-app-role",
+        "cross-tenant-negative-tests"
+      ],
+      "saudiDataOnForeignHostAllowed": false
+    },
+    "production": {
+      "id": "production",
+      "hostname": "app.theepmo.com",
+      "provisioned": false,
+      "deploymentAuthorized": false,
+      "dnsAuthorized": false
+    }
+  },
+  "dedicatedAgencyTemplate": {
+    "state": "template-only",
+    "hostModel": "separate agency environment and infrastructure",
+    "shareRuntimeWithSharedSaas": false,
+    "shareDatabaseWithSharedSaas": false,
+    "shareIdentityWithSharedSaas": false,
+    "shareEncryptionKeysWithSharedSaas": false,
+    "shareBackupsWithSharedSaas": false,
+    "perAgencyProvisioningRequiresApproval": true
+  },
+  "release": {
+    "decision": "NO-GO",
+    "commercialGatesAccepted": 0,
+    "externalHttpsVerified": false,
+    "encryptedRestoreVerified": false,
+    "tenantRlsStagingVerified": false,
+    "realStripeTestVerified": false,
+    "entraTwoUserVerified": false,
+    "arabicRtlUatVerified": false
+  }
+}
