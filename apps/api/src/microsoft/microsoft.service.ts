@@ -533,6 +533,20 @@ export class MicrosoftService {
       : await this.uploadLarge(token, c.drive_id, parentId, filename, file.buffer);
 
     const doc = await withTenant(tenantId, async (tx) => {
+      // Graph may finish after a concurrent disconnect, revoke, or location
+      // change. Revalidate the consenting user and exact destination before
+      // persisting the document. Hold a row lock through the insert and audit
+      // so revocation cannot commit between the check and the local write.
+      const [active] = rows(await tx.execute(sql`
+        SELECT id FROM integration_connections
+        WHERE provider = ${PROVIDER} AND connected_by = ${userId}
+          AND status = 'connected' AND drive_id = ${c.drive_id}
+          AND root_item_id = ${c.root_item_id}
+        FOR SHARE`));
+      if (!active) {
+        throw new ConflictException(
+          'Microsoft connection or document location changed during upload. Reconnect and retry.');
+      }
       const [d] = rows(await tx.execute(sql`
         INSERT INTO documents (tenant_id, project_id, criterion_id, name, kind, version, status,
                                url, size_kb, owner_id, storage_provider,
