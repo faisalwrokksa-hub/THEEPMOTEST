@@ -53,7 +53,7 @@ const legacyBillingNames = new Set([
   'billing_payment_exception_tenant_isolation',
 ]);
 const normalizePolicy = expression =>
-  typeof expression === 'string' ? expression.replace(/[\\s()]/g, '').toLowerCase() : '';
+  typeof expression === 'string' ? expression.replace(/[\s()]/g, '').toLowerCase() : '';
 function validTenantPredicate(expression) {
   const value = normalizePolicy(expression);
   return value === 'tenant_id=app_current_tenant' ||
