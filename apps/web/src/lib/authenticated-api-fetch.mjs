@@ -13,6 +13,9 @@ export async function fetchAuthenticatedApi(fetcher, endpoint, headers) {
     headers,
     cache: 'no-store',
     redirect: 'error',
+    // Do not retain a signed-in user's session on a stalled API request.
+    // Fetch aborts both the request and streaming response consumption.
+    signal: AbortSignal.timeout(30_000),
   });
   if (!response || typeof response.ok !== 'boolean' ||
       !Number.isInteger(response.status) ||
