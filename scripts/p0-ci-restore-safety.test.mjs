@@ -54,6 +54,10 @@ test('restore must validate seeded tenant and user rows and migration count', ()
   assert.match(DATA_CHECK_SQL,/public\.tenants/);
   assert.match(DATA_CHECK_SQL,/public\.memberships/);
   assert.match(DATA_CHECK_SQL,/public\.schema_migrations/);
+  const code = readFileSync(new URL('./verify-ci-database-restore.mjs', import.meta.url), 'utf8');
+  assert.match(code, /const expectedMigrations = verifyRepositoryMigrations\(\)\.count/);
+  assert.match(code, /Number\(before\.migrations\) !== expectedMigrations/);
+  assert.doesNotMatch(code, /Number\(before\.migrations\) !== 21/);
 });
 test('CI records a successful restore before typechecking and refuses missing evidence', () => {
   const workflow = readFileSync(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8');

@@ -148,6 +148,13 @@
       "when": 1789238217559,
       "tag": "0020_microsoft_user_connections",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1789238218559,
+      "tag": "0021_stripe_recurring_ledger",
+      "breakpoints": true
     }
   ]
 }

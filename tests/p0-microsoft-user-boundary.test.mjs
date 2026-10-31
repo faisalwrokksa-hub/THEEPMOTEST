@@ -83,5 +83,5 @@ test('E04a user-bound storage is additive and fail-closed', () => {
  assert.match(e04aSql, /REVOKE ALL ON TABLE public\.microsoft_user_connections FROM PUBLIC/);
  assert.doesNotMatch(e04aSql, /(?:DROP|TRUNCATE|DELETE FROM)\s+(?:public\.)?integration_connections/i);
  assert.match(e04aSchema, /export const microsoftUserConnections = pgTable/);
- assert.equal(e04aJournal.entries.at(-1).tag,'0020_microsoft_user_connections');
+ assert.equal(e04aJournal.entries.find(entry => entry.idx === 20)?.tag, '0020_microsoft_user_connections');
 });
