@@ -34,8 +34,10 @@ test('invalid or empty Stripe JSON fails closed', async () => {
   await assert.rejects(readStripeApiJson(new Response('')), /response is empty/);
   await assert.rejects(readStripeApiJson(new Response(null, { status: 204 })), /no body/);
 });
-test('all three credentialed Stripe JSON responses use the bounded reader', () => {
+test('all credentialed Stripe API responses use the bounded JSON reader, including recurring Checkout', () => {
   const service = readFileSync(new URL('./stripe.service.ts', import.meta.url), 'utf8');
-  assert.equal((service.match(/await readStripeApiJson\(/g) || []).length, 3);
-  assert.doesNotMatch(service, /await (?:response|remoteResponse)\.json\(\)/);
+  // The recurring Price and Checkout requests add two bounded reads.
+  // Future endpoints may add more; do not hard-code the total call count.
+  assert.ok((service.match(/await readStripeApiJson\(/g) || []).length >= 5);
+  assert.doesNotMatch(service, /await [A-Za-z_$][\w$]*\.json\(\)/);
 });
