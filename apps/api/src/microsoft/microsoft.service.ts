@@ -3,6 +3,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException,
 import { randomBytes } from 'node:crypto';
 import { safeMicrosoftReturnPath } from './return-path';
 import { microsoftUploadUrl } from './url-policy';
+import { readBoundedMicrosoftJson, MAX_MICROSOFT_API_RESPONSE_BYTES } from './response-policy';
 import { sql } from 'drizzle-orm';
 import { withTenant, auditEvents } from '@pmo/db';
 import { currentContext } from '../tenancy/tenant-context';
@@ -563,22 +564,38 @@ export class MicrosoftService {
         },
         body: new Uint8Array(buf.subarray(start, end)),
       });
-      if (!res.ok && res.status !== 202) {
-        const why = await res.text().catch(() => '');
+      if (!res.ok) {
+        // Upload-session URLs are preauthenticated capabilities. Never reflect
+        // arbitrary upstream error bodies (or buffer them) into API responses.
+        await res.body?.cancel().catch(() => undefined);
         throw new MsApiError(res.status, 'uploadFailed',
-          `Upload stopped at ${Math.round((start / buf.length) * 100)}%: ${why || res.statusText}`);
+          `Upload stopped at ${Math.round((start / buf.length) * 100)}% (HTTP ${res.status}).`);
       }
-      // The final chunk answers with the finished item.
-      if (end === buf.length) {
-        if (res.status === 202) throw new MsApiError(502, 'uploadIncomplete', 'Microsoft did not confirm the final upload chunk.');
-        const item: unknown = await res.json().catch(() => null);
-        if (!item || typeof item !== 'object' ||
-            !('id' in item) || typeof item.id !== 'string' ||
-            !('webUrl' in item) || typeof item.webUrl !== 'string') {
-          throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned an invalid completed upload.');
+      if (end !== buf.length) {
+        await res.body?.cancel().catch(() => undefined);
+        if (res.status !== 202) {
+          throw new MsApiError(502, 'uploadUnexpected',
+            'Microsoft ended the upload before all chunks were sent.');
         }
-        return item;
+        continue;
       }
+      // The final chunk must return bounded completed-file metadata.
+      if (res.status === 202) {
+        await res.body?.cancel().catch(() => undefined);
+        throw new MsApiError(502, 'uploadIncomplete', 'Microsoft did not confirm the final upload chunk.');
+      }
+      let item: unknown;
+      try {
+        item = await readBoundedMicrosoftJson(res, MAX_MICROSOFT_API_RESPONSE_BYTES);
+      } catch {
+        throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned invalid or oversized completed upload metadata.');
+      }
+      if (!item || typeof item !== 'object' ||
+          !('id' in item) || typeof item.id !== 'string' ||
+          !('webUrl' in item) || typeof item.webUrl !== 'string') {
+        throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned an invalid completed upload.');
+      }
+      return item;
     }
     throw new MsApiError(500, 'uploadFailed', 'The upload finished without returning a file.');
   }

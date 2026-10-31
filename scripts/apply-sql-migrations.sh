@@ -54,13 +54,24 @@ if ! node scripts/sql-ledger-preflight.mjs | psql_admin -q; then
   exit 1
 fi
 
+snapshot_dir=$(mktemp -d "${TMPDIR:-/tmp}/epmo-sql-ledger.XXXXXXXX")
+trap 'rm -rf -- "$snapshot_dir"' EXIT
+
 for file in packages/db/migrations/*.sql; do
   name=$(basename "$file")
   if [[ ! "$name" =~ ^[0-9]{4}_[a-z0-9_]+\.sql$ ]]; then
     echo "BLOCKED: invalid migration filename $name" >&2
     exit 1
   fi
-  digest=$(node -e 'const {createHash}=require("node:crypto");const {readFileSync}=require("node:fs");process.stdout.write(createHash("sha256").update(readFileSync(process.argv[1])).digest("hex"))' "$file")
+  # Freeze SQL bytes once, then verify and execute THAT SAME snapshot.
+  # The earlier repository-wide check cannot protect against later file changes.
+  snapshot="$snapshot_dir/$name"
+  cp -- "$file" "$snapshot"
+  chmod 0400 "$snapshot"
+  if ! digest=$(node scripts/verified-migration-snapshot.mjs "$name" "$snapshot"); then
+    echo "BLOCKED: $name no longer matches the pinned release SQL bytes." >&2
+    exit 1
+  fi
   installed=$(psql_admin -At -c "SELECT 1 FROM public.schema_migrations WHERE filename = '$name'")
   if [[ "$installed" == '1' ]]; then
     recorded=$(psql_admin -At -c "SELECT COALESCE(source_sha256, 'UNATTESTED') FROM public.schema_migrations WHERE filename = '$name'")
@@ -92,7 +103,7 @@ END \$ledger\$;
 SQL
     printf "SELECT NOT EXISTS (SELECT 1 FROM public.schema_migrations WHERE filename = '%s') AS needs_apply \\gset\n" "$name"
     printf '\\if :needs_apply\n'
-    cat "$file"
+    cat "$snapshot"
     printf "\nINSERT INTO public.schema_migrations(filename) VALUES ('%s');\n" "$name"
     printf "UPDATE public.schema_migrations SET source_sha256 = '%s' WHERE filename = '%s' AND source_sha256 IS NULL;\n" "$digest" "$name"
     printf '\\else\n\\echo SKIP: migration already applied by a concurrent runner\n\\endif\nCOMMIT;\n'

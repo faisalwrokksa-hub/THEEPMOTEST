@@ -7,6 +7,7 @@ import { readBoundedUpstreamText, readBoundedUpstreamJson } from './bounded-upst
 import { validSessionEnvelope } from './session-envelope.mjs';
 import { readBoundedSuccessJson } from './bounded-success-json.mjs';
 import { sessionFailureKind } from './session-failure.mjs';
+import { uuidPathSegment } from './uuid-path.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 export const SESSION_COOKIE = 'pmo_session';
@@ -132,7 +133,7 @@ export const api = {
   trends: () => get<any>('/api/v1/trends'),
   askStatus: () => get<any>('/api/v1/ask/status'),
   askThreads: () => get<any[]>('/api/v1/ask'),
-  askThread: (id: string) => get<any[]>(`/api/v1/ask/thread/${id}`),
+  askThread: (id: string) => get<any[]>(`/api/v1/ask/thread/${uuidPathSegment(id)}`),
   me: () => get<any>('/api/v1/me'),
   decisions: () => get<any[]>('/api/v1/decisions'),
   approvals: () => get<any[]>('/api/v1/approvals'),
@@ -145,7 +146,7 @@ export const api = {
   microsoftPlaces: (q?: string) =>
     get<any>(`/api/v1/microsoft/places${q ? `?q=${encodeURIComponent(q)}` : ''}`),
   microsoftFiles: (projectId?: string) =>
-    get<any>(`/api/v1/microsoft/files${projectId ? `?projectId=${projectId}` : ''}`),
+    get<any>(`/api/v1/microsoft/files${projectId ? `?projectId=${uuidPathSegment(projectId)}` : ''}`),
   powerBiReports: () => get<any>('/api/v1/microsoft/reports'),
   settings: () => get<any>('/api/v1/settings'),
   subscriptionCurrent: () => get<import('./subscription-display.mjs').CustomerSubscription | null>('/api/v1/subscription/current'),
@@ -156,9 +157,9 @@ export const api = {
   superAdminPlans: () => get<any[]>('/api/v1/super-admin/plans'),
   superAdminAudit: () => get<any[]>('/api/v1/super-admin/audit'),
   superAdminTenants: (offset = 0) => get<{items: any[]; limit: number; offset: number; hasMore: boolean}>(`/api/v1/super-admin/tenants?offset=${offset}`),
-  superAdminHistory: (id: string) => get<any[]>(`/api/v1/super-admin/tenants/${encodeURIComponent(id)}/subscriptions`),
+  superAdminHistory: (id: string) => get<any[]>(`/api/v1/super-admin/tenants/${uuidPathSegment(id)}/subscriptions`),
   platformModules: () => get<any[]>('/api/v1/platform/modules'),
   enabledModules: () => get<string[]>('/api/v1/platform/enabled'),
   createOptions: () => get<any>('/api/v1/create-options'),
-  projectGovernance: (id: string) => get<any>(`/api/v1/projects/${id}/governance`),
+  projectGovernance: (id: string) => get<any>(`/api/v1/projects/${uuidPathSegment(id)}/governance`),
 };

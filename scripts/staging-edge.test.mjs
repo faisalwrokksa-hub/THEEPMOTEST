@@ -25,6 +25,8 @@ const failed = e => stagingEdgeChecks(e).filter(c => !c.passed).map(c => c.name)
 test('staging edge config allows only isolated HTTPS hostnames and loopback ports', () => {
   assert.deepEqual(failed(env), []);
   assert.ok(failed({ ...env, DEPLOYMENT_ENV: 'production' }).length >= 2);
+  for (const mode of ['development', 'test', 'preview', '', undefined])
+    assert.ok(failed({ ...env, NODE_ENV: mode }).includes('Production Node runtime required for staging TLS edge'), String(mode));
   assert.ok(failed({ ...env, WEB_ORIGIN: 'https://theepmo.com' }).length > 0);
   assert.ok(failed({ ...env, PUBLIC_API_URL: 'http://api-staging.theepmo.com' }).length > 0);
   assert.ok(failed({ ...env, STAGING_EDGE_BIND: '0.0.0.0' }).length > 0);
