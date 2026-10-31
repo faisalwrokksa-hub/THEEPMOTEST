@@ -498,5 +498,20 @@
     "workflowRun": 41192336834,
     "ci": "SUCCESS_4_OF_4_85_OF_85_STEPS",
     "scope": "CI-local only; external provider/staging/browser/recovery acceptance absent"
+  },
+  "lastIndependentIntegrationQ31": {
+    "prNumber": 146,
+    "reviewOnly": true,
+    "baseQ30Sha": "28ee378b4713f99f1820a1df89a2708e552fcffe",
+    "sourceS29Sha": "de66859108258d7d74377fed45b56f18eb5b13f1",
+    "sourceS29CiRunId": 41193900954,
+    "sourceS29CiStatus": "SUCCESS_4_OF_4",
+    "integrationSha": null,
+    "integrationCiStatus": "PENDING_AT_COMMIT",
+    "sourceBlobParity": "MATCH_2_OF_2",
+    "commercialGatesAccepted": 0,
+    "stripeTestScenariosAccepted": 0,
+    "decision": "NO-GO",
+    "note": "Q31 integrates isolated staging network and read-only nine-gate evidence verifier; final-SHA CI and all independent provider/staging/UAT/recovery/legal receipts require separate verification. CI alone is not launch approval."
   }
 }
