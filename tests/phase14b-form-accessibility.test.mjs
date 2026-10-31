@@ -24,8 +24,10 @@ test('form input is preserved when API refuses save', () => {
   assert.match(form, /setError\(/);
   assert.match(form, /return;\s*}\s*\/\/ Navigate only after confirmed success/);
 });
-test('API route preserves structured field-level validation issues', () => {
-  assert.match(route, /issues: Array\.isArray\(j\?\.issues\) \? j\.issues : \[\]/);
+test('API route preserves structured field-level validation without leaking upstream messages', () => {
+  assert.match(route, /const issues = safeCreateIssues\(payload\)/);
+  assert.match(route, /NextResponse\.json\(\{ error: message, issues \}/);
+  assert.doesNotMatch(route, /issues: Array\.isArray\(j\?\.issues\) \? j\.issues : \[\]/);
 });
 test('server field names are allow-listed against form fields', () => {
   assert.match(form, /new Set\(fields\.map\(field => field\.name\)\)/);
