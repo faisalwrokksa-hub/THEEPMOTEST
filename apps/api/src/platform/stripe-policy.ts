@@ -142,6 +142,25 @@ export function stripeCheckoutUrlAllowed(value: unknown): boolean {
   } catch { return false; }
 }
 
+/** The hosted payment URL must navigate to the exact Checkout session recorded
+ * for this tenant invoice. A trusted Stripe hostname alone is insufficient:
+ * a corrupted cached URL could send a customer to another session. */
+export function stripeCheckoutReferenceValid(value: unknown, sessionId: unknown): boolean {
+  if (!stripeCheckoutUrlAllowed(value) || typeof sessionId !== 'string' ||
+      !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(sessionId)) return false;
+  const path = new URL(value as string).pathname;
+  return path === `/c/pay/${sessionId}` || path === `/pay/${sessionId}`;
+}
+
+/** A newly created payment-mode session must still be unpaid and open.
+ * Returning a completed/paid session as a fresh Checkout is never acceptable. */
+export function stripeCreatedSessionIsPending(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false;
+  const session = value as { status?: unknown; payment_status?: unknown; payment_intent?: unknown };
+  return session.status === 'open' && session.payment_status === 'unpaid' &&
+    session.payment_intent === null;
+}
+
 /** Stable for a pending attempt; different after an expired session was recorded.
  * Prevents Stripe from returning an expired Checkout session for a later retry.
  */
