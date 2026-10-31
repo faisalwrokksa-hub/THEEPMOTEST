@@ -4,6 +4,7 @@ import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { validCreateKind } from '@/lib/create-kind.mjs';
 import { safeMutationError, safeCreateIssues } from '@/lib/safe-mutation-feedback.mjs';
 import { readBoundedUpstreamJson } from '@/lib/bounded-upstream-body.mjs';
+import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -27,7 +28,12 @@ export async function POST(req: NextRequest) {
       : NextResponse.redirect(login, 303);
   }
 
-  const f = await req.formData();
+  const parsed = await readBoundedBrowserForm(req);
+  if (!parsed.form) return NextResponse.json({
+    error: parsed.error === 'too-large'
+      ? 'Form submission exceeds the size limit.' : 'Invalid form submission.',
+  }, { status: parsed.error === 'too-large' ? 413 : 400 });
+  const f = parsed.form;
   // `__`-prefixed fields route the request; everything else is the record.
   // They were once called `kind` and `returnTo`, which meant any record with a
   // `kind` of its own — RAID items, cost lines, documents, updates — had that
