@@ -336,49 +336,52 @@
   },
   "latestIndependentQaReviewOnlyIntegration": {
     "reviewDateUtc": "2026-10-31",
-    "prUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/73",
-    "branch": "integration/q17-e17-f17-c14-q16-20261031",
+    "prUrl": "PENDING_Q18_PR_CREATION",
+    "branch": "integration/q18-e18-f18-c15-s16-20261031",
     "baseline": {
-      "sha": "4948bc9ff738fb7e920643099e1d48018a88b35e",
-      "workflowUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41146665374",
+      "pr": 73,
+      "sha": "191556fe846381859f19692d80bc030c8c455ea4",
+      "workflowRun": 41152057802,
       "result": "PASS_4_OF_4_CI_ONLY"
     },
     "included": [
       {
-        "stream": "Engineering E17",
-        "pr": 68,
-        "sha": "d9f06a44f2963ba635102aeb405514ee1be29c9b",
-        "workflowRun": 41148082548,
-        "result": "PASS_4_OF_4_CI_ONLY"
+        "stream": "Engineering E18 (E17 descendant)",
+        "pr": 74,
+        "sha": "898215a7f5e805f3f3ecae689c39c09bb207ec07",
+        "workflowRun": 41153824219,
+        "result": "PASS_4_OF_4_CI_ONLY",
+        "paths": 3
       },
       {
-        "stream": "Frontend F16/F17",
-        "pr": 70,
-        "sha": "846138020afa29ec736b52caa15bda2a58407871",
-        "workflowRun": 41149145222,
-        "result": "PASS_4_OF_4_CI_ONLY"
+        "stream": "Frontend F18 (F17 descendant)",
+        "pr": 75,
+        "sha": "cef83a01a91841ed2ee057fcb0a9ac04530dc3e1",
+        "workflowRun": 41154460792,
+        "result": "PASS_4_OF_4_CI_ONLY",
+        "paths": 5
       },
       {
-        "stream": "Commercial C14",
-        "pr": 71,
-        "sha": "85789d823448e92ca396b9d9c969360ff4bece64",
-        "workflowRun": 41150319639,
-        "result": "PASS_4_OF_4_CI_ONLY"
-      }
-    ],
-    "excluded": [
+        "stream": "Commercial C15 (C14 descendant)",
+        "pr": 76,
+        "sha": "d9e4a2b144e53888773fdc9384f99d706d71ff68",
+        "workflowRun": 41155445875,
+        "result": "PASS_4_OF_4_CI_ONLY",
+        "paths": 2
+      },
       {
-        "stream": "Hosting S15",
-        "pr": 72,
-        "sha": "ecb628d86271b6d1dc89288a7f800da86f8d3d16",
-        "workflowRun": 41151417958,
-        "result": "FAIL_OFFLINE_TESTS",
-        "reason": "Legacy disposable restore test mock lacks TABLE/TABLE DATA in pg_restore --list; remediation job also failed"
+        "stream": "Hosting S15+S16 corrected restore",
+        "pr": 77,
+        "sha": "9121fc21d72660668ad2116d44f2f3dfbde758d4",
+        "workflowRun": 41156097644,
+        "result": "PASS_4_OF_4_CI_ONLY",
+        "paths": 3
       }
     ],
-    "integrationCi": "PENDING_FINAL_SHA_CI",
+    "integrationMethod": "Review-only Q17-descendant branch; exact full source file contents copied for 13 non-overlapping paths; original source PRs remain unmerged and are not ancestry parents",
+    "integrationCi": "PENDING_NEW_Q18_EXACT_SHA_CI",
     "externalAcceptance": "NO_RECEIPTS",
     "releaseDecision": "NO-GO",
-    "note": "Never promote candidateSha or any of nine gates to PASS from source CI or draft integration. Final immutable Q17 head and full workflow must be checked separately."
+    "note": "Q17 4/4 CI pass and individual stream passes do not constitute Q18 same-SHA pass. No Stripe TEST/Entra/public HTTPS/browser/independent staging restore/legal receipts. All nine gates unchanged."
   }
 }
