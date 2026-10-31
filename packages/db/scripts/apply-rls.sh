@@ -1,12 +1,8 @@
 #!/usr/bin/env bash
-# psql is not required on the host — run it inside the postgres container.
-set -euo pipefail
-CONTAINER="${PMO_PG_CONTAINER:-pmo-postgres}"
-if ! docker ps --format '{{.Names}}' | grep -qx "${CONTAINER}"; then
-  echo "error: container '${CONTAINER}' is not running. Start it with: pnpm infra:up" >&2
-  exit 1
-fi
-echo "Applying RLS policies to ${CONTAINER}..."
-docker exec -i "${CONTAINER}" psql -v ON_ERROR_STOP=1 -U postgres -d pmo \
-  < "$(dirname "$0")/../sql/rls.sql"
-echo "RLS applied."
+# Development-only RLS policy application. Never use global container names:
+# S23 Compose assigns a project-scoped name and the caller must not override it.
+set -Eeuo pipefail
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
+# The guard rejects staging/production and remote Docker contexts before
+# invoking the pinned pmo-dev PostgreSQL service. -T keeps stdin as SQL.
+exec bash "$root/scripts/dev-infra-guard.sh" rls < "$root/packages/db/sql/rls.sql"
