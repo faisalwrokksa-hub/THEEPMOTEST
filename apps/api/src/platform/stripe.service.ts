@@ -767,9 +767,12 @@ export class StripeBillingService {
         RETURNING id`));
       if (advanced.length !== 1)
         throw new ConflictException('Recurring Stripe binding changed during settlement');
-      await tx.execute(sql`
+      const settledInvoice = rows(await tx.execute(sql`
         UPDATE billing_invoices SET status = 'paid', paid_at = now()
-        WHERE tenant_id = ${tenantId} AND id = ${invoiceId} AND status = 'open'`);
+        WHERE tenant_id = ${tenantId} AND id = ${invoiceId} AND status = 'open'
+        RETURNING id`));
+      if (settledInvoice.length !== 1)
+        throw new ConflictException('Recurring invoice paid-state update failed');
       await tx.execute(sql`
         INSERT INTO subscription_events
           (tenant_id, subscription_id, event_type, details)
