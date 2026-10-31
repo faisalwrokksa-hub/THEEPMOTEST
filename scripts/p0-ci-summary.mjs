@@ -20,7 +20,7 @@ export function formatP0Summary(ci, launch) {
 
 if (process.argv[1] && resolve(process.argv[1]) === resolve(new URL(import.meta.url).pathname)) {
   const dir = process.env.EPMO_EVIDENCE_DIR;
-  const sha = process.env.GITHUB_SHA;
+  const sha = process.env.EPMO_CANDIDATE_SHA;
   const runId = process.env.GITHUB_RUN_ID;
   let content;
   try {

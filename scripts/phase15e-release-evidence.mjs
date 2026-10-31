@@ -77,7 +77,7 @@ function cli() {
     throw new Error('EPMO_EVIDENCE_DIR must reside under the CI runner temporary directory');
   if (process.env.CI !== 'true' || process.env.GITHUB_ACTIONS !== 'true')
     throw new Error('Release evidence can only be recorded or verified by CI');
-  const context = { sha: process.env.GITHUB_SHA, runId: process.env.GITHUB_RUN_ID };
+  const context = { sha: process.env.EPMO_CANDIDATE_SHA, runId: process.env.GITHUB_RUN_ID };
   if (action === 'record') {
     const receipt = recordGate(directory, target, context);
     console.log(`PASS: ${receipt.gate} recorded for this CI run`);
