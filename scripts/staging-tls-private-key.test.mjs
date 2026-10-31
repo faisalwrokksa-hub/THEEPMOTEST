@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { chmodSync, mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
-import { tlsMaterialChecks } from '../infra/staging/preflight.mjs';
+import { tlsMaterialChecks, stagingEdgeChecks } from '../infra/staging/preflight.mjs';
 
 const root = resolve(import.meta.dirname, '..');
 const openssl = (...args) => {
@@ -66,4 +66,9 @@ test('S11 staging TLS preflight rejects legacy CN-only wildcard without DNS SAN'
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
+});
+
+test('S18 staging edge rejects restricted Stripe live keys', () => {
+ const result = stagingEdgeChecks({ STRIPE_SECRET_KEY: 'rk_live_forbidden' });
+ assert.equal(result.find(check => check.name === 'No live Stripe credentials')?.passed, false);
 });
