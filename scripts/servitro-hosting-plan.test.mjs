@@ -1,0 +1,14 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { inspectHostingPlan } from '../infra/hosting/verify-servitro-plan.mjs';
+const source = JSON.parse(readFileSync(new URL('../infra/hosting/servitro-plan.json', import.meta.url), 'utf8'));
+const clone = () => structuredClone(source);
+const failures = p => inspectHostingPlan(p).filter(c => !c.passed).map(c => c.name);
+test('S32 approved design is read-only and fail-closed', () => assert.deepEqual(failures(source), []));
+test('S32 rejects DNS mutation', () => { const p=clone(); p.dns.recordsToApply=['A staging 192.0.2.1']; assert.ok(failures(p).length); });
+test('S32 rejects German hosting of Saudi shared SaaS data', () => { const p=clone(); p.environments.staging.sharedSaudiTenantDataAllowed=true; assert.ok(failures(p).length); });
+test('S32 rejects premature production authorization', () => { const p=clone(); p.environments.production.deploymentAuthorized=true; assert.ok(failures(p).length); });
+test('S32 rejects dedicated agency database sharing', () => { const p=clone(); p.dedicatedAgencyTemplate.shareDatabaseWithSharedSaas=true; assert.ok(failures(p).length); });
+test('S32 rejects falsely accepted external gates', () => { const p=clone(); p.release.externalHttpsVerified=true; assert.ok(failures(p).length); });
+test('S32 rejects staging with production credentials', () => { const p=clone(); p.environments.staging.productionCredentialsAllowed=true; assert.ok(failures(p).length); });
