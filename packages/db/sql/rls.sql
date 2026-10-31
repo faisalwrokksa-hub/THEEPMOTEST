@@ -66,6 +66,12 @@ REVOKE UPDATE, DELETE ON platform_subscription_audit_events FROM pmo_app;
 REVOKE UPDATE, DELETE ON billing_payments, billing_webhook_receipts, billing_payment_exceptions FROM pmo_app;
 REVOKE DELETE ON billing_invoices FROM pmo_app;
 REVOKE UPDATE, DELETE ON billing_stripe_checkout_sessions FROM pmo_app;
+-- Recurring Checkout identities are immutable; only a verified settlement may
+-- update the narrow binding lifecycle fields, never provider or tenant IDs.
+REVOKE UPDATE, DELETE ON billing_stripe_recurring_checkout_sessions FROM pmo_app;
+REVOKE UPDATE, DELETE ON billing_stripe_recurring_bindings FROM pmo_app;
+GRANT UPDATE (status, last_period_ends_at, cancel_at_period_end, updated_at)
+  ON billing_stripe_recurring_bindings TO pmo_app;
 
 -- Global tables: readable, never writable by the app role. (Closes the gap
 -- where pmo_app could update or delete any user in the system.)
