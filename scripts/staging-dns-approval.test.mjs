@@ -39,6 +39,7 @@ test('S20 rejects wrong, absent or substituted trusted public key', () => {
   const p = plan(), a = approvalFor(p);
   assert.ok(check(p, a, { trustedKeySha256: '0'.repeat(64) }).length);
   assert.ok(check(p, a, { trustedKeySha256: undefined }).length);
+  assert.ok(check(p, a, { trustedPublicKeyPem: privateKey.export({ type: 'pkcs8', format: 'pem' }) }).length);
   const rogue = generateKeyPairSync('ed25519');
   assert.ok(check(p, a, { trustedPublicKeyPem: rogue.publicKey.export({ type: 'spki', format: 'pem' }) }).length);
 });
