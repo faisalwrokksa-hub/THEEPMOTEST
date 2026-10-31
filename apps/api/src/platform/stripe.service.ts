@@ -5,7 +5,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
-import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutUrlAllowed, stripeApiFetch, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
+import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeApiFetch, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -75,7 +75,7 @@ export class StripeBillingService {
         // Reused database references cross the same outbound payment-navigation
         // boundary as a fresh Stripe response. Never return a corrupted URL or
         // a session ID from the wrong Stripe TEST/LIVE mode.
-        if (!stripeCheckoutUrlAllowed(existing.url) ||
+        if (!stripeCheckoutReferenceValid(existing.url, existing.sessionId) ||
             typeof existing.sessionId !== 'string' ||
             !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(existing.sessionId) ||
             existing.sessionId.startsWith('cs_live_') !== config.liveMode)
@@ -107,7 +107,8 @@ export class StripeBillingService {
       try { session = await response.json(); }
       catch { throw new BadGatewayException('Invalid Stripe Checkout response'); }
       const url = session && typeof session.url === 'string' ? session.url : '';
-      if (!session || !stripeCheckoutUrlAllowed(url) || session.object !== 'checkout.session' ||
+      if (!session || !stripeCheckoutReferenceValid(url, session.id) || !stripeCreatedSessionIsPending(session) ||
+          session.object !== 'checkout.session' ||
           session.livemode !== config.liveMode ||
           typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id) ||
           (config.liveMode && !session.id.startsWith('cs_live_')) ||
