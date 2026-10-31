@@ -449,21 +449,20 @@
     "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
   },
   "latestReviewOnlyIntegration": {
-    "label": "Q29",
-    "baseSha": "d5289c781b5e4ba28c803f09db17ca239595bba7",
-    "branch": "integration/q29-c26-e30-20261031",
-    "recordedAtUtc": "2026-10-31T10:26:00Z",
+    "label": "Q30",
+    "baseSha": "c71f48e9c164eabdd9f05de6ab1bd01678469ece",
+    "branch": "integration/q30-e31-20261031",
+    "recordedAtUtc": "2026-10-31T10:30:00Z",
     "finalSha": null,
     "finalShaCi": "PENDING",
     "sourcePullRequests": [
-      139,
-      141
+      142
     ],
-    "sourceFiles": 5,
-    "sourceCi": "two exact-source PR heads completed four successful jobs each",
+    "sourceFiles": 4,
+    "sourceCi": "E31 exact-source SHA 91891471335b0e3407ed11efa0353d2916337c92 workflow 41192455676 completed success",
     "decision": "NO-GO",
     "acceptedCommercialGates": 0,
-    "notes": "C26 recurring invoice reconciliation primitive and E30 Microsoft upstream error redaction integrated; neither proves real Stripe TEST lifecycle or Microsoft Entra two-user; no public HTTPS staging, browser RTL, independent RLS, encrypted recovery or legal/support acceptance."
+    "notes": "Q30 parent Q29 integration CI was queued/in progress at branch creation, not yet accepted. Microsoft revocation safety is CI-local only, not Entra two-user acceptance. All external gates remain pending."
   },
   "lastIndependentIntegrationQ23Ci": {
     "pr": 109,
