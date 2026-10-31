@@ -27,3 +27,8 @@ test('rejects alternate staging API and spoofed staging domains', () => {
  assert.ok(failed({...env,PUBLIC_API_URL:'https://api.staging.theepmo.com'}).includes('Canonical staging API origin'));
  assert.ok(failed({...env,WEB_ORIGIN:'https://staging.theepmo.com.evil.example'}).includes('Canonical staging web origin'));
 });
+
+test('S26 rejects debug, test, preview and missing NODE_ENV for staging', () => {
+ for (const mode of ['development', 'test', 'preview', '', undefined])
+  assert.ok(failed({...env,NODE_ENV:mode}).includes('Production Node runtime required for staging'), String(mode));
+});
