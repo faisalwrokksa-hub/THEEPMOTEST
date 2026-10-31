@@ -2,7 +2,7 @@
 # Local development only. Refuse production/staging contexts before invoking Docker.
 set -euo pipefail
 operation="${1:-}"
-if [[ "$#" -ne 1 || ( "$operation" != up && "$operation" != down ) ]]; then
+if [[ "$#" -ne 1 || ( "$operation" != up && "$operation" != down && "$operation" != rls ) ]]; then
   echo 'BLOCKED: usage: dev-infra-guard.sh up|down|rls' >&2
   exit 2
 fi
