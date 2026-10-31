@@ -12,6 +12,7 @@ import { assertRecurringProviderSettlement, type TrustedRecurringBinding } from 
 import { assertRecurringLocalSettlement } from './stripe-recurring-local-settlement';
 import { parseFailedRecurringInvoice, failedInvoicePaymentIntentId, assertFailedRecurringProvider, type FailedRecurringInvoiceCandidate } from './stripe-recurring-failed-invoice';
 import { parseRecurringCancellation, assertRecurringCancellationProvider, type RecurringCancellationCandidate } from './stripe-recurring-cancellation';
+import { assertRecurringReversalProvider, type RecurringReversalLedger } from './stripe-recurring-reversal';
 import { parseSignedRecurringCheckout, assertRecurringCheckoutBinding, type RecurringCheckoutCandidate } from './stripe-recurring-checkout-binding';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
@@ -314,6 +315,169 @@ export class StripeBillingService {
   /** Stripe's refund/dispute objects have no reliable tenant context. We retrieve
    * the PaymentIntent using server credentials and validate its immutable
    * server-authored Checkout metadata before opening any tenant transaction. */
+  /**
+   * C35: TEST-only reversal of an already settled recurring invoice.
+   * Provider subscription metadata routes to a tenant; only the locked
+   * immutable C32 settlement ledger establishes financial ownership.
+   * Refund/dispute events never create payments or grant access.
+   */
+  private async recordRecurringPaymentException(
+    event: NonNullable<ReturnType<typeof parseStripePaymentException>>,
+    digest: string, config: ReturnType<typeof stripeConfig>, intent: unknown) {
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring reversal is TEST-only and disabled');
+    const invoiceId = typeof (intent as any)?.invoice === 'string' ?
+      (intent as any).invoice : (intent as any)?.invoice?.id;
+    if (typeof invoiceId !== 'string' || !/^in_[A-Za-z0-9]+$/.test(invoiceId))
+      throw new ConflictException('Recurring reversal invoice reference is invalid');
+    const getStripe = async (path: string): Promise<any> => {
+      let response: Response;
+      try {
+        response = await stripeApiFetch('https://api.stripe.com/v1/' + path, {
+          headers: { Authorization: 'Bearer ' + config.key },
+          signal: AbortSignal.timeout(12_000),
+        });
+      } catch { throw new BadGatewayException('Recurring reversal provider lookup unavailable'); }
+      if (!response.ok) throw new BadGatewayException('Recurring reversal provider lookup rejected');
+      try { return await readStripeApiJson(response); }
+      catch { throw new BadGatewayException('Invalid recurring reversal provider response'); }
+    };
+    const invoice = await getStripe('invoices/' + invoiceId);
+    const subRef = invoice?.subscription ?? invoice?.parent?.subscription_details?.subscription;
+    const stripeSubscriptionId = typeof subRef === 'string' ? subRef : subRef?.id;
+    if (typeof stripeSubscriptionId !== 'string' ||
+        !/^sub_[A-Za-z0-9]+$/.test(stripeSubscriptionId))
+      throw new ConflictException('Recurring reversal subscription reference is invalid');
+    const subscription = await getStripe('subscriptions/' + stripeSubscriptionId);
+    const tenantId = subscription?.metadata?.tenantId;
+    if (typeof tenantId !== 'string' || !UUID.test(tenantId) ||
+        !UUID.test(subscription?.metadata?.planId ?? ''))
+      throw new ConflictException('Recurring reversal tenant routing is invalid');
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const record = rows(await tx.execute(sql`
+        SELECT b.tenant_id AS "tenantId", b.subscription_id AS "subscriptionId",
+               b.plan_id AS "planId", b.stripe_subscription_id AS "stripeSubscriptionId",
+               b.stripe_customer_id AS "stripeCustomerId",
+               b.stripe_price_id AS "stripePriceId",
+               i.id AS "invoiceId", i.amount_minor AS "amountMinor",
+               i.currency, i.period_ends_at AS "periodEndsAt",
+               i.status AS "invoiceStatus",
+               s.status AS "localStatus", s.period_ends_at AS "localPeriodEndsAt",
+               p.code, p.price_minor AS "priceMinor",
+               p.billing_interval AS "billingInterval",
+               p.trial_days AS "trialDays", p.is_active AS "isActive",
+               pay.provider_payment_id AS "paymentIntentId",
+               e.details ->> 'stripeInvoiceId' AS "stripeInvoiceId"
+        FROM billing_stripe_recurring_bindings b
+        JOIN tenant_subscriptions s ON s.tenant_id = b.tenant_id
+          AND s.id = b.subscription_id AND s.plan_id = b.plan_id
+        JOIN subscription_plans p ON p.id = b.plan_id
+        JOIN subscription_events e ON e.tenant_id = b.tenant_id
+          AND e.subscription_id = b.subscription_id
+          AND e.event_type = 'billing.stripe_recurring_invoice_settled'
+          AND e.details ->> 'stripeInvoiceId' = ${invoiceId}
+        JOIN billing_invoices i ON i.tenant_id = e.tenant_id
+          AND i.id::text = e.details ->> 'invoiceId'
+          AND i.subscription_id = b.subscription_id
+        JOIN billing_payments pay ON pay.tenant_id = i.tenant_id
+          AND pay.invoice_id = i.id AND pay.provider = ${STRIPE_PROVIDER}
+          AND pay.provider_payment_id = ${event.paymentIntent}
+        WHERE b.tenant_id = ${tenantId}
+          AND b.stripe_subscription_id = ${stripeSubscriptionId}
+          AND b.plan_id = ${subscription.metadata.planId}
+        ORDER BY e.created_at DESC LIMIT 1
+        FOR UPDATE OF b, s, i, pay`))[0];
+      if (!record || record.invoiceStatus !== 'paid' ||
+          record.amountMinor !== record.priceMinor)
+        throw new ConflictException('Recurring reversal has no matching paid tenant settlement');
+      const ledger: RecurringReversalLedger = {
+        tenantId: record.tenantId, subscriptionId: record.subscriptionId,
+        planId: record.planId, stripeSubscriptionId: record.stripeSubscriptionId,
+        stripeCustomerId: record.stripeCustomerId, stripePriceId: record.stripePriceId,
+        stripeInvoiceId: record.stripeInvoiceId, paymentIntentId: record.paymentIntentId,
+        invoiceId: record.invoiceId, amountMinor: record.amountMinor,
+        currency: record.currency, periodEndsAt: new Date(record.periodEndsAt).toISOString(),
+      };
+      const plan: RecurringPlan = {
+        id: record.planId, code: record.code, priceMinor: record.priceMinor,
+        currency: record.currency, billingInterval: record.billingInterval,
+        trialDays: record.trialDays, isActive: record.isActive,
+      };
+      const remotePrice = await getStripe('prices/' + ledger.stripePriceId);
+      try { assertRecurringStripePrice(remotePrice, plan, ledger.stripePriceId, false); }
+      catch { throw new ConflictException('Recurring reversal price verification failed'); }
+      const charge = await getStripe('charges/' + event.chargeId);
+      const dispute = event.type.startsWith('dispute_') ?
+        await getStripe('disputes/' + event.providerObjectId) : null;
+      let verified: ReturnType<typeof assertRecurringReversalProvider>;
+      try {
+        verified = assertRecurringReversalProvider(event, intent, invoice, subscription,
+          charge, dispute, ledger, false);
+      } catch { throw new ConflictException('Recurring reversal provider or ledger mismatch'); }
+      const existing = rows(await tx.execute(sql`
+        SELECT invoice_id AS "invoiceId", payload_sha256 AS "digest"
+        FROM billing_webhook_receipts
+        WHERE tenant_id = ${tenantId} AND provider = ${STRIPE_PROVIDER}
+          AND provider_event_id = ${event.eventId}`))[0];
+      if (existing) {
+        if (existing.invoiceId !== ledger.invoiceId || existing.digest !== digest)
+          throw new ConflictException('Recurring reversal event identity was reused');
+        return { received: true, applied: false, duplicate: true,
+          invoiceId: ledger.invoiceId };
+      }
+      const latest = rows(await tx.execute(sql`
+        SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
+        ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
+      const pause = shouldPauseOnPaymentException(verified.type,
+        { id: record.subscriptionId, status: record.localStatus,
+          periodEndsAt: record.localPeriodEndsAt },
+        { subscriptionId: record.subscriptionId, periodEndsAt: record.periodEndsAt },
+        latest?.id ?? '');
+      const receipt = rows(await tx.execute(sql`
+        INSERT INTO billing_webhook_receipts
+          (tenant_id, invoice_id, provider, provider_event_id, payload_sha256)
+        VALUES (${tenantId}, ${ledger.invoiceId}, ${STRIPE_PROVIDER},
+                ${event.eventId}, ${digest})
+        ON CONFLICT (provider, provider_event_id) DO NOTHING RETURNING id`));
+      if (receipt.length !== 1)
+        throw new ConflictException('Recurring reversal event identity conflict');
+      await tx.execute(sql`
+        INSERT INTO billing_payment_exceptions
+          (tenant_id, invoice_id, provider, provider_event_id, provider_payment_id,
+           exception_type, amount_minor, currency, subscription_paused, details)
+        VALUES (${tenantId}, ${ledger.invoiceId}, ${STRIPE_PROVIDER},
+                ${event.eventId}, ${event.paymentIntent}, ${verified.type},
+                ${verified.amountMinor}, ${ledger.currency}, ${pause},
+                ${JSON.stringify({ providerObjectId: event.providerObjectId,
+                  chargeId: event.chargeId, signedType: event.type,
+                  stripeInvoiceId: ledger.stripeInvoiceId })}::jsonb)`);
+      if (pause) {
+        const changed = rows(await tx.execute(sql`
+          UPDATE tenant_subscriptions SET status = 'paused', updated_at = now()
+          WHERE tenant_id = ${tenantId} AND id = ${record.subscriptionId}
+            AND status = 'active'
+            AND period_ends_at = ${record.periodEndsAt}::timestamptz
+          RETURNING id`));
+        if (changed.length !== 1)
+          throw new ConflictException('Recurring reversal entitlement changed during reconciliation');
+      }
+      await tx.execute(sql`
+        INSERT INTO subscription_events
+          (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${record.subscriptionId},
+                'billing.stripe_recurring_payment_reversed',
+                ${JSON.stringify({ eventId: event.eventId,
+                  stripeInvoiceId: ledger.stripeInvoiceId,
+                  paymentIntentId: event.paymentIntent,
+                  type: verified.type, payloadSha256: digest,
+                  subscriptionPaused: pause })}::jsonb)`);
+      return { received: true, applied: true, needsReview: true,
+        subscriptionPaused: pause, invoiceId: ledger.invoiceId };
+    });
+  }
+
   private async handlePaymentException(event: NonNullable<ReturnType<typeof parseStripePaymentException>>,
                                        digest: string, config: ReturnType<typeof stripeConfig>) {
     let response: Response;
@@ -326,6 +490,10 @@ export class StripeBillingService {
     let intent: unknown;
     try { intent = await readStripeApiJson(response); }
     catch { throw new BadGatewayException('Invalid Stripe PaymentIntent response'); }
+    // Recurring Stripe invoices do not carry the one-time Checkout metadata.
+    // Never send their refunds/disputes through the legacy invoice handler.
+    if ((intent as any)?.invoice != null)
+      return this.recordRecurringPaymentException(event, digest, config, intent);
     let ref: { tenantId: string; invoiceId: string };
     try { ref = assertStripeExceptionIntent(intent, event, config.liveMode); }
     catch { throw new ConflictException('Payment exception requires manual Stripe reconciliation'); }
