@@ -449,37 +449,42 @@
     "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
   },
   "latestReviewOnlyIntegration": {
-    "label": "Q24",
+    "label": "Q25",
     "date": "2026-10-31",
-    "branch": "integration/q24-e24-f28-c22-s24-20261031",
-    "baseSha": "c9babbc79c0cf7d6221b5ab28ad7c298382e3abf",
+    "branch": "integration/q25-e25-f30-c24-20261031",
+    "baseSha": "49ddc2c0df9ab53cdb94d54fc5aa31e0b584c9e1",
     "candidateSha": null,
     "ciStatus": "PENDING_EXACT_FINAL_SHA",
     "releaseDecision": "NO-GO",
     "sourcePullRequests": [
-      110,
-      111,
-      112,
-      113,
-      114
+      116,
+      117,
+      118,
+      119,
+      120
     ],
     "sourceShas": [
-      "e911c46e03a107444963d78335912edfa6d70610",
-      "859ca7fa6a645f0169d62f30fccde8c4d80263aa",
-      "f206192df2a0dd77ea55dfeeda1141a909eae6e8",
-      "5fed9e1c681bccdf5ca04f0da8ff26308e2b64a5"
+      "bf3f380c748742a4c6e0fde72c285e6a7606c76f",
+      "e4ecee8c578ac466689be8f4e3bed50869c3a2f6",
+      "cf3e71dfd32398db4f708e3aa1ccba2b3a500dd6"
     ],
     "sourceWorkflowRuns": [
-      41178896802,
-      41179686516,
-      41179759842,
-      41180674854,
-      41181279764
+      41182967853,
+      41183764266,
+      41184607941
     ],
-    "sourceFileCount": 13,
+    "sourceFileCount": 11,
+    "excludedPending": [
+      {
+        "pr": 121,
+        "sha": "71d8eeef66fa2f1ac92413e0694df03a36108dab",
+        "workflowRun": 41185803183,
+        "reason": "Final exact-SHA CI in progress at integration decision; no queued/running pass"
+      }
+    ],
     "externalAcceptedGates": 0,
     "providerStripeTestScenariosAccepted": 0,
-    "limitations": "Source workflows completed SUCCESS 4/4 each; combined Q24 CI not yet verified. Public HTTPS staging, two-user Entra, Stripe TEST 0/7, staging RLS, encrypted restore, independent 375px/desktop RTL browser UAT, legal/support remain unaccepted."
+    "limitations": "Source CI completed SUCCESS 4/4 each; combined Q25 CI pending. No independent HTTPS staging, two-user Entra, real Stripe TEST, staging RLS, encrypted restore, browser/mobile/Arabic RTL or legal/support acceptance."
   },
   "lastIndependentIntegrationQ23Ci": {
     "pr": 109,
@@ -487,5 +492,12 @@
     "workflowRun": 41178390365,
     "ci": "SUCCESS_4_OF_4_85_OF_85_STEPS",
     "scope": "CI-local only; does not satisfy provider/staging/browser/recovery acceptance"
+  },
+  "lastIndependentIntegrationQ24Ci": {
+    "pr": 115,
+    "sha": "49ddc2c0df9ab53cdb94d54fc5aa31e0b584c9e1",
+    "workflowRun": 41182378680,
+    "ci": "SUCCESS_4_OF_4_85_OF_85_STEPS",
+    "scope": "CI-local only; no provider/staging/browser/recovery acceptance"
   }
 }

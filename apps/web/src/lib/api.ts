@@ -1,8 +1,11 @@
 import { cookies } from 'next/headers';
+import { cache } from 'react';
 import type { Project, Portfolio, GateSummary, RaidItem, Task } from '@pmo/contracts';
 import { fetchAuthenticatedApi } from './authenticated-api-fetch.mjs';
 import { safeApiFailure } from './safe-api-error.mjs';
-import { readBoundedUpstreamText } from './bounded-upstream-body.mjs';
+import { readBoundedUpstreamText, readBoundedUpstreamJson } from './bounded-upstream-body.mjs';
+import { validSessionEnvelope } from './session-envelope.mjs';
+import { readBoundedSuccessJson } from './bounded-success-json.mjs';
 import { sessionFailureKind } from './session-failure.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -22,7 +25,7 @@ export class ApiError extends Error {
   get isForbidden() { return this.status === 403; }
 }
 
-async function get<T>(path: string): Promise<T> {
+async function get<T>(path: string, maxResponseBytes?: number): Promise<T> {
   const res = await fetchAuthenticatedApi(fetch, `${BASE}${path}`, await authHeader());
   if (!res.ok) {
     // Preserve only fixed licensing classifications needed by the UI.
@@ -32,7 +35,20 @@ async function get<T>(path: string): Promise<T> {
     const failure = safeApiFailure(res.status, licenseBody);
     throw new ApiError(failure.status, failure.message, failure.detail);
   }
-  return res.json() as Promise<T>;
+  if (maxResponseBytes !== undefined) {
+    // Session verification is a privileged request, not an unlimited JSON sink.
+    // Reject incomplete, malformed or oversized bodies rather than accepting
+    // a partial session or exhausting the Next.js server process.
+    const body = await readBoundedUpstreamJson(res, maxResponseBytes);
+    if (body === null) throw new ApiError(503, 'Invalid API response');
+    return body as T;
+  }
+  try {
+    return await readBoundedSuccessJson(res, 16 * 1024 * 1024) as T;
+  } catch {
+    // Do not expose upstream payloads, parser errors or stream diagnostics.
+    throw new ApiError(502, 'Invalid API response');
+  }
 }
 
 export type Session =
@@ -41,8 +57,18 @@ export type Session =
       tenantId: string; tenantName: string; role: string; capabilities: string[];
       tenants: { tenantId: string; name: string; slug: string; role: string }[] };
 
+/** Share one verified session response across the layout and nested pages.
+ * Without request-scoped caching, an intermittent outage after layout auth
+ * can make a page believe the same signed-in user has been logged out.
+ */
+const readSession = cache(async (): Promise<Session> => {
+  const value = await get<unknown>('/auth/session', 65536);
+  if (!validSessionEnvelope(value)) throw new ApiError(503, 'Invalid session response');
+  return value as Session;
+});
+
 export async function getSession(): Promise<Session> {
-  try { return await get<Session>('/auth/session'); }
+  try { return await readSession(); }
   catch { return { authenticated: false }; }
 }
 
@@ -52,7 +78,7 @@ export async function getSession(): Promise<Session> {
  * session verification could not complete.
  */
 export async function getLayoutSession(): Promise<Session | { authenticated: false; unavailable: true }> {
-  try { return await get<Session>('/auth/session'); }
+  try { return await readSession(); }
   catch (error) {
     const status = error instanceof ApiError ? error.status : null;
     return sessionFailureKind(status) === 'signed-out'
