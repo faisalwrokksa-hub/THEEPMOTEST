@@ -39,7 +39,7 @@ export type VerifiedRecurringSettlement = Readonly<{
 
 function oneItem(value: unknown, message: string): any {
   const items = (value as any)?.data;
-  if (!Array.isArray(items) || items.length !== 1 || !items[0] || typeof items[0] !== 'object')
+  if ((value as any)?.has_more === true || !Array.isArray(items) || items.length !== 1 || !items[0] || typeof items[0] !== 'object')
     throw new Error(message);
   return items[0];
 }
@@ -112,7 +112,11 @@ export function assertRecurringProviderSettlement(
       invoice.total !== plan.priceMinor || invoice.amount_remaining !== 0)
     throw new Error('Stripe Invoice GET does not confirm the signed paid invoice');
   const line = oneItem(invoice.lines, 'Recurring invoice must contain exactly one service line');
-  const linePrice = reference(line.price) ?? line.pricing?.price_details?.price;
+  const oldPrice = reference(line.price);
+  const newPrice = line.pricing?.price_details?.price;
+  if (oldPrice && newPrice && oldPrice !== newPrice)
+    throw new Error('Conflicting Stripe invoice service price references');
+  const linePrice = oldPrice ?? newPrice;
   if (linePrice !== binding.stripePriceId || line.quantity !== 1 ||
       line.amount !== plan.priceMinor || line.proration === true ||
       (line.type != null && line.type !== 'subscription'))
@@ -144,7 +148,8 @@ export function assertRecurringProviderSettlement(
   const invoicePayment = invoice.payments?.data;
   const paymentFromList = Array.isArray(invoicePayment) && invoicePayment.length === 1 ?
     reference(invoicePayment[0]?.payment?.payment_intent) : null;
-  if (Array.isArray(invoicePayment) && invoicePayment.length !== 1)
+  if (invoice.payments?.has_more === true ||
+      (Array.isArray(invoicePayment) && invoicePayment.length !== 1))
     throw new Error('Recurring invoice has ambiguous payment records');
   if (paymentRef && paymentFromList && paymentRef !== paymentFromList)
     throw new Error('Conflicting Stripe invoice payment references');
