@@ -31,6 +31,8 @@ test('S29: resolved Compose isolates private services without published data por
     PG_DB: 'pmo', REDIS_PASSWORD: 'ci_placeholder_only',
     DATABASE_URL: 'postgres://pmo_app:ci_placeholder_only@postgres:5432/pmo',
     REDIS_URL: 'redis://:ci_placeholder_only@redis:6379',
+    // Match the approved isolated staging environment, not the production default.
+    DEPLOYMENT_ENV: 'staging',
     WEB_ORIGIN: 'https://staging.theepmo.com',
     PUBLIC_API_URL: 'https://api-staging.theepmo.com',
     WEB_BIND: '127.0.0.1', WEB_PORT: '3001',
