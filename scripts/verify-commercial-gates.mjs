@@ -4,6 +4,7 @@
  * Complete metadata means ready for independent provider review, never launch approval.
  */
 import { readFileSync } from 'node:fs';
+import { isIP } from 'node:net';
 import { fileURLToPath } from 'node:url';
 
 export const REQUIRED_GATES = Object.freeze([
@@ -19,10 +20,16 @@ export const STRIPE_SCENARIOS = Object.freeze([
   'cross_tenant_billing_isolation',
 ]);
 const SHA = /^[a-f0-9]{40}$/i;
+// Release receipts must be stable, public review links, not loopback/private or fixture endpoints.
+function publicEvidenceHost(hostname) {
+  const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  return host.includes('.') && !isIP(host) &&
+    !/(?:^|\.)(?:localhost|local|internal|invalid|example|test|onion|arpa)$/.test(host);
+}
 function validUrl(value) {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && !!url.hostname && url.pathname !== '/' &&
+    return url.protocol === 'https:' && publicEvidenceHost(url.hostname) && url.pathname !== '/' &&
       !url.username && !url.password && !url.hash &&
       !url.hostname.endsWith('.example') && !url.hostname.endsWith('.test');
   } catch { return false; }
