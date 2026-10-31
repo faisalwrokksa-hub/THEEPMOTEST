@@ -4,8 +4,8 @@ import { readFileSync } from 'node:fs';
 
 const service = readFileSync(new URL('./stripe.service.ts', import.meta.url), 'utf8');
 const start = service.indexOf('private async bindRecurringCheckout(');
-// C32 adds a separate settlement method; keep C30's pending-only scope precise.
-const end = service.indexOf('private async settleRecurringInvoice(', start);
+// C33 adds a separate cancellation method before C32 settlement; keep C30 pending-only.
+const end = service.indexOf('private async recordRecurringCancellation(', start);
 const binding = service.slice(start, end);
 const webhook = service.slice(service.indexOf('async webhook('));
 
