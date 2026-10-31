@@ -20,11 +20,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(target, 303);
   }
   const response = await fetch(`${BASE}${path}`, {
-    method: 'POST', cache: 'no-store',
+    method: 'POST', cache: 'no-store', redirect: 'error',
     headers: { 'content-type': 'application/json', cookie: `${COOKIE}=${token}` },
     body: '{}',
   }).catch(() => null);
-  if (!response?.ok) {
+  // Never forward the authenticated session cookie through an upstream redirect.
+  if (!response || response.redirected || (response.status >= 300 && response.status < 400) || !response.ok) {
     target.searchParams.set('error', 'subscription-action-failed');
     return NextResponse.redirect(target, 303);
   }
