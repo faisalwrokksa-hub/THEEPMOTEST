@@ -62,3 +62,28 @@ test('S37 refuses ambiguous region and missing explicit credentials', () => {
     { ...safe(), AWS_REGION: 'http://example.com' }])
     assert.throws(() => isolatedAwsEnvironment(e));
 });
+
+
+// Integration regression: the S34 entrypoint must invoke the boundary before Docker/AWS I/O.
+// No Docker or AWS installation is required for this rejection test.
+test('S37 S34 drill rejects remote Docker and AWS profile before any external I/O', async () => {
+  const { randomBytes } = await import('node:crypto');
+  const { mkdtempSync, writeFileSync, rmSync } = await import('node:fs');
+  const { tmpdir } = await import('node:os');
+  const { join } = await import('node:path');
+  const { runSyntheticDrill } = await import('./staging-synthetic-recovery.mjs');
+  const dir = mkdtempSync(join(tmpdir(), 'epmo-s37-integration-'));
+  try {
+    const keyPath = join(dir, 'key');
+    writeFileSync(keyPath, randomBytes(32), { mode: 0o600 });
+    const env = { DEPLOYMENT_ENV: 'staging', EPMO_SYNTHETIC_ONLY: 'YES',
+      EPMO_REMOTE_IO_APPROVED: 'YES', EPMO_RECOVERY_KEY_FILE: keyPath,
+      EPMO_RECOVERY_S3_PREFIX: 's3://epmo-test-bucket/epmo-synthetic-drills/staging',
+      EPMO_PG_IMAGE: 'postgres:16-alpine@sha256:' + 'a'.repeat(64),
+      AWS_ACCESS_KEY_ID: 'TEST_ONLY_KEY', AWS_SECRET_ACCESS_KEY: 'TEST_ONLY_SECRET',
+      AWS_REGION: 'eu-central-1' };
+    for (const delta of [{ DOCKER_HOST: 'tcp://prod.example:2376' },
+      { AWS_PROFILE: 'production' }, { AWS_ENDPOINT_URL_S3: 'http://127.0.0.1:9000' }])
+      await assert.rejects(runSyntheticDrill({ ...env, ...delta }), /Refusing inherited/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+});
