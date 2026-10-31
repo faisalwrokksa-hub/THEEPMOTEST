@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { validInvitationToken } from '@/lib/invitation-feedback.mjs';
+import { readBoundedBrowserJson } from '@/lib/bounded-browser-json.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const NO_STORE = { 'cache-control': 'no-store' };
@@ -9,7 +10,10 @@ const NO_STORE = { 'cache-control': 'no-store' };
 export async function POST(req: NextRequest) {
   const unsafe = rejectUnsafeBrowserMutation(req);
   if (unsafe) return unsafe;
-  const body = await req.json().catch(() => null);
+  const parsed = await readBoundedBrowserJson(req);
+  if (!parsed.value) return NextResponse.json({ message: 'Invalid invitation submission' },
+    { status: parsed.error === 'too-large' ? 413 : 400, headers: NO_STORE });
+  const body = parsed.value;
   if (!body || !validInvitationToken(body.token) ||
       typeof body.displayName !== 'string' || body.displayName.length > 120 ||
       typeof body.password !== 'string' || body.password.length > 200)
