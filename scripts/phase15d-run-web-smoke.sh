@@ -69,3 +69,11 @@ if [[ "${EPMO_BROWSER_UAT:-0}" == "1" ]]; then
   EPMO_UAT_MODE=public EPMO_UAT_URL=http://127.0.0.1:3000 \
     EPMO_UAT_OUT=/tmp/epmo-browser-uat node scripts/frontend-browser-uat.mjs
 fi
+
+# Opt-in authenticated F44 journeys require two disposable .test accounts.
+# They cannot be mistaken for real staging acceptance or run without credentials.
+if [[ "${EPMO_CUSTOMER_JOURNEY:-0}" == "1" ]]; then
+  EPMO_UAT_URL=http://127.0.0.1:3000 \
+    EPMO_UAT_OUT=/tmp/epmo-customer-journey \
+    node scripts/frontend-customer-journey.mjs
+fi
