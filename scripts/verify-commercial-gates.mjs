@@ -24,13 +24,18 @@ const SHA = /^[a-f0-9]{40}$/i;
 function publicEvidenceHost(hostname) {
   const host = hostname.replace(/^\[|\]$/g, '').toLowerCase();
   return host.includes('.') && !isIP(host) &&
-    !/(?:^|\.)(?:localhost|local|internal|invalid|example|test|onion|arpa)$/.test(host);
+    !/(?:^|\.)(?:localhost|local|internal|invalid|example|test|onion|arpa)$/.test(host) &&
+    !/(?:^|\.)(?:example\.com|example\.net|example\.org)$/.test(host);
 }
 function validUrl(value) {
   try {
     const url = new URL(value);
+    // Never store signed links, API keys or bearer credentials in release manifests.
+    // Evidence URLs must remain reviewable without exposing a secret in the query string.
+    const credentialQuery = [...url.searchParams.keys()].some(key =>
+      /(?:^|[_-])(?:token|secret|password|api[_-]?key|signature|sig|authorization|credential)(?:$|[_-])/i.test(key));
     return url.protocol === 'https:' && publicEvidenceHost(url.hostname) && url.pathname !== '/' &&
-      !url.username && !url.password && !url.hash &&
+      !url.username && !url.password && !url.hash && !credentialQuery &&
       !url.hostname.endsWith('.example') && !url.hostname.endsWith('.test');
   } catch { return false; }
 }
