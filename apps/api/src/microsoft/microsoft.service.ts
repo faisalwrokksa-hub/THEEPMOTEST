@@ -503,6 +503,21 @@ export class MicrosoftService {
                 file: { buffer: Buffer; originalname: string; mimetype?: string }) {
     requireCapability('pmoa_manage_projects');
     const { tenantId, userId } = this.ctx();
+
+    // Foreign-key existence alone does not enforce the tenant or project of
+    // gate evidence. Refuse invalid references before writing customer bytes
+    // to Graph, even when a criterion UUID exists in another workspace.
+    if (b.criterionId) {
+      const [validCriterion] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
+        SELECT gc.id FROM gate_criteria AS gc
+        JOIN gates AS g ON g.id = gc.gate_id
+        WHERE gc.id = ${b.criterionId} AND gc.tenant_id = ${tenantId}
+          AND g.tenant_id = ${tenantId}
+          AND (${b.projectId ?? null}::uuid IS NULL OR g.project_id = ${b.projectId ?? null}::uuid)`)));
+      if (!validCriterion) {
+        throw new NotFoundException('No such gate criterion in this workspace or project.');
+      }
+    }
     const token = await this.accessToken('graph');
 
     const c = await withTenant(tenantId, (tx) => this.connection(tx));
@@ -546,6 +561,20 @@ export class MicrosoftService {
       if (!active) {
         throw new ConflictException(
           'Microsoft connection or document location changed during upload. Reconnect and retry.');
+      }
+      // Recheck the evidence association under locks at finalization: a
+      // criterion/gate may have changed while Graph accepted the file.
+      if (b.criterionId) {
+        const [validCriterion] = rows(await tx.execute(sql`
+          SELECT gc.id FROM gate_criteria AS gc
+          JOIN gates AS g ON g.id = gc.gate_id
+          WHERE gc.id = ${b.criterionId} AND gc.tenant_id = ${tenantId}
+            AND g.tenant_id = ${tenantId}
+            AND (${b.projectId ?? null}::uuid IS NULL OR g.project_id = ${b.projectId ?? null}::uuid)
+          FOR SHARE OF gc, g`));
+        if (!validCriterion) {
+          throw new ConflictException('Gate evidence criterion changed during upload. Retry.');
+        }
       }
       const [d] = rows(await tx.execute(sql`
         INSERT INTO documents (tenant_id, project_id, criterion_id, name, kind, version, status,
