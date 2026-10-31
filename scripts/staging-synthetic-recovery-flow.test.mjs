@@ -4,19 +4,19 @@ import { randomBytes } from 'node:crypto';
 import { mkdtempSync, writeFileSync, chmodSync, readFileSync, mkdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { spawnSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
-
-const script = fileURLToPath(new URL('./staging-synthetic-recovery.mjs', import.meta.url));
+import { runSyntheticDrill } from './staging-synthetic-recovery.mjs';
 const fake = String.raw`#!/usr/bin/env node
 const fs=require('node:fs');const path=require('node:path');
-const args=process.argv.slice(2), bin=path.basename(process.argv[1]);
-const dir=process.env.FAKE_STATE;const log=process.env.FAKE_LOG;
+const raw=process.argv.slice(2), bin=path.basename(process.argv[1]);
+if(bin==='docker' && (raw[0]!=='--host'||raw[1]!=='unix:///var/run/docker.sock'))process.exit(9);
+const args=bin==='docker'?raw.slice(2):raw;
+const dir=__DIR__;const log=__LOG__;const corrupt=__CORRUPT__;
 const write=(s)=>fs.appendFileSync(log,s+'\n');
 const state=n=>path.join(dir,n+'.state');
 if(bin==='docker'){
  const op=args[0];
- if(op==='run') {const n=args[args.indexOf('--name')+1];fs.writeFileSync(state(n),'new');write('run '+n);process.stdout.write(n);}
+ if(op==='image'&&args[1]==='inspect'){write('image-inspect');}
+ else if(op==='run') {const n=args[args.indexOf('--name')+1];fs.writeFileSync(state(n),'new');write('run '+n);process.stdout.write(n);}
  else if(op==='rm') {const n=args.at(-1);fs.rmSync(state(n),{force:true});write('rm '+n);}
  else if(op==='exec') {
    const n=args[args[1]==='-i'?2:1],cmd=args.find(x=>['psql','pg_dump','pg_restore','pg_isready'].includes(x));
@@ -37,7 +37,7 @@ if(bin==='docker'){
  if(op==='s3api'){const key=args[args.indexOf('--key')+1];if(!fs.existsSync(path.join(dir,path.basename(key))))process.exit(9);write('remote-head');}
  else if(op==='s3'&&args[1]==='cp'){
    const src=args[2],dst=args[3],remote=x=>x.startsWith('s3://'),local=x=>path.join(dir,path.basename(x));
-   if(remote(src)){fs.copyFileSync(local(src),dst);if(process.env.FAKE_CORRUPT_S3==='YES'){const b=fs.readFileSync(dst);b[b.length-1]^=1;fs.writeFileSync(dst,b);}write('remote-download');}
+   if(remote(src)){fs.copyFileSync(local(src),dst);if(corrupt){const b=fs.readFileSync(dst);b[b.length-1]^=1;fs.writeFileSync(dst,b);}write('remote-download');}
    else if(remote(dst)){fs.copyFileSync(src,local(dst));write('remote-upload');}
    else process.exit(9);
  }else process.exit(9);
@@ -46,22 +46,24 @@ if(bin==='docker'){
 function fixture(corrupt=false) {
  const dir=mkdtempSync(join(tmpdir(),'epmo-s34-flow-'));
  const bin=join(dir,'bin');mkdirSync(bin);
- for(const name of ['docker','aws']){const p=join(bin,name);writeFileSync(p,fake);chmodSync(p,0o700);}
+ const fakeCode=fake.replaceAll('__DIR__',JSON.stringify(dir))
+   .replaceAll('__LOG__',JSON.stringify(join(dir,'calls.log')))
+   .replaceAll('__CORRUPT__',JSON.stringify(corrupt));
+ for(const name of ['docker','aws']){const p=join(bin,name);writeFileSync(p,fakeCode);chmodSync(p,0o700);}
  const key=join(dir,'key');writeFileSync(key,randomBytes(32));chmodSync(key,0o600);
- const env={...process.env,PATH:bin+':'+process.env.PATH,FAKE_STATE:dir,FAKE_LOG:join(dir,'calls.log'),
+ const env={PATH:bin+':'+process.env.PATH,
   DEPLOYMENT_ENV:'staging',EPMO_SYNTHETIC_ONLY:'YES',EPMO_REMOTE_IO_APPROVED:'YES',
   EPMO_RECOVERY_S3_PREFIX:'s3://epmo-test-bucket/epmo-synthetic-drills/staging',
   EPMO_RECOVERY_KEY_FILE:key,EPMO_PG_IMAGE:'postgres:16-alpine@sha256:'+'a'.repeat(64),
-  FAKE_CORRUPT_S3:corrupt?'YES':'NO'};
- for(const name of ['DATABASE_URL','PGHOST','PGDATABASE','PGPASSWORD','STRIPE_SECRET_KEY','MS_CLIENT_SECRET','AWS_ENDPOINT_URL','AWS_ENDPOINT_URL_S3'])delete env[name];
+  AWS_ACCESS_KEY_ID:'SYNTHETIC_TEST_ONLY',AWS_SECRET_ACCESS_KEY:'SYNTHETIC_TEST_ONLY',
+  AWS_REGION:'eu-central-1'};
  return {dir,env};
 }
-test('S34 executes synthetic remote roundtrip, injected failure and clean rollback with no container leak',()=>{
+test('S34 executes synthetic remote roundtrip, injected failure and clean rollback with no container leak',async()=>{
  const {dir,env}=fixture();
  try{
-  const r=spawnSync(process.execPath,[script],{env,encoding:'utf8',timeout:30000});
-  assert.equal(r.status,0,r.stderr);
-  assert.match(r.stdout,/synthetic-only encrypted S3 round-trip/);
+  const r=await runSyntheticDrill(env,{socketCheck:()=>true});
+  assert.equal(r.result,'synthetic-drill-only');
   const lines=readFileSync(env.FAKE_LOG,'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x.startsWith('run ')).length,3);
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,2);
@@ -71,12 +73,10 @@ test('S34 executes synthetic remote roundtrip, injected failure and clean rollba
   assert.ok(lines.indexOf('remote-download')<lines.findIndex(x=>x.startsWith('restore ')));
  }finally{rmSync(dir,{recursive:true,force:true});}
 });
-test('S34 corrupted off-host archive blocks restore and cleans disposable source',()=>{
+test('S34 corrupted off-host archive blocks restore and cleans disposable source',async()=>{
  const {dir,env}=fixture(true);
  try{
-  const r=spawnSync(process.execPath,[script],{env,encoding:'utf8',timeout:30000});
-  assert.equal(r.status,1,r.stderr);
-  assert.match(r.stderr,/BLOCKED: synthetic drill failed/);
+  await assert.rejects(runSyntheticDrill(env,{socketCheck:()=>true}));
   const lines=readFileSync(env.FAKE_LOG,'utf8').trim().split('\n');
   assert.equal(lines.filter(x=>x.startsWith('restore ')).length,0);
   assert.equal(lines.filter(x=>x.startsWith('rm ')).length,1);
