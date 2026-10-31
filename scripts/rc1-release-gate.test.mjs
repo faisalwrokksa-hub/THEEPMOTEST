@@ -16,7 +16,10 @@ const good = {
 const failed=(v,mode='staging')=>validateRc1Configuration(v,mode).filter(c=>!c.passed).map(c=>c.name);
 test('staging configuration passes when complete and safe',()=>assert.deepEqual(failed(good),[]));
 test('production accepts only live keys and no staging exemption',()=>{
- const env={...good,DEPLOYMENT_ENV:'production',STRIPE_SECRET_KEY:'sk_live_12345678901234567890',STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false'};
+ const env={...good,DEPLOYMENT_ENV:'production',STRIPE_SECRET_KEY:'sk_live_12345678901234567890',
+   STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION:'false', WEB_ORIGIN:'https://theepmo.com',
+   PUBLIC_API_URL:'https://api.theepmo.com',
+   STRIPE_WEBHOOK_PUBLIC_URL:'https://api.theepmo.com/api/v1/billing/stripe-webhook'};
  assert.deepEqual(failed(env,'production'),[]);
 });
 test('staging rejects live keys even with override',()=>assert.ok(failed({...good,STRIPE_SECRET_KEY:'sk_live_12345678901234567890'}).some(c=>c.includes('test key'))));
@@ -47,4 +50,35 @@ test('rejects publicly bound web container port in staging or production', () =>
   assert.ok(failed({...good, WEB_BIND:'0.0.0.0'}).some(c=>c.includes('loopback')));
   assert.ok(failed({...good, WEB_BIND:'::'}).some(c=>c.includes('loopback')));
   assert.deepEqual(failed({...good, WEB_BIND:'127.0.0.1'}),[]);
+});
+
+test('RC1 rejects cross-environment and spoofed public origins before staging deployment', () => {
+  const invalid = [
+    ['WEB_ORIGIN', 'https://theepmo.com', 'Canonical web origin matches deployment target'],
+    ['PUBLIC_API_URL', 'https://api.theepmo.com', 'Canonical API origin matches deployment target'],
+    ['WEB_ORIGIN', 'https://staging.theepmo.com.evil.example', 'Canonical web origin matches deployment target'],
+    ['PUBLIC_API_URL', 'https://api-staging.theepmo.com.evil.example', 'Canonical API origin matches deployment target'],
+    ['WEB_ORIGIN', 'https://127.0.0.1', 'Canonical web origin matches deployment target'],
+    ['PUBLIC_API_URL', 'https://api-staging.theepmo.com:8443', 'Canonical API origin matches deployment target'],
+  ];
+  for (const [key, value, expected] of invalid)
+    assert.ok(failed({ ...good, [key]: value }).includes(expected), key + ': ' + value);
+});
+
+test('RC1 production origins are exact canonical theepmo.com hosts', () => {
+  const production = {
+    ...good, DEPLOYMENT_ENV: 'production',
+    STRIPE_SECRET_KEY: 'sk_live_12345678901234567890',
+    STRIPE_ALLOW_TEST_MODE_IN_PRODUCTION: 'false',
+    WEB_ORIGIN: 'https://theepmo.com',
+    PUBLIC_API_URL: 'https://api.theepmo.com',
+    STRIPE_WEBHOOK_PUBLIC_URL: 'https://api.theepmo.com/api/v1/billing/stripe-webhook',
+  };
+  assert.deepEqual(failed(production, 'production'), []);
+  for (const [key, value, expected] of [
+    ['WEB_ORIGIN', 'https://staging.theepmo.com', 'Canonical web origin matches deployment target'],
+    ['PUBLIC_API_URL', 'https://api-staging.theepmo.com', 'Canonical API origin matches deployment target'],
+    ['WEB_ORIGIN', 'https://www.theepmo.com', 'Canonical web origin matches deployment target'],
+    ['PUBLIC_API_URL', 'https://api.theepmo.com.evil.example', 'Canonical API origin matches deployment target'],
+  ]) assert.ok(failed({ ...production, [key]: value }, 'production').includes(expected), key);
 });

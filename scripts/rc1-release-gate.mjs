@@ -79,12 +79,19 @@ function redisUrl(value, password) {
 /** Return checks rather than throwing to present every blocker at once. */
 export function validateRc1Configuration(env, mode) {
   if (!['staging','production'].includes(mode)) throw new Error('Expected staging or production mode');
+  // Release preflight must reject a valid HTTPS URL for the wrong environment.
+  // This is an offline origin allowlist, NOT proof of DNS/TLS reachability.
+  const expectedOrigins = mode === 'staging'
+    ? { web: 'https://staging.theepmo.com', api: 'https://api-staging.theepmo.com' }
+    : { web: 'https://theepmo.com', api: 'https://api.theepmo.com' };
   const stripeMode = mode === 'staging' ? 'test' : 'live';
   const keyPattern = mode === 'staging' ? /^sk_test_[A-Za-z0-9]{12,}$/ : /^sk_live_[A-Za-z0-9]{12,}$/;
   return [
     ['Deployment mode matches this release target', env.DEPLOYMENT_ENV === mode],
     ['HTTPS web origin', httpsOrigin(env.WEB_ORIGIN)],
     ['HTTPS public API origin', httpsOrigin(env.PUBLIC_API_URL)],
+    ['Canonical web origin matches deployment target', env.WEB_ORIGIN === expectedOrigins.web],
+    ['Canonical API origin matches deployment target', env.PUBLIC_API_URL === expectedOrigins.api],
     // Only the TLS reverse proxy should be reachable from the public network.
     ['Web container host port is bound to loopback', !env.WEB_BIND || env.WEB_BIND === '127.0.0.1'],
     ['Stripe webhook matches public API origin and exact path', webhookMatches(env.PUBLIC_API_URL,env.STRIPE_WEBHOOK_PUBLIC_URL)],
