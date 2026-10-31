@@ -3,6 +3,7 @@ import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { safeMutationError } from '@/lib/safe-mutation-feedback.mjs';
+import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -16,7 +17,12 @@ export async function POST(req: NextRequest) {
   if (unsafe) return unsafe;
   const session = req.cookies.get('pmo_session')?.value;
   if (!session) return NextResponse.redirect(publicUrl(req, '/login'), 303);
-  const form = await req.formData();
+  const parsed = await readBoundedBrowserForm(req);
+  if (!parsed.form) return NextResponse.json({
+    error: parsed.error === 'too-large'
+      ? 'Form submission exceeds the size limit.' : 'Invalid form submission.',
+  }, { status: parsed.error === 'too-large' ? 413 : 400 });
+  const form = parsed.form;
   const get = (key: string) => String(form.get(key) ?? '').trim();
   const action = get('action');
   const target = publicUrl(req, '/settings');
