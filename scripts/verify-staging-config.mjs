@@ -23,6 +23,7 @@ function dbUrl(value) {
   try {
     const u = new URL(value);
     return ['postgres:', 'postgresql:'].includes(u.protocol) && !!u.hostname &&
+      !u.search && !u.hash &&
       !!u.username && validSecret(decodeURIComponent(u.password)) && !!u.pathname.slice(1);
   } catch { return false; }
 }
@@ -38,10 +39,10 @@ export function checkStagingSecurity(env) {
     ['Canonical staging API origin', env.PUBLIC_API_URL === 'https://api-staging.theepmo.com'],
     ['Distinct API and web origins', !!env.PUBLIC_API_URL && env.PUBLIC_API_URL !== env.WEB_ORIGIN],
     ['Database connection has non-placeholder credentials', dbUrl(env.DATABASE_URL)],
-    ['Redis connection has non-placeholder password', (() => {try {const u=new URL(env.REDIS_URL);return ['redis:','rediss:'].includes(u.protocol) && validSecret(decodeURIComponent(u.password));}catch{return false;}})()],
+    ['Redis connection has non-placeholder password', (() => {try {const u=new URL(env.REDIS_URL);return ['redis:','rediss:'].includes(u.protocol) && !u.search && !u.hash && validSecret(decodeURIComponent(u.password));}catch{return false;}})()],
     ['Stripe configuration never uses live key in staging', !/^(?:sk|rk)_live_/.test(String(env.STRIPE_SECRET_KEY || ''))],
     ['Reference billing webhook disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
-    ['No production deployment mode', env.NODE_ENV !== 'development' && env.DEPLOYMENT_ENV !== 'production'],
+    ['Production Node runtime required for staging', env.NODE_ENV === 'production' && env.DEPLOYMENT_ENV !== 'production'],
   ];
   return checks.map(([name, passed]) => ({ name, passed }));
 }
