@@ -10,16 +10,16 @@ test('cached Checkout session is revalidated before returning a payment navigati
   const end = service.indexOf('// Stripe caches requests by idempotency key.', begin);
   assert.ok(begin >= 0 && end > begin, 'cached Checkout branch must exist');
   const cached = service.slice(begin, end);
-  assert.match(cached, /stripeCheckoutUrlAllowed\(existing\.url\)/);
+  assert.match(cached, /stripeCheckoutReferenceValid\(existing\.url, existing\.sessionId\)/);
   assert.match(cached, /existing\.sessionId\.startsWith\('cs_live_'\) !== config\.liveMode/);
   assert.match(cached, /Stored Stripe Checkout reference failed validation/);
-  assert.ok(cached.indexOf('stripeCheckoutUrlAllowed(existing.url)') < cached.indexOf('return { invoiceId'),
+  assert.ok(cached.indexOf('stripeCheckoutReferenceValid(existing.url, existing.sessionId)') < cached.indexOf('return { invoiceId'),
     'cached URL must be validated before returning it');
 });
 
 test('a null or malformed Stripe API JSON object cannot bypass response validation', () => {
   assert.match(service, /const url = session && typeof session\.url === 'string'/);
-  assert.match(service, /if \(!session \|\| !stripeCheckoutUrlAllowed\(url\)/);
+  assert.match(service, /if \(!session \|\| !stripeCheckoutReferenceValid\(url, session\.id\) \|\| !stripeCreatedSessionIsPending\(session\)/);
 });
 
 test('cached and fresh Stripe URLs share the strict host boundary', () => {
