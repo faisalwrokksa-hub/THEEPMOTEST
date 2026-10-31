@@ -1,28 +1,36 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
+import { validInvitationToken } from '@/lib/invitation-feedback.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
-/** No session required: the secret emailed to the recipient authorizes only joining. */
+const NO_STORE = { 'cache-control': 'no-store' };
+
+/** No session required: the emailed bearer secret authorizes only joining. */
 export async function POST(req: NextRequest) {
   const unsafe = rejectUnsafeBrowserMutation(req);
   if (unsafe) return unsafe;
   const body = await req.json().catch(() => null);
-  if (!body || typeof body.token !== 'string' || body.token.length > 100 ||
+  if (!body || !validInvitationToken(body.token) ||
       typeof body.displayName !== 'string' || body.displayName.length > 120 ||
       typeof body.password !== 'string' || body.password.length > 200)
-    return NextResponse.json({ message: 'Invalid invitation submission' }, { status: 400 });
+    return NextResponse.json({ message: 'Invalid invitation submission' },
+      { status: 400, headers: NO_STORE });
+
   const result = await fetch(`${BASE}/api/v1/onboarding/invitation/accept`, {
-    method: 'POST', cache: 'no-store',
+    method: 'POST', cache: 'no-store', redirect: 'error',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ token: body.token, displayName: body.displayName || undefined,
       password: body.password || undefined }),
   }).catch(() => null);
-  if (!result) return NextResponse.json({ message: 'The service is currently unavailable' }, { status: 503 });
-  // Never echo the token in a response or log it.
+  if (!result) return NextResponse.json({ message: 'The service is currently unavailable' },
+    { status: 503, headers: NO_STORE });
+
+  // Never reflect upstream response bodies: they may contain sensitive details.
+  // Preserve safe HTTP status for localized client guidance only.
   if (!result.ok) {
-    const problem = await result.json().catch(() => null);
-    return NextResponse.json({ message: typeof problem?.message === 'string'
-      ? problem.message : 'The invitation could not be accepted' }, { status: result.status });
+    const status = result.status >= 400 && result.status <= 599 ? result.status : 502;
+    return NextResponse.json({ message: 'The invitation could not be accepted' },
+      { status, headers: NO_STORE });
   }
-  return NextResponse.json({ ok: true });
+  return NextResponse.json({ ok: true }, { headers: NO_STORE });
 }
