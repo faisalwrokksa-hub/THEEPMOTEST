@@ -4,6 +4,7 @@ import { when } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 import { Flash } from '@/components/NewRecord';
 import { tenantSwitchFeedback } from '@/lib/tenant-switch-feedback.mjs';
+import { onboardingFeedback } from '@/lib/onboarding-failure-feedback.mjs';
 import { ROLE_LABELS, ASSIGNABLE_ROLES, can, type Capability } from '@pmo/contracts';
 
 const CAP_MEANING: Record<string, string> = {
@@ -22,10 +23,11 @@ const CAP_MEANING: Record<string, string> = {
 };
 
 export default async function Settings({ searchParams }:
-  { searchParams: Promise<{ error?: string; done?: string; switch?: string }> }) {
-  const { error, done, switch: switchStatus } = await searchParams;
+  { searchParams: Promise<{ error?: string; done?: string; switch?: string; onboarding?: string }> }) {
+  const { error, done, switch: switchStatus, onboarding: onboardingStatus } = await searchParams;
   const lang = await getLang();
   const switchMessage = tenantSwitchFeedback(switchStatus, lang);
+  const onboardingMessage = onboardingFeedback(onboardingStatus, lang);
   const t = await tr();
   // Adding people is its own permission. Offering the form to everyone meant a
   // Team Member could fill in four fields and only then be told no.
@@ -36,6 +38,9 @@ export default async function Settings({ searchParams }:
   return (
     <Page title="Workspace Settings" sub="Who is in this workspace, what they can do, and how it is configured.">
       <Flash error={error} done={done} lang={lang} />
+      {onboardingMessage && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>
+        {onboardingMessage}
+      </p>}
       {switchMessage && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>
         {switchMessage}
       </p>}
