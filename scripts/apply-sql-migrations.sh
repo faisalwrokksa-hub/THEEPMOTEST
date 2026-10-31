@@ -44,6 +44,16 @@ ALTER TABLE public.schema_migrations ADD COLUMN IF NOT EXISTS source_sha256 text
 COMMIT;
 SQL
 
+
+# Preflight the ENTIRE existing ledger before applying even the first pending
+# migration. Otherwise an unattested later row could be discovered only after
+# earlier DDL has already committed. The per-file locked recheck remains needed
+# for competing runners and changes after this read-only preflight.
+if ! node scripts/sql-ledger-preflight.mjs | psql_admin -q; then
+  echo 'BLOCKED: full SQL ledger preflight failed; no migration DDL applied. Independently verify historical attestation.' >&2
+  exit 1
+fi
+
 for file in packages/db/migrations/*.sql; do
   name=$(basename "$file")
   if [[ ! "$name" =~ ^[0-9]{4}_[a-z0-9_]+\.sql$ ]]; then
