@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
-import { getSession, api, SESSION_COOKIE } from '@/lib/api';
+import { getLayoutSession, api, SESSION_COOKIE } from '@/lib/api';
 import { NAV } from '@/lib/nav';
 import { can, NAV_MODULE, type Capability } from '@pmo/contracts';
 import { TenantSwitcher } from '@/components/TenantSwitcher';
@@ -17,9 +17,23 @@ import { MobileNav } from '@/components/MobileNav';
 
 /** Everything inside this group requires a signed-in session. */
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const session = await getSession();
+  const session = await getLayoutSession();
   const jar = await cookies();
   if (!session.authenticated) {
+    if ('unavailable' in session && session.unavailable) {
+      const ar = jar.get('pmo_lang')?.value === 'ar';
+      return (
+        <div className="authwrap" dir={ar ? 'rtl' : 'ltr'} lang={ar ? 'ar' : 'en'}>
+          <section className="authpanel" role="alert">
+            <h1>{ar ? 'تعذّر التحقق من الجلسة' : 'Session verification unavailable'}</h1>
+            <p>{ar
+              ? 'الخدمة غير متاحة مؤقتًا. لم يتم تسجيل خروجك. أعد المحاولة بعد قليل.'
+              : 'The service is temporarily unavailable. You have not been signed out. Please retry shortly.'}</p>
+            <a className="btn" href="/">{ar ? 'إعادة المحاولة' : 'Retry'}</a>
+          </section>
+        </div>
+      );
+    }
     /*
      * A cookie that is present but no longer resolves is an ended session,
      * not a first visit — almost always the idle window closing. Saying so
