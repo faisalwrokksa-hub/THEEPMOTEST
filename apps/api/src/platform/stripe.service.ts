@@ -6,6 +6,7 @@ import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
 import { assertRecurringStripePrice, assertCreatedRecurringCheckout, stripeRecurringCheckoutParams, stripeRecurringIdempotencyKey, type RecurringPlan } from './stripe-recurring-policy';
+import { parseSignedRecurringCheckout, assertRecurringCheckoutBinding, type RecurringCheckoutCandidate } from './stripe-recurring-checkout-binding';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
@@ -451,12 +452,107 @@ export class StripeBillingService {
     return { received: true, applied: false, needsReview: true, invoiceId };
   }
 
+  /**
+   * C30: signed recurring Checkout completion creates ONLY a pending identity
+   * binding. The signed metadata is a tenant routing hint, not proof of
+   * ownership; the immutable tenant ledger and independent provider GETs must
+   * agree before insertion. No subscription entitlement is activated here.
+   */
+  private async bindRecurringCheckout(candidate: RecurringCheckoutCandidate,
+                                      config: ReturnType<typeof stripeConfig>) {
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring Stripe binding is TEST-only and disabled');
+    const tenantId = candidate.tenantId;
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const recorded = rows(await tx.execute(sql`
+        SELECT c.tenant_id AS "tenantId", c.subscription_id AS "subscriptionId",
+               c.plan_id AS "planId", c.stripe_session_id AS "stripeSessionId",
+               c.stripe_price_id AS "stripePriceId", c.live_mode AS "liveMode",
+               p.price_minor AS "priceMinor", p.currency,
+               s.status AS "subscriptionStatus",
+               s.cancel_at_period_end AS "cancelAtPeriodEnd"
+        FROM billing_stripe_recurring_checkout_sessions c
+        JOIN tenant_subscriptions s ON s.tenant_id = c.tenant_id
+          AND s.id = c.subscription_id AND s.plan_id = c.plan_id
+        JOIN subscription_plans p ON p.id = c.plan_id
+        WHERE c.tenant_id = ${tenantId}
+          AND c.stripe_session_id = ${candidate.sessionId}
+          AND c.plan_id = ${candidate.planId}
+        FOR UPDATE OF c, s`))[0];
+      if (!recorded) throw new NotFoundException('Recurring Checkout is not in the tenant ledger');
+      const existing = rows(await tx.execute(sql`
+        SELECT stripe_checkout_session_id AS "sessionId",
+               stripe_subscription_id AS "stripeSubscriptionId",
+               stripe_customer_id AS "stripeCustomerId",
+               plan_id AS "planId"
+        FROM billing_stripe_recurring_bindings
+        WHERE tenant_id = ${tenantId}
+          AND subscription_id = ${recorded.subscriptionId}`))[0];
+      if (existing) {
+        if (existing.sessionId !== candidate.sessionId ||
+            existing.stripeSubscriptionId !== candidate.stripeSubscriptionId ||
+            existing.stripeCustomerId !== candidate.stripeCustomerId ||
+            existing.planId !== candidate.planId)
+          throw new ConflictException('Recurring Checkout binding identity conflict');
+        return { received: true, applied: false, duplicate: true, paymentVerified: false };
+      }
+      if (recorded.subscriptionStatus !== 'trialing' || recorded.cancelAtPeriodEnd)
+        throw new ConflictException('Recurring Checkout subscription is no longer eligible');
+      const getStripe = async (url: string): Promise<unknown> => {
+        let response: Response;
+        try {
+          response = await stripeApiFetch(url, {
+            headers: { Authorization: `Bearer ${config.key}` },
+            signal: AbortSignal.timeout(12_000),
+          });
+        } catch { throw new BadGatewayException('Recurring Stripe provider lookup failed'); }
+        if (!response.ok)
+          throw new BadGatewayException('Recurring Stripe provider lookup was rejected');
+        try { return await readStripeApiJson(response); }
+        catch { throw new BadGatewayException('Invalid recurring Stripe provider response'); }
+      };
+      const remoteSession = await getStripe(
+        `https://api.stripe.com/v1/checkout/sessions/${candidate.sessionId}`);
+      const remoteSubscription = await getStripe(
+        `https://api.stripe.com/v1/subscriptions/${candidate.stripeSubscriptionId}`);
+      let verified: ReturnType<typeof assertRecurringCheckoutBinding>;
+      try {
+        verified = assertRecurringCheckoutBinding(candidate, remoteSession,
+          remoteSubscription, recorded, false);
+      } catch { throw new ConflictException('Recurring Stripe identity verification failed'); }
+      const inserted = rows(await tx.execute(sql`
+        INSERT INTO billing_stripe_recurring_bindings
+          (tenant_id, subscription_id, plan_id, stripe_checkout_session_id,
+           stripe_subscription_id, stripe_customer_id, stripe_price_id, status)
+        VALUES (${tenantId}, ${verified.subscriptionId}, ${verified.planId},
+                ${verified.stripeCheckoutSessionId}, ${verified.stripeSubscriptionId},
+                ${verified.stripeCustomerId}, ${verified.stripePriceId}, 'pending')
+        ON CONFLICT DO NOTHING RETURNING id`));
+      if (!inserted.length)
+        throw new ConflictException('Recurring Stripe identity is already bound');
+      await tx.execute(sql`INSERT INTO subscription_events
+        (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${verified.subscriptionId},
+          'billing.stripe_recurring_checkout_bound',
+          ${JSON.stringify({ eventId: verified.eventId,
+            stripeSessionId: verified.stripeCheckoutSessionId,
+            stripeSubscriptionId: verified.stripeSubscriptionId })}::jsonb)`);
+      return { received: true, applied: false, bound: true, paymentVerified: false };
+    });
+  }
+
   /** Stripe signs the raw request. A successful customer redirect never activates a subscription. */
   async webhook(rawBody: Buffer | undefined, header: unknown) {
     const config = stripeConfig();
     if (!verifyStripeSignature(rawBody, header, config.webhookSecret))
       throw new ForbiddenException('Invalid Stripe webhook signature');
     if (!rawBody) throw new BadRequestException('Missing Stripe webhook body');
+    let recurringCheckout: ReturnType<typeof parseSignedRecurringCheckout>;
+    try { recurringCheckout = parseSignedRecurringCheckout(rawBody, config.liveMode); }
+    catch { throw new BadRequestException('Invalid recurring Stripe Checkout event'); }
+    if (recurringCheckout) return this.bindRecurringCheckout(recurringCheckout, config);
     // Provider-signed reversal events are processed independently from
     // successful Checkout events and NEVER grant a new subscription period.
     let exceptionEvent: ReturnType<typeof parseStripePaymentException>;
