@@ -7,6 +7,11 @@ test('valid Stripe JSON under the cap is parsed', async () => {
   assert.deepEqual(await readStripeApiJson(new Response(JSON.stringify({ id: 'cs_test_OK' }),
     { headers: { 'content-type': 'application/json' } })), { id: 'cs_test_OK' });
 });
+test('valid numeric Content-Length is accepted', async () => {
+  assert.deepEqual(await readStripeApiJson(new Response('{}', {
+    headers: { 'content-length': '2' },
+  })), {});
+});
 test('declared oversized Stripe JSON is rejected before reading', async () => {
   const response = new Response('{}', { headers: { 'content-length': '262145' } });
   await assert.rejects(readStripeApiJson(response), /exceeds the response limit/);
