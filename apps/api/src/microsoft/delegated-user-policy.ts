@@ -8,3 +8,8 @@ export function canUseDelegatedMicrosoftConnection(
   return typeof connectedBy === 'string' && connectedBy.trim().length > 0 &&
     typeof userId === 'string' && userId.trim().length > 0 && connectedBy === userId;
 }
+
+/** Revoked or errored connections cannot serve cached delegated access tokens. */
+export function isActiveDelegatedMicrosoftConnection(status: unknown): boolean {
+  return status === 'connected';
+}
