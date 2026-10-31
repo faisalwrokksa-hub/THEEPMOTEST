@@ -449,36 +449,43 @@
     "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
   },
   "latestReviewOnlyIntegration": {
-    "label": "Q23",
+    "label": "Q24",
     "date": "2026-10-31",
-    "branch": "integration/q23-e23-f26-c21-s23-20261031",
-    "baseSha": "57042076e0667fa7ea40431f30e5f4022225c5c1",
+    "branch": "integration/q24-e24-f28-c22-s24-20261031",
+    "baseSha": "c9babbc79c0cf7d6221b5ab28ad7c298382e3abf",
     "candidateSha": null,
     "ciStatus": "PENDING_EXACT_FINAL_SHA",
     "releaseDecision": "NO-GO",
     "sourcePullRequests": [
-      104,
-      105,
-      106,
-      107,
-      108
+      110,
+      111,
+      112,
+      113,
+      114
     ],
     "sourceShas": [
-      "d17622a7433e4fcaa7651769ab5eefe6b96aa8d6",
-      "80f9424fd89859f63effa3afe9bad8af80f4f9e0",
-      "f5b6a2c5a9f8a0a2fc6afe75310c0cd7faee1d20",
-      "f182ee89282f4f532b8bc059e6f29775de0cbd17",
-      "4a2364a441b91c1000d5b2e6a2192f069aa5dd2e"
+      "e911c46e03a107444963d78335912edfa6d70610",
+      "859ca7fa6a645f0169d62f30fccde8c4d80263aa",
+      "f206192df2a0dd77ea55dfeeda1141a909eae6e8",
+      "5fed9e1c681bccdf5ca04f0da8ff26308e2b64a5"
     ],
     "sourceWorkflowRuns": [
-      41174674479,
-      41175581672,
-      41175585096,
-      41176551572,
-      41177153603
+      41178896802,
+      41179686516,
+      41179759842,
+      41180674854,
+      41181279764
     ],
+    "sourceFileCount": 13,
     "externalAcceptedGates": 0,
     "providerStripeTestScenariosAccepted": 0,
-    "limitations": "Source CI 4/4 each; no final integration SHA CI yet. No independent provider/staging/browser/legal acceptance."
+    "limitations": "Source workflows completed SUCCESS 4/4 each; combined Q24 CI not yet verified. Public HTTPS staging, two-user Entra, Stripe TEST 0/7, staging RLS, encrypted restore, independent 375px/desktop RTL browser UAT, legal/support remain unaccepted."
+  },
+  "lastIndependentIntegrationQ23Ci": {
+    "pr": 109,
+    "sha": "c9babbc79c0cf7d6221b5ab28ad7c298382e3abf",
+    "workflowRun": 41178390365,
+    "ci": "SUCCESS_4_OF_4_85_OF_85_STEPS",
+    "scope": "CI-local only; does not satisfy provider/staging/browser/recovery acceptance"
   }
 }
