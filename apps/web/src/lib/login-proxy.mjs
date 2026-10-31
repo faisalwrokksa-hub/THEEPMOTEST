@@ -17,6 +17,8 @@ export async function postLoginToApi(fetcher, endpoint, credentials) {
       body: JSON.stringify(credentials),
       cache: 'no-store',
       redirect: 'error',
+      // Bound stalled authentication requests; never retry or replay credentials.
+      signal: AbortSignal.timeout(15_000),
     });
     if (!response || typeof response.ok !== 'boolean' ||
         !Number.isInteger(response.status) ||
