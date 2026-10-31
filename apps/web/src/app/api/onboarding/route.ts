@@ -16,7 +16,7 @@ export async function POST(req: NextRequest) {
   const unsafe = rejectUnsafeBrowserMutation(req);
   if (unsafe) return unsafe;
   const session = req.cookies.get('pmo_session')?.value;
-  if (!session) return NextResponse.redirect(publicUrl(req, '/login'), 303);
+  if (!session) return NextResponse.redirect(publicUrl(req, onboardingFailurePath(401)), 303);
   const parsed = await readBoundedBrowserForm(req);
   if (!parsed.form) return NextResponse.json({
     error: parsed.error === 'too-large'
