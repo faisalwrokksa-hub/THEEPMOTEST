@@ -1,5 +1,6 @@
 import { safeReturnPath } from '@/lib/browser-mutation';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
+import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -45,12 +46,13 @@ export async function POST(req: NextRequest) {
   // never an unhandled Next.js exception that loses the user's typed values.
   let res: Response;
   try {
-    res = await fetch(`${BASE}/api/v1/create/${kind}`, {
+    res = await fetchTenantMutation(fetch, `${BASE}/api/v1/create/${kind}`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', cookie: `${SESSION}=${token}` },
       body: JSON.stringify(body),
       cache: 'no-store',
     });
+    if (!res) throw new Error('Unconfirmed upstream mutation response');
   } catch {
     const message = 'The service is temporarily unavailable. Please retry shortly.';
     if (wantsJson) return NextResponse.json({ error: message, issues: [] },
