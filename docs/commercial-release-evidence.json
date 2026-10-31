@@ -548,5 +548,21 @@
     "stripeTestScenariosAccepted": 0,
     "decision": "NO-GO",
     "qualification": "Q32 parent CI was in progress at creation; Q33 same-SHA CI and independent external acceptance are not proven."
+  },
+  "lastIndependentIntegrationQ34": {
+    "reviewOnly": true,
+    "baseQ33Sha": "ba309e28d694984b395bb67ad76b62ed7b7589ab",
+    "sourceQaPr": 155,
+    "sourceQaSha": "933d70971218c3de4afc118f0b5cfa7bdfc8a9e5",
+    "sourceQaCiRun": 41198691003,
+    "sourceQaCi": "SUCCESS_4_OF_4",
+    "sourceFiles": 2,
+    "sourceBlobParity": "MATCH_2_OF_2",
+    "integrationSha": null,
+    "integrationCi": "PENDING_FINAL_SHA",
+    "acceptedCommercialGates": 0,
+    "stripeTestScenariosAccepted": 0,
+    "decision": "NO-GO",
+    "qualification": "Public evidence-host guard is metadata hygiene, not external provider acceptance; final SHA CI pending."
   }
 }
