@@ -15,8 +15,8 @@ const dir = mkdtempSync(join(tmpdir(), 'epmo-s23-'));
 const marker = join(dir, 'called');
 const docker = join(dir, 'docker');
 writeFileSync(docker, `#!/bin/sh
-if [ "$1" = context ] && [ "$2" = show ]; then echo "${S23_CONTEXT:-default}"; exit 0; fi
-if [ "$1" = context ] && [ "$2" = inspect ]; then echo "${S23_ENDPOINT:-unix:///var/run/docker.sock}"; exit 0; fi
+if [ "$1" = context ] && [ "$2" = show ]; then echo "\${S23_CONTEXT:-default}"; exit 0; fi
+if [ "$1" = context ] && [ "$2" = inspect ]; then echo "\${S23_ENDPOINT:-unix:///var/run/docker.sock}"; exit 0; fi
 printf "%s\\n" "$*" >> "$S23_DOCKER_MARKER"
 `);
 chmodSync(docker, 0o700);
