@@ -125,6 +125,9 @@ try {
         if (new URL(page.url()).pathname !== '/billing' ||
             !(await page.getByRole('heading', { level: 1 }).count()))
           throw new Error('missing_billing_screen');
+        // A generic Loaded error/401/403 is not a successful billing journey.
+        await page.locator('section[aria-label="Current subscription"], section[aria-label="الاشتراك الحالي"]').waitFor({ timeout: 15000 });
+        if (await page.getByRole('alert').count()) throw new Error('missing_billing_screen');
         await layout();
       });
       await step('expired_onboarding_cookie_rejected', async () => {
