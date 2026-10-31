@@ -169,7 +169,7 @@ export function safeTenantAuditFailure(error, phase) {
   const message = typeof error?.message === 'string' ? error.message : '';
   const reason = message.includes('TENANT ISOLATION FAILURE') ? 'tenant isolation violation'
     : message.includes('Inconclusive') ? 'missing staging tenant fixtures'
-    : message.includes('Unsafe') || message.includes('catalog') ? 'unsafe role or RLS catalog'
+    : message.includes('Unsafe') || message.includes('catalog') || message.includes('policy') ? 'unsafe role or RLS catalog'
     : message.includes('configuration') || message.includes('authorization') || message.includes('UUIDs') ? 'invalid audit configuration'
     : 'database or driver failure';
   return 'BLOCKED E39 staging tenant RLS [' + phase + '; ' + code + ']: ' + reason;
