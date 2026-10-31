@@ -5,7 +5,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
-import { safeMutationError } from '@/lib/safe-mutation-feedback.mjs';
+import { tenantSwitchFailurePath } from '@/lib/tenant-switch-feedback.mjs';
 import { uuidPathSegment } from '@/lib/uuid-path.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -39,9 +39,7 @@ export async function POST(req: NextRequest) {
   });
 
   if (!response?.ok) {
-    const failure = publicUrl(req, '/settings');
-    failure.searchParams.set('error', safeMutationError(response?.status ?? 503));
-    return NextResponse.redirect(failure, 303);
+    return NextResponse.redirect(publicUrl(req, tenantSwitchFailurePath(response?.status)), 303);
   }
   // A project or programme deep link belongs to the previous workspace.
   // Preserve only shared index routes, dropping old filters and flash messages.
