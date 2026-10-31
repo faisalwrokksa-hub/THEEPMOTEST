@@ -3,7 +3,7 @@
 set -euo pipefail
 operation="${1:-}"
 if [[ "$#" -ne 1 || ( "$operation" != up && "$operation" != down ) ]]; then
-  echo 'BLOCKED: usage: dev-infra-guard.sh up|down' >&2
+  echo 'BLOCKED: usage: dev-infra-guard.sh up|down|rls' >&2
   exit 2
 fi
 if [[ -n "${DEPLOYMENT_ENV:-}" && "${DEPLOYMENT_ENV}" != development && "${DEPLOYMENT_ENV}" != dev && "${DEPLOYMENT_ENV}" != local ]]; then
@@ -36,6 +36,11 @@ endpoint="$(docker context inspect default --format '{{ (index .Endpoints "docke
 [[ "$endpoint" == unix:///var/run/docker.sock ]] || { echo 'BLOCKED: active Docker endpoint is not the local default socket' >&2; exit 2; }
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
 cd "$root"
+if [[ "$operation" == rls ]]; then
+  # Resolve the PostgreSQL service by the pinned Compose project, never by a
+  # global container name or a caller-controlled PMO_PG_CONTAINER override.
+  exec docker compose --project-name pmo-dev --file "$root/docker-compose.yml" exec -T postgres psql -X -v ON_ERROR_STOP=1 -U postgres -d pmo
+fi
 if [[ "$operation" == up ]]; then
   exec docker compose --project-name pmo-dev --file "$root/docker-compose.yml" up -d
 fi
