@@ -13,14 +13,14 @@ test('Graph and Power BI failures expose only reviewed status-based messages', (
     const failure = safeMicrosoftApiFailure(status);
     assert.equal(failure.code, code);
     assert.match(failure.message, /^Microsoft /);
-    assert.doesNotMatch(failure.message, /https?:|token|secret|\\r|\\n/i);
+    assert.doesNotMatch(failure.message, /https?:|token|secret|\r|\n/i);
   }
 });
 
 test('Microsoft API client does not promote upstream error text or codes into exceptions', () => {
   const client = readFileSync(new URL('../apps/api/src/microsoft/client.ts', import.meta.url), 'utf8');
-  assert.match(client, /safeMicrosoftApiFailure\\(res\\.status\\)/);
-  assert.match(client, /new MsApiError\\(res\\.status, failure\\.code, failure\\.message\\)/);
-  assert.doesNotMatch(client, /json\\?\\.error|e\\.message\\s*\\?\\?|e\\.detail\\s*\\?\\?/);
+  assert.match(client, /safeMicrosoftApiFailure\(res\.status\)/);
+  assert.match(client, /new MsApiError\(res\.status, failure\.code, failure\.message\)/);
+  assert.doesNotMatch(client, /json\?\.error|e\.message\s*\?\?|e\.detail\s*\?\?/);
   assert.match(client, /redirect: 'error'/);
 });
