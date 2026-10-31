@@ -571,8 +571,10 @@ export class MicrosoftService {
       // The final chunk answers with the finished item.
       if (end === buf.length) {
         if (res.status === 202) throw new MsApiError(502, 'uploadIncomplete', 'Microsoft did not confirm the final upload chunk.');
-        const item = await res.json().catch(() => null);
-        if (!item || typeof item.id !== 'string' || typeof item.webUrl !== 'string') {
+        const item: unknown = await res.json().catch(() => null);
+        if (!item || typeof item !== 'object' ||
+            !('id' in item) || typeof item.id !== 'string' ||
+            !('webUrl' in item) || typeof item.webUrl !== 'string') {
           throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned an invalid completed upload.');
         }
         return item;
