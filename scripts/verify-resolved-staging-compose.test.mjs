@@ -72,3 +72,50 @@ test('rejects wrong candidate SHA and invalid resolved JSON without leaking secr
   assert.equal(result.status, 1);
   assert.doesNotMatch(result.stdout + result.stderr, /secret-sentinel/);
 });
+
+test('rejects unapproved sidecars and named volumes in resolved staging', () => {
+  const sidecar = fixture();
+  sidecar.services.debug = { image: 'alpine:latest', volumes: [
+    { type: 'bind', source: '/var/run/docker.sock', target: '/var/run/docker.sock' }] };
+  assert.ok(failed(sidecar).some(x => x.includes('approved staging services')));
+  const volume = fixture();
+  volume.volumes.production = { name: 'pmo-prod_pgdata', external: true };
+  assert.ok(failed(volume).some(x => x.includes('named volumes')));
+});
+
+test('rejects arbitrary bind mounts on API, web, PostgreSQL and Redis', () => {
+  for (const name of ['api', 'web', 'postgres', 'redis']) {
+    const model = fixture();
+    model.services[name].volumes = [
+      ...(model.services[name].volumes || []),
+      { type: 'bind', source: '/var/run/docker.sock', target: '/var/run/docker.sock', read_only: true },
+    ];
+    assert.ok(failed(model).some(x => x.includes('unapproved bind mounts')), name);
+  }
+});
+
+test('allows only read-only staging TLS edge configuration and certificate bind targets', () => {
+  const good = fixture();
+  good.services['staging-edge'].volumes = [
+    { type: 'bind', source: '/staging/cert.pem', target: '/run/epmo-tls/tls.crt', read_only: true },
+    { type: 'bind', source: '/staging/key.pem', target: '/run/epmo-tls/tls.key', read_only: true },
+    { type: 'bind', source: '/staging/nginx.conf', target: '/etc/nginx/conf.d/default.conf', read_only: true },
+  ];
+  assert.deepEqual(failed(good), []);
+  for (const mount of [
+    { type: 'bind', source: '/var/run/docker.sock', target: '/var/run/docker.sock', read_only: true },
+    { type: 'bind', source: '/staging/key.pem', target: '/run/epmo-tls/tls.key', read_only: false },
+  ]) {
+    const model = fixture();
+    model.services['staging-edge'].volumes = [mount];
+    assert.ok(failed(model).some(x => x.includes('unapproved bind mounts')));
+  }
+});
+
+test('rejects device passthrough and volumes_from overrides', () => {
+  for (const field of ['devices', 'volumes_from', 'device_cgroup_rules']) {
+    const model = fixture();
+    model.services.api[field] = ['/dev/sda'];
+    assert.ok(failed(model).some(x => x.includes('host device passthrough')), field);
+  }
+});
