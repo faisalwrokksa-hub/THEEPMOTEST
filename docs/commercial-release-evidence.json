@@ -449,28 +449,23 @@
     "qualification": "Review-only source snapshots; no source-path overlap; same-SHA integration CI and external provider/staging receipts must be independently verified; candidateSha remains null."
   },
   "latestReviewOnlyIntegration": {
-    "label": "Q27",
-    "baseSha": "152e541479e687b53d014cdc79783f2db3b31e46",
-    "branch": "integration/q27-e28-f33-c25-s28-20261031",
-    "recordedAtUtc": "2026-10-31T09:47:00Z",
+    "label": "Q28",
+    "baseSha": "7811565519ca47d183362a16888c2c9fdd36215d",
+    "branch": "integration/q28-e29-f36-20261031",
+    "recordedAtUtc": "2026-10-31T10:18:43Z",
     "finalSha": null,
     "finalShaCi": "PENDING",
     "sourcePullRequests": [
-      125,
-      126,
-      127,
-      128,
-      129,
-      130,
-      131,
-      132,
-      133
+      135,
+      136,
+      137,
+      138
     ],
-    "sourceFiles": 24,
-    "sourceCi": "nine exact-source PR heads each completed four successful jobs",
+    "sourceFiles": 8,
+    "sourceCi": "four exact-source PR heads completed GitHub Actions successfully; final integration CI pending",
     "decision": "NO-GO",
     "acceptedCommercialGates": 0,
-    "notes": "CI-local only; recurring Stripe C25 policy is not endpoint/webhook-wired; no real TEST, Entra two-user, independent tenant RLS, public HTTPS staging, browser RTL, encrypted recovery, or legal/support receipts."
+    "notes": "Source-path disjoint and source blobs matched; no real Stripe TEST, Entra two-user, public HTTPS staging, browser RTL, independent tenant RLS, encrypted recovery or legal/support acceptance."
   },
   "lastIndependentIntegrationQ23Ci": {
     "pr": 109,
@@ -492,5 +487,12 @@
     "workflowRun": 41185952580,
     "ci": "SUCCESS_4_OF_4_85_OF_85_STEPS",
     "scope": "CI-local only; external provider/staging/browser/recovery acceptance absent"
+  },
+  "lastIndependentIntegrationQ27Ci": {
+    "pr": 134,
+    "sha": "7811565519ca47d183362a16888c2c9fdd36215d",
+    "workflowRun": 41190228181,
+    "ci": "SUCCESS_4_OF_4",
+    "scope": "CI-local only; no external provider/staging/browser/recovery acceptance"
   }
 }
