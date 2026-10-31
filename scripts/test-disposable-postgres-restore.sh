@@ -7,6 +7,10 @@ mkdir -p "$tmp/bin"; : > "$tmp/backup.dump"
 cat > "$tmp/bin/pg_restore" <<'SH'
 #!/usr/bin/env bash
 echo restore >> "$STUB_LOG"
+if [[ "${1:-}" == "--list" ]]; then
+  echo '215; 1259 16508 TABLE public demo postgres'
+  echo '216; 0 16508 TABLE DATA public demo postgres'
+fi
 exit 0
 SH
 cat > "$tmp/bin/psql" <<'SH'
@@ -14,8 +18,9 @@ cat > "$tmp/bin/psql" <<'SH'
 echo psql >> "$STUB_LOG"
 for arg in "$@"; do
   if [[ "$arg" == *"SELECT count(*) FROM pg_catalog.pg_class"* ]]; then echo 0; exit 0; fi
+  if [[ "$arg" == *"SELECT count(*) FROM pg_catalog.pg_tables"* ]]; then echo 1; exit 0; fi
 done
-exit 0
+exit 99
 SH
 chmod +x "$tmp/bin/"*
 export PATH="$tmp/bin:$PATH" BACKUP_FILE="$tmp/backup.dump" ALLOW_DISPOSABLE_RESTORE=YES STUB_LOG="$tmp/log"
