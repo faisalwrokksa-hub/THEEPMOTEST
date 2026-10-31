@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
+import { safeMutationError } from '@/lib/safe-mutation-feedback.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -42,8 +43,9 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify(body),
   });
   if (!result?.ok) {
-    const data = await result?.json().catch(() => null);
-    target.searchParams.set('error', (typeof data?.message === 'string' ? data.message : 'Workspace request failed').slice(0, 180));
+    // API messages may contain internal diagnostics, secrets or user data.
+    // Never copy them into browser-visible redirect query parameters.
+    target.searchParams.set('error', safeMutationError(result?.status ?? 503));
   } else {
     target.searchParams.set('done', action);
   }
