@@ -1,19 +1,31 @@
-#!/usr/bin/env node
 /** Informational CI summary only. Never authorizes commercial launch. */
 import { appendFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { CI_GATES, LAUNCH_GATES, verifyReceipts } from './phase15e-release-evidence.mjs';
 
+const EXTERNAL_GATES = LAUNCH_GATES.filter(gate => !CI_GATES.includes(gate));
+
+/** CI can attest its own steps, but cannot verify a provider or a human signoff.
+ * Even a forged or accidentally misclassified launch.passed must not promote
+ * a source-only workflow to production acceptance. */
 export function formatP0Summary(ci, launch) {
+  const ciChecks = CI_GATES.map(gate => {
+    const matches = ci?.checks?.filter(check => check.gate === gate) ?? [];
+    const receipt = matches.length === 1 ? matches[0] : null;
+    return { gate, passed: receipt?.passed === true, reason: receipt?.reason ?? 'receipt missing or ambiguous' };
+  });
   const rows = [
     '## The EPMO — P0 evidence status',
     '',
-    `- CI checks: **${ci.checks.filter(x => x.passed).length}/${CI_GATES.length}**`,
-    `- Launch evidence: **${launch.checks.filter(x => x.passed).length}/${LAUNCH_GATES.length}**`,
-    `- Commercial approval: **${launch.passed ? 'EVIDENCE COMPLETE — independent review still required' : 'NO-GO — missing live acceptance evidence'}**`,
+    `- Same-run CI step receipts: **${ciChecks.filter(x => x.passed).length}/${CI_GATES.length}** (not overall workflow status)`,
+    `- Independent live acceptance: **0/${EXTERNAL_GATES.length} verified by CI** (requires separate external evidence)`,
+    '- Nine commercial release gates: **NOT ASSESSED by CI** (see independent release ledger)',
+    '- Commercial approval: **NO-GO — CI cannot authorize production release**',
     '', '| Gate | Evidence |', '|---|---|',
-    ...launch.checks.map(x => `| ${x.gate} | ${x.passed ? 'PASS (same-run receipt)' : `BLOCKED (${x.reason})`} |`),
-    '', 'A receipt attests that its recording step ran, not that an external provider or an independent auditor has certified readiness.',
+    ...ciChecks.map(x => `| ${x.gate} | ${x.passed ? 'CI STEP RECEIPT (same run)' : `BLOCKED (${x.reason})`} |`),
+    ...EXTERNAL_GATES.map(gate => `| ${gate} | NOT VERIFIED (independent external acceptance required) |`),
+    '',
+    'CI receipts only attest that individual recording steps ran. They are not proof of provider payments, staging isolation, browser acceptance, recovery, nine-gate commercial approval or an overall successful workflow.',
   ];
   return rows.join('\n') + '\n';
 }
