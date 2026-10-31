@@ -40,6 +40,10 @@ if ! grep -Eq '^[[:space:]]*[0-9]+;[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:
   echo "BLOCKED: archive has no TABLE definitions; not a complete application restore" >&2
   exit 2
 fi
+if ! grep -Eq '^[[:space:]]*[0-9]+;[[:space:]]+[0-9]+[[:space:]]+[0-9]+[[:space:]]+TABLE DATA[[:space:]]' <<<"$archive_toc"; then
+  echo "BLOCKED: archive has no TABLE DATA entries; schema-only backups cannot prove full recovery" >&2
+  exit 2
+fi
 unset archive_toc
 # No --clean: require an empty isolated database, avoiding destructive overwrite.
 count="$(psql "$RESTORE_DATABASE_URL" -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_catalog.pg_class c JOIN pg_catalog.pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT IN ('pg_catalog','information_schema') AND n.nspname NOT LIKE 'pg_toast%' AND c.relkind IN ('r','p','v','m','S','f')" | tr -d '[:space:]')"
