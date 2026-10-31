@@ -42,10 +42,12 @@ test('rejects URL parameters that could inject PostgreSQL connection settings', 
 });
 test('restore drill does not issue DROP against the seeded source database', () => {
   const code = readFileSync(new URL('./verify-ci-database-restore.mjs', import.meta.url),'utf8');
-  assert.match(code, /const destination = `epmo_ci_restore_\$\{randomBytes\(10\)\.toString\('hex'\)\}`/);
+  assert.match(code, /const destination = `epmo_restore_ci_\$\{randomBytes\(10\)\.toString\('hex'\)\}`/);
   assert.match(code, /if \(created\) \{/);
   assert.match(code, /'dropdb', \[\.\.\.args, '--if-exists', '--', destination\]/);
-  assert.match(code, /'pg_restore', \[\.\.\.args, '--exit-on-error', '--single-transaction'/);
+  assert.match(code, /spawnSync\('bash', \['scripts\/verify-disposable-postgres-restore\.sh'\]/);
+  assert.match(code, /ALLOW_DISPOSABLE_RESTORE: 'YES'/);
+  assert.doesNotMatch(code, /exec\('pg_restore', \[\.\.\.args, '--exit-on-error'/);
 });
 test('restore must validate seeded tenant and user rows and migration count', () => {
   assert.match(DATA_CHECK_SQL,/public\.users/);
