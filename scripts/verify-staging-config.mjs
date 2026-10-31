@@ -39,7 +39,7 @@ export function checkStagingSecurity(env) {
     ['Distinct API and web origins', !!env.PUBLIC_API_URL && env.PUBLIC_API_URL !== env.WEB_ORIGIN],
     ['Database connection has non-placeholder credentials', dbUrl(env.DATABASE_URL)],
     ['Redis connection has non-placeholder password', (() => {try {const u=new URL(env.REDIS_URL);return ['redis:','rediss:'].includes(u.protocol) && validSecret(decodeURIComponent(u.password));}catch{return false;}})()],
-    ['Stripe configuration never uses live key in staging', !String(env.STRIPE_SECRET_KEY || '').startsWith('sk_live_')],
+    ['Stripe configuration never uses live key in staging', !/^(?:sk|rk)_live_/.test(String(env.STRIPE_SECRET_KEY || ''))],
     ['Reference billing webhook disabled', env.BILLING_REFERENCE_WEBHOOK_ENABLED !== 'true'],
     ['No production deployment mode', env.NODE_ENV !== 'development' && env.DEPLOYMENT_ENV !== 'production'],
   ];
