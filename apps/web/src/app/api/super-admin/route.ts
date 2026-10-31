@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
+import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
+import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
+import { safeMutationError } from '@/lib/safe-mutation-feedback.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const SESSION = 'pmo_session';
@@ -13,7 +16,13 @@ export async function POST(req: NextRequest) {
   if (unsafe) return unsafe;
   const token = req.cookies.get(SESSION)?.value;
   if (!token) return NextResponse.redirect(publicUrl(req, '/login'), 303);
-  const form = await req.formData();
+  // Fully bound the browser body before any privileged subscription mutation.
+  const parsed = await readBoundedBrowserForm(req);
+  if (!parsed.form) return NextResponse.json({
+    error: parsed.error === 'too-large'
+      ? 'Form submission exceeds the size limit.' : 'Invalid form submission.',
+  }, { status: parsed.error === 'too-large' ? 413 : 400 });
+  const form = parsed.form;
   const get = (key: string) => String(form.get(key) ?? '');
   const action = get('action');
   const tenantId = get('tenantId');
@@ -51,16 +60,17 @@ export async function POST(req: NextRequest) {
   } else {
     return NextResponse.redirect(publicUrl(req, '/super-admin?error=Invalid%20operation'), 303);
   }
-  const response = await fetch(`${BASE}${url}`, {
+  // Never forward a privileged cookie or subscription mutation to an
+  // upstream redirect; do not retry ambiguous network failures.
+  const response = await fetchTenantMutation(fetch, `${BASE}${url}`, {
     method, cache: 'no-store',
     headers: { 'content-type': 'application/json', cookie: `${SESSION}=${token}` },
     body: JSON.stringify(body),
-  }).catch(() => null);
+  });
   const target = publicUrl(req, '/super-admin');
-  if (!response?.ok) {
-    const failure = await response?.json().catch(() => null);
-    const message = typeof failure?.message === 'string' ? failure.message : `Request failed (${response?.status ?? 'network'})`;
-    target.searchParams.set('error', message.slice(0, 180));
-  } else target.searchParams.set('done', '1');
+  // Upstream bodies may contain SQL diagnostics, secrets or attacker-controlled
+  // messages. Only fixed classifications are safe in browser redirect URLs.
+  if (!response?.ok) target.searchParams.set('error', safeMutationError(response?.status ?? 503));
+  else target.searchParams.set('done', '1');
   return NextResponse.redirect(target, 303);
 }
