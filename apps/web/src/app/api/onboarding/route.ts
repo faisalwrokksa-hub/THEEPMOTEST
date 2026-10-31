@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
-import { safeMutationError } from '@/lib/safe-mutation-feedback.mjs';
+import { onboardingFailurePath } from '@/lib/onboarding-failure-feedback.mjs';
 import { readBoundedBrowserForm } from '@/lib/bounded-browser-form.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -40,8 +40,7 @@ export async function POST(req: NextRequest) {
   } else if (action === 'revoke' && uuid.test(get('id'))) {
     path = `/api/v1/onboarding/invitations/${get('id')}/revoke`;
   } else {
-    target.searchParams.set('error', 'Invalid workspace operation');
-    return NextResponse.redirect(target, 303);
+    return NextResponse.redirect(publicUrl(req, onboardingFailurePath(400)), 303);
   }
   const result = await fetchTenantMutation(fetch, `${BASE}${path}`, {
     method, cache: 'no-store',
@@ -49,11 +48,10 @@ export async function POST(req: NextRequest) {
     body: JSON.stringify(body),
   });
   if (!result?.ok) {
-    // API messages may contain internal diagnostics, secrets or user data.
-    // Never copy them into browser-visible redirect query parameters.
-    target.searchParams.set('error', safeMutationError(result?.status ?? 503));
-  } else {
-    target.searchParams.set('done', action);
+    // A 401 must return to login, a 403 must explain denied access, and an
+    // ambiguous timeout must not claim that an invitation was sent.
+    return NextResponse.redirect(publicUrl(req, onboardingFailurePath(result?.status)), 303);
   }
+  target.searchParams.set('done', action);
   return NextResponse.redirect(target, 303);
 }
