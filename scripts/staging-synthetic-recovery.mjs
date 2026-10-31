@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import { resolve, join, isAbsolute, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawnSync } from 'node:child_process';
+import { assertSyntheticRecoveryRuntime, isolatedDockerCommand, isolatedAwsEnvironment } from './staging-recovery-runtime-boundary.mjs';
 
 const MAGIC = Buffer.from('EPMOS34\0');
 const AAD = Buffer.from('epmo:synthetic:postgres:recovery:v1');
@@ -73,38 +74,49 @@ function execSafe(bin, args, opts = {}) {
     throw new Error(bin + ' operation failed (details withheld; no secrets logged)');
   return result.stdout;
 }
-const docker = (args, opts) => execSafe('docker', args, opts);
-const aws = args => execSafe('aws', args);
+function makeIsolatedClients(env) {
+  // Resolve explicit TEST credentials before starting disposable containers.
+  const awsEnv = isolatedAwsEnvironment(env);
+  const docker = (args, opts = {}) => {
+    const command = isolatedDockerCommand(args, env);
+    return execSafe('docker', command.args, { ...opts, env: command.env });
+  };
+  const aws = args => execSafe('aws', args, { env: awsEnv });
+  return { docker, aws };
+}
 const sql = "CREATE TABLE epmo_synthetic_recovery (id integer PRIMARY KEY, marker text NOT NULL);\n" +
   "INSERT INTO epmo_synthetic_recovery VALUES (1,'S34_SYNTHETIC_A'),(2,'S34_SYNTHETIC_B');\n";
 const expected = '1|S34_SYNTHETIC_A\n2|S34_SYNTHETIC_B';
 const verifySql = 'SELECT id,marker FROM epmo_synthetic_recovery ORDER BY id';
 const container = () => 'epmo-s34-' + randomBytes(9).toString('hex');
 
-async function startContainer(name, image) {
-  docker(['run', '--rm', '-d', '--network', 'none', '--name', name,
+async function startContainer(name, image, docker) {
+  docker(['run', '--pull', 'never', '--rm', '-d', '--network', 'none',
+    '--memory', '768m', '--pids-limit', '128', '--name', name,
     '--tmpfs', '/var/lib/postgresql/data:rw,nosuid,size=256m',
     '--tmpfs', '/var/run/postgresql:rw,nosuid,size=16m',
     '--tmpfs', '/tmp:rw,nosuid,size=32m',
     '-e', 'POSTGRES_HOST_AUTH_METHOD=trust', image]);
   for (let i = 0; i < 45; i++) {
-    const r = spawnSync('docker', ['exec', name, 'pg_isready', '-U', 'postgres'],
-      { timeout: 4000, stdio: 'ignore' });
-    if (r.status === 0) return;
+    try { docker(['exec', name, 'pg_isready', '-U', 'postgres'], { timeout: 4000 }); return; }
+    catch { /* disposable PostgreSQL has not become ready yet */ }
     await new Promise(resolve => setTimeout(resolve, 1000));
   }
   throw new Error('Disposable PostgreSQL did not become ready');
 }
-const query = (name) => docker(['exec', name, 'psql', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1',
+const query = (name, docker) => docker(['exec', name, 'psql', '-X', '-A', '-t', '-v', 'ON_ERROR_STOP=1',
   '-U', 'postgres', '-d', 'postgres', '-c', verifySql]).toString().trim();
-function restore(name, archive) {
+function restore(name, archive, docker) {
   docker(['exec', '-i', name, 'pg_restore', '--exit-on-error', '--single-transaction',
     '--no-owner', '--no-acl', '-U', 'postgres', '-d', 'postgres'], { input: archive });
-  if (query(name) !== expected) throw new Error('Synthetic restored rows do not match fixture');
+  if (query(name, docker) !== expected) throw new Error('Synthetic restored rows do not match fixture');
 }
 
-export async function runSyntheticDrill(env = process.env) {
+export async function runSyntheticDrill(env = process.env, deps = {}) {
   const { key, image, remote } = validateDrillEnvironment(env);
+  // Dependency injection is for non-networked regression fixtures; CLI never passes deps.
+  assertSyntheticRecoveryRuntime(env, deps.socketCheck);
+  const { docker, aws } = makeIsolatedClients(env);
   const id = randomBytes(12).toString('hex');
   const objectKey = remote.prefix + '/' + id + '.pgdump.aes256gcm';
   const url = 's3://' + remote.bucket + '/' + objectKey;
@@ -113,11 +125,13 @@ export async function runSyntheticDrill(env = process.env) {
   const downloaded = join(dir, 'remote.pg.enc');
   const active = [];
   try {
+    // Never pull from a registry during a synthetic drill: approved digest must already exist.
+    docker(['image', 'inspect', image]);
     const source = container(); active.push(source);
-    await startContainer(source, image);
+    await startContainer(source, image, docker);
     docker(['exec', '-i', source, 'psql', '-X', '-v', 'ON_ERROR_STOP=1',
       '-U', 'postgres', '-d', 'postgres'], { input: Buffer.from(sql) });
-    if (query(source) !== expected) throw new Error('Synthetic fixture failed verification');
+    if (query(source, docker) !== expected) throw new Error('Synthetic fixture failed verification');
     const dump = docker(['exec', source, 'pg_dump', '-Fc', '-U', 'postgres', '-d', 'postgres']);
     if (dump.length < 100) throw new Error('Synthetic PostgreSQL dump is empty');
     writeFileSync(encrypted, encryptArchive(dump, key), { flag: 'wx', mode: 0o600 });
@@ -131,14 +145,14 @@ export async function runSyntheticDrill(env = process.env) {
     if (sha256(restoredDump) !== sha256(dump))
       throw new Error('Authenticated archive integrity mismatch');
     const target = container(); active.push(target);
-    await startContainer(target, image);
-    restore(target, restoredDump);
+    await startContainer(target, image, docker);
+    restore(target, restoredDump, docker);
     docker(['exec', target, 'psql', '-X', '-v', 'ON_ERROR_STOP=1', '-U', 'postgres',
       '-d', 'postgres', '-c', "UPDATE epmo_synthetic_recovery SET marker='S34_SYNTHETIC_CORRUPTED' WHERE id=1"]);
-    if (query(target) === expected) throw new Error('Failure injection did not change the restored data');
+    if (query(target, docker) === expected) throw new Error('Failure injection did not change the restored data');
     const rollback = container(); active.push(rollback);
-    await startContainer(rollback, image);
-    restore(rollback, restoredDump);
+    await startContainer(rollback, image, docker);
+    restore(rollback, restoredDump, docker);
     console.log('PASS: synthetic-only encrypted S3 round-trip, isolated restore and disposable rollback rehearsal');
     console.log('NOT ACCEPTED: real staging restore, off-host region, public HTTPS or production recovery');
     return { objectKey, result: 'synthetic-drill-only' };
