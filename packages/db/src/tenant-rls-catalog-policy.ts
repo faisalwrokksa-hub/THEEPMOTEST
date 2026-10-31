@@ -15,7 +15,14 @@ export type TenantPolicyRow = {
 };
 
 const tenantPredicate = /\btenant_id\s*=\s*(?:public\.)?app_current_tenant\(\)/i;
-const legacyBillingNames = new Set(['billing_tenant_isolation', 'billing_stripe_tenant_isolation', 'billing_payment_exception_tenant_isolation']);
+// These named policies are created by reviewed additive SQL migrations. They
+// use the same tenant setting as app_current_tenant(), and remain permissive
+// only when BOTH USING and WITH CHECK are tenant-bound.
+const legacyBillingNames = new Set([
+  'tenant_subscriptions_isolation', 'subscription_events_isolation',
+  'billing_tenant_isolation', 'billing_stripe_tenant_isolation',
+  'billing_payment_exception_tenant_isolation',
+]);
 const legacyBillingPredicate = (expression: string | null) => {
   const text = expression ?? '';
   // PostgreSQL normalizes current_setting casts and parentheses in pg_policies.
