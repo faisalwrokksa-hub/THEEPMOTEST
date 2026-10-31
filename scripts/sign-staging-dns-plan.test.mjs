@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash, generateKeyPairSync } from 'node:crypto';
-import { mkdtempSync, readFileSync, writeFileSync, statSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync, statSync, rmSync, chmodSync, symlinkSync, existsSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
@@ -43,6 +43,23 @@ test('S20 signer CLI writes restricted approval and refuses overwrite', () => {
     if (process.platform !== 'win32') assert.equal(statSync(output).mode & 0o777, 0o600);
     const second = spawnSync(process.execPath, [cmd, ...args], { encoding: 'utf8' });
     assert.notEqual(second.status, 0);
+    if (process.platform !== 'win32') {
+      chmodSync(key, 0o644);
+      const unsafeOutput = join(dir, 'unsafe.json');
+      const unsafeArgs = [...args.slice(0, -1), unsafeOutput];
+      const unsafe = spawnSync(process.execPath, [cmd, ...unsafeArgs], { encoding: 'utf8' });
+      assert.notEqual(unsafe.status, 0);
+      assert.equal(existsSync(unsafeOutput), false);
+      chmodSync(key, 0o600);
+      const symlink = join(dir, 'linked.pem');
+      symlinkSync(key, symlink);
+      const linkArgs = [...args];
+      linkArgs[3] = symlink;
+      linkArgs[linkArgs.length - 1] = unsafeOutput;
+      const linked = spawnSync(process.execPath, [cmd, ...linkArgs], { encoding: 'utf8' });
+      assert.notEqual(linked.status, 0);
+      assert.equal(existsSync(unsafeOutput), false);
+    }
   } finally {
     rmSync(dir, { recursive: true, force: true });
   }
