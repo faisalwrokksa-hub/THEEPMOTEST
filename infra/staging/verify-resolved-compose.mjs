@@ -80,6 +80,27 @@ export function inspectResolvedStagingCompose(config, candidateSha) {
     return isObject(s) && !s.network_mode && s.privileged !== true &&
       s.pid !== 'host' && s.ipc !== 'host' && s.userns_mode !== 'host';
   }));
+  // /etc/hosts takes precedence over Docker DNS. An extra_hosts entry can
+  // redirect "postgres" or "redis" to a production address while the URL
+  // still passes the approved-service-name check. Reject all service-level
+  // resolver overrides and custom network aliases in synthetic staging.
+  add('No custom DNS, hosts, links or aliases can redirect staging service names',
+    requiredServices.every(name => {
+      const s = services[name];
+      return isObject(s) &&
+        ['extra_hosts', 'dns', 'dns_search', 'dns_opt', 'links',
+          'external_links', 'hostname', 'domainname', 'container_name',
+          'env_file'].every(field => s[field] === undefined) &&
+        isObject(s.networks) &&
+        Object.values(s.networks).every(attachment =>
+          attachment === null || (isObject(attachment) && keys(attachment).length === 0));
+    }));
+  // PostgreSQL clients can honor PG* connection overrides independently of
+  // DATABASE_URL. No such variables are needed in the staging API container.
+  add('API cannot override staging PostgreSQL connection through PG variables',
+    ['PGHOST', 'PGHOSTADDR', 'PGPORT', 'PGDATABASE', 'PGSERVICE',
+      'PGSERVICEFILE', 'PGOPTIONS', 'PGUSER', 'PGPASSWORD']
+      .every(field => apiEnv[field] === undefined));
   add('PostgreSQL, Redis and API have no published ports',
     ['postgres', 'redis', 'api'].every(name => services[name]?.ports === undefined));
   add('Web and TLS edge bind exactly one loopback-only host port',
