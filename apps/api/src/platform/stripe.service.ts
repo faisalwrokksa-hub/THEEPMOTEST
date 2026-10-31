@@ -10,6 +10,7 @@ import { parsePaidRecurringInvoice } from './stripe-recurring-invoice';
 import { recurringInvoicePaymentIntentId } from './stripe-recurring-payment-reference';
 import { assertRecurringProviderSettlement, type TrustedRecurringBinding } from './stripe-recurring-reconciliation';
 import { assertRecurringLocalSettlement } from './stripe-recurring-local-settlement';
+import { parseRecurringCancellation, assertRecurringCancellationProvider, type RecurringCancellationCandidate } from './stripe-recurring-cancellation';
 import { parseSignedRecurringCheckout, assertRecurringCheckoutBinding, type RecurringCheckoutCandidate } from './stripe-recurring-checkout-binding';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
@@ -548,6 +549,113 @@ export class StripeBillingService {
   }
 
 
+
+  /**
+   * C33: signed TEST-only cancellation. The signed event cannot choose a
+   * tenant without an independent provider GET and an existing immutable
+   * tenant subscription binding. No payment or entitlement grant occurs.
+   * Scheduled cancellation preserves the already-paid period; terminal
+   * deletion revokes access. Replays are serialized by the tenant lock.
+   */
+  private async recordRecurringCancellation(
+    candidate: RecurringCancellationCandidate, digest: string,
+    config: ReturnType<typeof stripeConfig>) {
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring cancellation is TEST-only and disabled');
+    let response: Response;
+    try {
+      response = await stripeApiFetch(
+        `https://api.stripe.com/v1/subscriptions/${candidate.stripeSubscriptionId}`, {
+          headers: { Authorization: `Bearer ${config.key}` },
+          signal: AbortSignal.timeout(12_000),
+        });
+    } catch { throw new BadGatewayException('Recurring cancellation provider lookup unavailable'); }
+    if (!response.ok)
+      throw new BadGatewayException('Recurring cancellation provider lookup rejected');
+    let remote: unknown;
+    try { remote = await readStripeApiJson(response); }
+    catch { throw new BadGatewayException('Invalid recurring cancellation provider response'); }
+    const tenantId = (remote as any)?.metadata?.tenantId;
+    if (typeof tenantId !== 'string' || !UUID.test(tenantId) ||
+        tenantId !== candidate.tenantId)
+      throw new ConflictException('Recurring cancellation tenant routing mismatch');
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const binding = rows(await tx.execute(sql`
+        SELECT b.tenant_id AS "tenantId", b.subscription_id AS "subscriptionId",
+               b.plan_id AS "planId", b.stripe_subscription_id AS "stripeSubscriptionId",
+               b.stripe_customer_id AS "stripeCustomerId",
+               b.stripe_price_id AS "stripePriceId", b.status AS "bindingStatus",
+               s.status AS "localStatus"
+        FROM billing_stripe_recurring_bindings b
+        JOIN tenant_subscriptions s ON s.tenant_id = b.tenant_id
+          AND s.id = b.subscription_id AND s.plan_id = b.plan_id
+        WHERE b.tenant_id = ${tenantId}
+          AND b.stripe_subscription_id = ${candidate.stripeSubscriptionId}
+          AND b.stripe_customer_id = ${candidate.customerId}
+        FOR UPDATE OF b, s`))[0];
+      if (!binding) throw new ConflictException('Recurring cancellation binding is missing');
+      const latest = rows(await tx.execute(sql`
+        SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
+        ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
+      try {
+        assertRecurringCancellationProvider(candidate, remote, binding, latest?.id ?? '', false);
+      } catch { throw new ConflictException('Recurring cancellation provider or tenant ledger mismatch'); }
+
+      // Cancellation events have no paid invoice. Keep their digest in the
+      // subscription event ledger rather than inventing an invoice receipt.
+      // This read and append are serialized under the same tenant advisory lock.
+      const previous = rows(await tx.execute(sql`
+        SELECT event_type AS "eventType",
+               details ->> 'payloadSha256' AS "payloadSha256",
+               details ->> 'stripeSubscriptionId' AS "stripeSubscriptionId"
+        FROM subscription_events
+        WHERE tenant_id = ${tenantId}
+          AND subscription_id = ${binding.subscriptionId}
+          AND event_type IN ('billing.stripe_recurring_cancelled',
+                             'billing.stripe_recurring_cancellation_scheduled')
+          AND details ->> 'eventId' = ${candidate.eventId}
+        ORDER BY created_at DESC LIMIT 1`))[0];
+      const eventType = candidate.terminal ?
+        'billing.stripe_recurring_cancelled' :
+        'billing.stripe_recurring_cancellation_scheduled';
+      if (previous) {
+        if (previous.eventType !== eventType || previous.payloadSha256 !== digest ||
+            previous.stripeSubscriptionId !== candidate.stripeSubscriptionId)
+          throw new ConflictException('Recurring cancellation event identity was reused');
+        return { received: true, applied: false, duplicate: true, canceled: candidate.terminal };
+      }
+      const marked = rows(await tx.execute(sql`
+        UPDATE billing_stripe_recurring_bindings
+        SET cancel_at_period_end = true, updated_at = now()
+        WHERE tenant_id = ${tenantId}
+          AND subscription_id = ${binding.subscriptionId}
+          AND stripe_subscription_id = ${candidate.stripeSubscriptionId}
+        RETURNING id`));
+      if (marked.length !== 1)
+        throw new ConflictException('Recurring cancellation binding changed');
+      const revoked = rows(await tx.execute(sql`
+        UPDATE tenant_subscriptions
+        SET cancel_at_period_end = true,
+            status = CASE WHEN ${candidate.terminal} THEN 'canceled' ELSE status END,
+            updated_at = now()
+        WHERE tenant_id = ${tenantId} AND id = ${binding.subscriptionId}
+        RETURNING id`));
+      if (revoked.length !== 1)
+        throw new ConflictException('Recurring cancellation subscription changed');
+      await tx.execute(sql`
+        INSERT INTO subscription_events
+          (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${binding.subscriptionId}, ${eventType},
+          ${JSON.stringify({ eventId: candidate.eventId,
+            stripeSubscriptionId: candidate.stripeSubscriptionId,
+            payloadSha256: digest, terminal: candidate.terminal })}::jsonb)`);
+      return { received: true, applied: true, canceled: candidate.terminal,
+        scheduled: !candidate.terminal, subscriptionId: binding.subscriptionId };
+    });
+  }
+
   /**
    * C32: TEST-only, signed recurring invoice settlement. The provider's
    * subscription metadata is a routing hint only. The immutable Checkout
@@ -800,6 +908,11 @@ export class StripeBillingService {
     try { recurringCheckout = parseSignedRecurringCheckout(rawBody, config.liveMode); }
     catch { throw new BadRequestException('Invalid recurring Stripe Checkout event'); }
     if (recurringCheckout) return this.bindRecurringCheckout(recurringCheckout, config);
+    let cancellation: ReturnType<typeof parseRecurringCancellation>;
+    try { cancellation = parseRecurringCancellation(rawBody, config.liveMode); }
+    catch { throw new BadRequestException('Invalid recurring Stripe cancellation event'); }
+    if (cancellation)
+      return this.recordRecurringCancellation(cancellation, sha256(rawBody), config);
     // C31 safety boundary: never acknowledge a paid recurring invoice while
     // transactional invoice/entitlement settlement is not yet connected.
     // A 2xx would cause Stripe to stop retrying a collected subscription
@@ -807,6 +920,15 @@ export class StripeBillingService {
     let signedEnvelope: any;
     try { signedEnvelope = JSON.parse(rawBody.toString('utf8')); }
     catch { throw new BadRequestException('Invalid signed Stripe event JSON'); }
+    // Until failed recurring invoice reconciliation is implemented, never
+    // acknowledge a provider failure as ignored: it requires a retry/operator.
+    if (signedEnvelope?.type === 'invoice.payment_failed') {
+      const failed = signedEnvelope.data?.object;
+      if (failed?.subscription || failed?.parent?.subscription_details?.subscription ||
+          (typeof failed?.billing_reason === 'string' &&
+           failed.billing_reason.startsWith('subscription_')))
+        throw new ServiceUnavailableException('Recurring Stripe payment failure requires reconciliation');
+    }
     if (signedEnvelope?.type === 'invoice.paid') {
       const invoice = signedEnvelope.data?.object;
       const recurring = !!(invoice?.subscription ||
