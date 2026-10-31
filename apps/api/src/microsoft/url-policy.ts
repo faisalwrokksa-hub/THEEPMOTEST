@@ -30,3 +30,27 @@ export function microsoftApiUrl(base: string, path: string): string {
   }
   return target.toString();
 }
+
+/**
+ * Upload-session URLs come from Graph but carry customer file bytes, not a
+ * bearer token. Accept only Microsoft-hosted HTTPS upload endpoints; never
+ * allow private hosts, arbitrary redirects, credentials or custom ports.
+ * The query string is an opaque, short-lived Microsoft upload capability.
+ */
+export function microsoftUploadUrl(value: unknown): string {
+  if (typeof value !== 'string' || !value.startsWith('https://') ||
+      /[\\\\\u0000-\u001f\u007f]/.test(value)) {
+    throw new Error('Unsafe Microsoft upload session URL');
+  }
+  let url: URL;
+  try { url = new URL(value); } catch { throw new Error('Unsafe Microsoft upload session URL'); }
+  const host = url.hostname.toLowerCase();
+  const trusted = (host.endsWith('.sharepoint.com') ||
+    host.endsWith('.sharepoint-df.com') || host.endsWith('.up.1drv.com')) &&
+    host.split('.').length >= 3;
+  if (!trusted || url.protocol !== 'https:' || url.port || url.username ||
+      url.password || url.hash || !url.pathname.startsWith('/')) {
+    throw new Error('Unsafe Microsoft upload session URL');
+  }
+  return url.toString();
+}
