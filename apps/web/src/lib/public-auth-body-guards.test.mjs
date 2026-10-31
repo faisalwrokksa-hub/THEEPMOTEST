@@ -92,6 +92,35 @@ test('F37: sign-in parses a bounded form before sending credentials upstream', a
     source.indexOf('postLoginToApi(fetch,'));
 });
 
+test('F37: oversized login credential body is cancelled before parsing', async () => {
+  let cancelled = false;
+  const request = {
+    url: 'https://theepmo.com/api/session',
+    headers: new Headers({ 'content-type': 'application/x-www-form-urlencoded' }),
+    body: new ReadableStream({
+      start(controller) { controller.enqueue(new Uint8Array(16385)); },
+      cancel() { cancelled = true; },
+    }),
+  };
+  const parsed = await readBoundedBrowserForm(request, 16384);
+  assert.deepEqual(parsed, { form: null, error: 'too-large' });
+  assert.equal(cancelled, true);
+});
+
+test('F37: interrupted JSON request cannot yield a partial authentication payload', async () => {
+  const request = {
+    url, headers: new Headers({ 'content-type': 'application/json' }),
+    body: new ReadableStream({
+      start(controller) {
+        controller.enqueue(new TextEncoder().encode('{"token":"secret"'));
+        controller.error(new Error('connection closed'));
+      },
+    }),
+  };
+  const parsed = await readBoundedBrowserJson(request);
+  assert.deepEqual(parsed, { value: null, error: 'invalid' });
+});
+
 test('F37: all three public JSON auth handlers enforce bounded complete reads', () => {
   for (const route of [
     'password-recovery/request', 'password-recovery/reset', 'invite/accept',
