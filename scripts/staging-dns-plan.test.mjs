@@ -12,7 +12,7 @@ test('S19 refuses production hostnames and duplicate records',()=>{
   const q=plan();q.records[1].name=q.records[0].name;rejects(q);
 });
 test('S19 refuses nonpublic, documentation, loopback and private targets',()=>{
-  for(const value of ['127.0.0.1','10.1.1.1','172.16.0.1','192.168.1.1','169.254.1.1','100.64.0.1','192.0.2.1','198.51.100.1','203.0.113.1','224.0.0.1','0.0.0.0','255.255.255.255','01.2.3.4']){
+  for(const value of ['127.0.0.1','10.1.1.1','172.16.0.1','192.168.1.1','169.254.1.1','100.64.0.1','192.0.2.1','198.51.100.1','203.0.113.1','224.0.0.1','0.0.0.0','255.255.255.255','01.2.3.4','192.31.196.1','192.52.193.1','192.88.99.2','192.175.48.1']){
     const p=plan();p.records[0].value=value;rejects(p);
   }
 });

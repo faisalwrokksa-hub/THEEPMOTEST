@@ -2,6 +2,7 @@ import { Logger } from '@nestjs/common';
 import { microsoftApiUrl } from './url-policy';
 import { assertMicrosoftPageVisit, microsoftPageItems } from './pagination-policy';
 import { parseMicrosoftTokenPayload } from './token-response-policy';
+import { microsoftAuthority } from './authority-policy';
 
 /**
  * Talking to Microsoft: one app registration, every customer's own tenant.
@@ -22,8 +23,7 @@ import { parseMicrosoftTokenPayload } from './token-response-policy';
 
 export type Resource = 'graph' | 'powerbi';
 
-const AUTHORITY = () =>
-  process.env.MS_AUTHORITY ?? 'https://login.microsoftonline.com/organizations';
+const AUTHORITY = () => microsoftAuthority(process.env.MS_AUTHORITY);
 
 export const GRAPH = 'https://graph.microsoft.com/v1.0';
 export const POWERBI = 'https://api.powerbi.com/v1.0/myorg';
