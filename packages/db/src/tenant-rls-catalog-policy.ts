@@ -15,6 +15,14 @@ export type TenantPolicyRow = {
 };
 
 const tenantPredicate = /\btenant_id\s*=\s*(?:public\.)?app_current_tenant\(\)/i;
+const legacyBillingNames = new Set(['billing_tenant_isolation', 'billing_stripe_tenant_isolation', 'billing_payment_exception_tenant_isolation']);
+const legacyBillingPredicate = (expression: string | null) => {
+  const text = expression ?? '';
+  // PostgreSQL normalizes current_setting casts and parentheses in pg_policies.
+  return /\btenant_id\s*=/.test(text) && /\bNULLIF\s*\(/i.test(text) &&
+    /\bcurrent_setting\s*\(/i.test(text) && /'app\.tenant_id'/i.test(text) &&
+    !/\bOR\b/i.test(text);
+};
 
 export function assertTenantRlsCatalog(rows: ReadonlyArray<TenantPolicyRow>): number {
   if (!rows.length) throw new Error('No tenant-scoped PostgreSQL tables found; RLS verification cannot pass');
@@ -28,13 +36,20 @@ export function assertTenantRlsCatalog(rows: ReadonlyArray<TenantPolicyRow>): nu
     if (policies.some(row => !row.enabled || !row.forced))
       throw new Error(`Tenant table ${table} must ENABLE and FORCE row-level security`);
     const permissive = policies.filter(row => row.permissive === 'PERMISSIVE');
-    if (permissive.length !== 1 || permissive[0].policy_name !== 'tenant_isolation')
-      throw new Error(`Tenant table ${table} has a missing or additional permissive RLS policy`);
-    const policy = permissive[0];
-    if (policy.command !== 'ALL' ||
-        !tenantPredicate.test(policy.using_expression ?? '') ||
-        !tenantPredicate.test(policy.check_expression ?? ''))
-      throw new Error(`Tenant table ${table} has an incomplete tenant isolation policy`);
+    const baseline = permissive.filter(row => row.policy_name === 'tenant_isolation');
+    if (baseline.length !== 1)
+      throw new Error(`Tenant table ${table} has a missing or duplicate tenant isolation policy`);
+    for (const policy of permissive) {
+      const isBaseline = policy.policy_name === 'tenant_isolation';
+      const validUsing = isBaseline
+        ? tenantPredicate.test(policy.using_expression ?? '') && !/\\bOR\\b/i.test(policy.using_expression ?? '')
+        : legacyBillingNames.has(policy.policy_name ?? '') && legacyBillingPredicate(policy.using_expression);
+      const validCheck = isBaseline
+        ? tenantPredicate.test(policy.check_expression ?? '') && !/\\bOR\\b/i.test(policy.check_expression ?? '')
+        : legacyBillingNames.has(policy.policy_name ?? '') && legacyBillingPredicate(policy.check_expression);
+      if (policy.command !== 'ALL' || !validUsing || !validCheck)
+        throw new Error(`Tenant table ${table} has an unsafe or incomplete permissive RLS policy`);
+    }
   }
   return tables.size;
 }
