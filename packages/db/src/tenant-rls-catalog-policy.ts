@@ -20,6 +20,7 @@ const tenantPredicate = /\btenant_id\s*=\s*(?:public\.)?app_current_tenant\(\)/i
 // only when BOTH USING and WITH CHECK are tenant-bound.
 const legacyBillingNames = new Set([
   'tenant_subscriptions_isolation', 'subscription_events_isolation',
+  'tenant_profiles_isolation', 'tenant_invitations_isolation',
   'billing_tenant_isolation', 'billing_stripe_tenant_isolation',
   'billing_payment_exception_tenant_isolation',
 ]);
