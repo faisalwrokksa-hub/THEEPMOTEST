@@ -32,7 +32,8 @@ test('malformed statuses and bodies fail closed', () => {
 test('authenticated API helper never copies raw upstream text into ApiError', () => {
   const source = readFileSync(new URL('./api.ts', import.meta.url), 'utf8');
   assert.match(source, /safeApiFailure\(res\.status, licenseBody\)/);
-  assert.match(source, /res\.status === 403 \? await res\.text\(\)/);
+  assert.match(source, /res\.status === 403 \? await readBoundedUpstreamText\(res, 4096\)/);
+  assert.doesNotMatch(source, /await res\.text\(/);
   assert.doesNotMatch(source, /JSON\.parse\(body\)\?\.message/);
   assert.doesNotMatch(source, /String\(detail\)\.slice/);
 });
