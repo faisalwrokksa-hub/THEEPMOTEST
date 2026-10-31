@@ -634,6 +634,12 @@ export class StripeBillingService {
         currency: record.currency, billingInterval: record.billingInterval,
         trialDays: record.trialDays, isActive: record.isActive,
       } as RecurringPlan;
+      // Independently GET the configured provider Price, not just the price
+      // ID embedded in Invoice/Subscription objects. Amount/interval/mode
+      // must still agree with the tenant's immutable Checkout binding.
+      const remotePrice = await getStripe(`prices/${binding.stripePriceId}`);
+      try { assertRecurringStripePrice(remotePrice, plan, binding.stripePriceId, false); }
+      catch { throw new ConflictException('Recurring Stripe Price no longer matches tenant plan'); }
       const receipt = rows(await tx.execute(sql`
         SELECT invoice_id AS "invoiceId", payload_sha256 AS digest
         FROM billing_webhook_receipts
