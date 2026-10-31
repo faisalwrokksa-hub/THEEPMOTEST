@@ -3,6 +3,7 @@ import { Page, Loaded } from '@/components/Page';
 import { when } from '@/lib/fmt';
 import { tr, getLang } from '@/lib/i18n';
 import { Flash } from '@/components/NewRecord';
+import { tenantSwitchFeedback } from '@/lib/tenant-switch-feedback.mjs';
 import { ROLE_LABELS, ASSIGNABLE_ROLES, can, type Capability } from '@pmo/contracts';
 
 const CAP_MEANING: Record<string, string> = {
@@ -21,9 +22,10 @@ const CAP_MEANING: Record<string, string> = {
 };
 
 export default async function Settings({ searchParams }:
-  { searchParams: Promise<{ error?: string; done?: string }> }) {
-  const { error, done } = await searchParams;
+  { searchParams: Promise<{ error?: string; done?: string; switch?: string }> }) {
+  const { error, done, switch: switchStatus } = await searchParams;
   const lang = await getLang();
+  const switchMessage = tenantSwitchFeedback(switchStatus, lang);
   const t = await tr();
   // Adding people is its own permission. Offering the form to everyone meant a
   // Team Member could fill in four fields and only then be told no.
@@ -34,6 +36,9 @@ export default async function Settings({ searchParams }:
   return (
     <Page title="Workspace Settings" sub="Who is in this workspace, what they can do, and how it is configured.">
       <Flash error={error} done={done} lang={lang} />
+      {switchMessage && <p className="err" role="alert" style={{ marginBlockEnd: 16 }}>
+        {switchMessage}
+      </p>}
       <Loaded load={api.workspaceProfile}>
         {(profile) => <section className="panel" style={{ marginBottom: 18 }}>
           <h2 className="sec" style={{ marginTop: 0 }}>{lang === 'ar' ? 'ملف المؤسسة' : 'Organization profile'}</h2>

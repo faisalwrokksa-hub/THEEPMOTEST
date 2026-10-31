@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { readBoundedBrowserForm } from './bounded-browser-form.mjs';
 import { fetchTenantMutation } from './tenant-mutation-fetch.mjs';
 import { uuidPathSegment } from './uuid-path.mjs';
-import { safeMutationError } from './safe-mutation-feedback.mjs';
+import { tenantSwitchFailurePath, tenantSwitchFeedback } from './tenant-switch-feedback.mjs';
 
 const source = readFileSync(new URL('../app/api/session/tenant/route.ts', import.meta.url), 'utf8');
 
@@ -41,10 +41,12 @@ test('failed workspace switch surfaces safe error instead of pretending success'
   assert.match(source, /readBoundedBrowserForm\(req\)/);
   assert.match(source, /fetchTenantMutation\(fetch,/);
   assert.match(source, /if \(!response\?\.ok\)/);
-  assert.match(source, /publicUrl\(req, '\/settings'\)/);
-  assert.match(source, /safeMutationError\(response\?\.status \?\? 503\)/);
+  assert.match(source, /publicUrl\(req, tenantSwitchFailurePath\(response\?\.status\)\)/);
+  assert.equal(tenantSwitchFailurePath(401), '/login?error=expired');
+  assert.equal(tenantSwitchFailurePath(403), '/settings?switch=forbidden');
+  assert.match(tenantSwitchFeedback('unavailable', 'ar'), /مساحة العمل/);
   assert.match(source, /safeReturnPath\(to, '\/'\)/);
   assert.doesNotMatch(source, /req\.formData\(\)/);
   assert.doesNotMatch(source, /\.catch\(\(\) => \{\}\)/);
-  assert.equal(safeMutationError(500).includes('password'), false);
+  assert.equal(tenantSwitchFeedback('password=secret'), null);
 });
