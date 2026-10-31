@@ -27,3 +27,20 @@ test('rejects alternate staging API and spoofed staging domains', () => {
  assert.ok(failed({...env,PUBLIC_API_URL:'https://api.staging.theepmo.com'}).includes('Canonical staging API origin'));
  assert.ok(failed({...env,WEB_ORIGIN:'https://staging.theepmo.com.evil.example'}).includes('Canonical staging web origin'));
 });
+
+test('S26 rejects debug, test, preview and missing NODE_ENV for staging', () => {
+ for (const mode of ['development', 'test', 'preview', '', undefined])
+  assert.ok(failed({...env,NODE_ENV:mode}).includes('Production Node runtime required for staging'), String(mode));
+});
+
+test('S26 rejects PostgreSQL URI query redirects and fragments', () => {
+ for (const suffix of ['?host=prod.example', '?hostaddr=203.0.113.1', '?sslmode=disable', '#ignored'])
+  assert.ok(failed({...env,DATABASE_URL:env.DATABASE_URL + suffix})
+    .includes('Database connection has non-placeholder credentials'), suffix);
+});
+
+test('S26 rejects Redis URI query and fragment overrides', () => {
+ for (const suffix of ['?tls=false', '?db=1', '#ignored'])
+  assert.ok(failed({...env,REDIS_URL:env.REDIS_URL + suffix})
+    .includes('Redis connection has non-placeholder password'), suffix);
+});
