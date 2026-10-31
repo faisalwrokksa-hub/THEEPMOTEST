@@ -532,5 +532,21 @@
     "decision": "NO-GO",
     "excludedFailedPr": 151,
     "qualification": "Source blob parity verified against parents; combined exact-SHA CI and external provider/staging receipts are not accepted at commit."
+  },
+  "lastIndependentIntegrationQ33": {
+    "reviewOnly": true,
+    "baseQ32Sha": "9ed4b07356a9c57ecb1105a142f6a957f1a415e0",
+    "sourceS30QaPr": 153,
+    "sourceS30QaSha": "216c7be8f59d362464ecfd5232650dab18817bb6",
+    "sourceS30QaCiRun": 41198359565,
+    "sourceS30QaCi": "SUCCESS_4_OF_4",
+    "sourceFiles": 3,
+    "sourceBlobParity": "MATCH_3_OF_3",
+    "integrationSha": null,
+    "integrationCi": "PENDING_FINAL_SHA",
+    "acceptedCommercialGates": 0,
+    "stripeTestScenariosAccepted": 0,
+    "decision": "NO-GO",
+    "qualification": "Q32 parent CI was in progress at creation; Q33 same-SHA CI and independent external acceptance are not proven."
   }
 }
