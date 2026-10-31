@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
+import { stripeCheckoutRedirect } from '@/lib/billing-checkout-redirect';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const COOKIE = 'pmo_session';
@@ -29,13 +30,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(target, 303);
   }
   const response = await fetch(`${BASE}${path}`, {
-    method: 'POST', cache: 'no-store',
+    method: 'POST', cache: 'no-store', redirect: 'error',
     headers: { 'content-type': 'application/json', cookie: `${COOKIE}=${token}` },
     body: JSON.stringify(payload),
   }).catch(() => null);
-  if (!response?.ok) {
-    const error = await response?.json().catch(() => null);
-    target.searchParams.set('error', typeof error?.message === 'string' ? error.message.slice(0, 160) : 'Billing service unavailable');
+  // A credentialed API request must never follow an upstream redirect, and
+  // untrusted API diagnostics must never be reflected into a customer URL.
+  if (!response || response.redirected || (response.status >= 300 && response.status < 400) || !response.ok) {
+    target.searchParams.set('error', 'Billing service unavailable');
     return NextResponse.redirect(target, 303);
   }
   if (action === 'issue-invoice') {
@@ -43,12 +45,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.redirect(target, 303);
   }
   const data = await response.json().catch(() => null);
-  try {
-    const url = new URL(data?.url);
-    if (url.protocol !== 'https:' || url.hostname !== 'checkout.stripe.com') throw new Error('Unsafe checkout URL');
-    return NextResponse.redirect(url, 303);
-  } catch {
+  const url = stripeCheckoutRedirect(data, invoiceId);
+  if (!url) {
     target.searchParams.set('error', 'Invalid payment-provider redirect');
     return NextResponse.redirect(target, 303);
   }
+  return NextResponse.redirect(url, 303);
 }
