@@ -62,7 +62,7 @@ test('reject forged signed metadata, wrong mode and incomplete payment', () => {
     { ...session, payment_status: 'unpaid' },
     { ...session, status: 'open' },
     { ...session, metadata: { tenantId: 'other', planId } },
-    { ...session, subscription: 'sub_WRONG' },
+    { ...session, subscription: 'invalid_subscription_id' },
     { ...session, livemode: true },
     { ...session, client_reference_id: 'other' },
   ];
