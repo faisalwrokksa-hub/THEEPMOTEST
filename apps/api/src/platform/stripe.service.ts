@@ -6,6 +6,8 @@ import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
 import { assertRecurringStripePrice, assertCreatedRecurringCheckout, stripeRecurringCheckoutParams, stripeRecurringIdempotencyKey, type RecurringPlan } from './stripe-recurring-policy';
+import { parsePaidRecurringInvoice } from './stripe-recurring-invoice';
+import { recurringInvoicePaymentIntentId } from './stripe-recurring-payment-reference';
 import { parseSignedRecurringCheckout, assertRecurringCheckoutBinding, type RecurringCheckoutCandidate } from './stripe-recurring-checkout-binding';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
@@ -553,6 +555,38 @@ export class StripeBillingService {
     try { recurringCheckout = parseSignedRecurringCheckout(rawBody, config.liveMode); }
     catch { throw new BadRequestException('Invalid recurring Stripe Checkout event'); }
     if (recurringCheckout) return this.bindRecurringCheckout(recurringCheckout, config);
+    // C31 safety boundary: never acknowledge a paid recurring invoice while
+    // transactional invoice/entitlement settlement is not yet connected.
+    // A 2xx would cause Stripe to stop retrying a collected subscription
+    // payment that has not been granted to the tenant.
+    let signedEnvelope: any;
+    try { signedEnvelope = JSON.parse(rawBody.toString('utf8')); }
+    catch { throw new BadRequestException('Invalid signed Stripe event JSON'); }
+    if (signedEnvelope?.type === 'invoice.paid') {
+      const invoice = signedEnvelope.data?.object;
+      const recurring = !!(invoice?.subscription ||
+        invoice?.parent?.subscription_details?.subscription ||
+        (typeof invoice?.billing_reason === 'string' &&
+         invoice.billing_reason.startsWith('subscription_')));
+      if (recurring) {
+        let candidate: ReturnType<typeof parsePaidRecurringInvoice>;
+        try { candidate = parsePaidRecurringInvoice(rawBody, config.liveMode); }
+        catch { throw new BadRequestException('Invalid recurring Stripe invoice event'); }
+        if (!candidate)
+          throw new ServiceUnavailableException('Unsupported recurring Stripe invoice needs reconciliation');
+        if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+            process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+          throw new ServiceUnavailableException('Recurring Stripe settlement is TEST-only and disabled');
+        // Verify that the signed invoice includes a valid provider reference
+        // before retrying; the final settlement must independently GET it.
+        if (invoice?.payment_intent != null || invoice?.payments != null) {
+          try { recurringInvoicePaymentIntentId(invoice); }
+          catch { throw new BadRequestException('Ambiguous recurring invoice payment reference'); }
+        }
+        throw new ServiceUnavailableException('Recurring Stripe invoice settlement not yet enabled');
+      }
+    }
+
     // Provider-signed reversal events are processed independently from
     // successful Checkout events and NEVER grant a new subscription period.
     let exceptionEvent: ReturnType<typeof parseStripePaymentException>;
