@@ -42,10 +42,10 @@ export function assertTenantRlsCatalog(rows: ReadonlyArray<TenantPolicyRow>): nu
     for (const policy of permissive) {
       const isBaseline = policy.policy_name === 'tenant_isolation';
       const validUsing = isBaseline
-        ? tenantPredicate.test(policy.using_expression ?? '') && !/\\bOR\\b/i.test(policy.using_expression ?? '')
+        ? tenantPredicate.test(policy.using_expression ?? '') && !/\bOR\b/i.test(policy.using_expression ?? '')
         : legacyBillingNames.has(policy.policy_name ?? '') && legacyBillingPredicate(policy.using_expression);
       const validCheck = isBaseline
-        ? tenantPredicate.test(policy.check_expression ?? '') && !/\\bOR\\b/i.test(policy.check_expression ?? '')
+        ? tenantPredicate.test(policy.check_expression ?? '') && !/\bOR\b/i.test(policy.check_expression ?? '')
         : legacyBillingNames.has(policy.policy_name ?? '') && legacyBillingPredicate(policy.check_expression);
       if (policy.command !== 'ALL' || !validUsing || !validCheck)
         throw new Error(`Tenant table ${table} has an unsafe or incomplete permissive RLS policy`);
