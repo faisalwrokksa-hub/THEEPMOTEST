@@ -21,9 +21,26 @@ test('all CI receipts allow CI profile but not launch profile', () => withDir(di
   assert.equal(verifyReceipts(dir, 'ci', context).passed, true);
   assert.equal(verifyReceipts(dir, 'launch', context).passed, false);
 }));
-test('launch profile requires all three additional live checks', () => withDir(dir => {
-  for (const gate of LAUNCH_GATES) recordGate(dir, gate, context);
-  assert.equal(verifyReceipts(dir, 'launch', context).passed, true);
+test('CI cannot mint live provider, browser or recovery acceptance receipts', () => withDir(dir => {
+  for (const gate of CI_GATES) recordGate(dir, gate, context);
+  for (const gate of LAUNCH_GATES.filter(gate => !CI_GATES.includes(gate))) {
+    assert.throws(() => makeReceipt(gate, context), /Independent external acceptance/);
+    assert.throws(() => recordGate(dir, gate, context), /Independent external acceptance/);
+    // Even manually fabricated same-SHA, same-run, fresh JSON is NOT proof.
+    writeFileSync(join(dir, gate + '.json'), JSON.stringify({
+      schemaVersion: 1, gate, status: 'passed', sha: context.sha,
+      runId: context.runId, timestamp: new Date().toISOString(),
+    }));
+  }
+  const ci = verifyReceipts(dir, 'ci', context);
+  const launch = verifyReceipts(dir, 'launch', context);
+  assert.equal(ci.passed, true);
+  assert.equal(launch.passed, false);
+  assert.equal(launch.checks.filter(item => item.passed).length, CI_GATES.length);
+  for (const item of launch.checks.filter(item => !CI_GATES.includes(item.gate))) {
+    assert.equal(item.passed, false);
+    assert.match(item.reason, /independent external acceptance/);
+  }
 }));
 test('different CI commit is rejected', () => withDir(dir => {
   for (const gate of CI_GATES) recordGate(dir, gate, context);
