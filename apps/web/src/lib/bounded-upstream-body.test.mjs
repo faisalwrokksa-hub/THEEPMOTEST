@@ -6,7 +6,7 @@ import { readBoundedUpstreamText, readBoundedUpstreamJson } from './bounded-upst
 test('bounded text preserves a small complete license refusal', async () => {
   const body = '{"message":"subscription expired"}';
   assert.equal(await readBoundedUpstreamText(new Response(body), 4096), body);
-  assert.equal(await readBoundedUpstreamText(new Response('a'.repeat(4096)), 4096).length, 4096);
+  assert.equal((await readBoundedUpstreamText(new Response('a'.repeat(4096)), 4096)).length, 4096);
 });
 
 test('oversized upstream error is discarded and the stream is cancelled', async () => {
