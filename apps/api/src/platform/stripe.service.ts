@@ -5,6 +5,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
+import { assertRecurringStripePrice, assertCreatedRecurringCheckout, stripeRecurringCheckoutParams, stripeRecurringIdempotencyKey, type RecurringPlan } from './stripe-recurring-policy';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
@@ -37,6 +38,127 @@ function checkoutRedirects() {
 
 @Injectable()
 export class StripeBillingService {
+
+  /**
+   * C29: server-side, TEST-only first-customer recurring Checkout preparation.
+   * Intentionally NOT exposed by the billing controller: signed subscription
+   * binding and invoice settlement must be wired before customer activation.
+   * A previous attempt is never silently retried: Stripe may have collected
+   * funds even if its webhook has not yet reached this service.
+   */
+  async prepareRecurringCheckout() {
+    requireCapability('pmoa_admin');
+    const { tenantId, userId } = currentContext();
+    const config = stripeConfig();
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring Checkout is TEST-only and disabled');
+    const urls = checkoutRedirects();
+    let priceMap: Record<string, unknown>;
+    try {
+      const parsed: unknown = JSON.parse(process.env.STRIPE_RECURRING_PRICE_IDS || '{}');
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
+        throw new Error('Invalid Stripe Price configuration');
+      priceMap = parsed as Record<string, unknown>;
+    } catch { throw new ServiceUnavailableException('Recurring Stripe Prices are not configured'); }
+
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const current = rows(await tx.execute(sql`
+        SELECT s.id, s.status, s.cancel_at_period_end AS "cancelAtPeriodEnd",
+               s.trial_ends_at AS "trialEndsAt",
+               p.id AS "planId", p.code, p.price_minor AS "priceMinor",
+               p.currency, p.billing_interval AS "billingInterval",
+               p.trial_days AS "trialDays", p.is_active AS "isActive"
+        FROM tenant_subscriptions s
+        JOIN subscription_plans p ON p.id = s.plan_id
+        WHERE s.tenant_id = ${tenantId}
+        ORDER BY s.created_at DESC, s.id DESC
+        LIMIT 1 FOR UPDATE OF s`))[0];
+      if (!current || current.status !== 'trialing' || current.cancelAtPeriodEnd ||
+          (current.trialEndsAt && new Date(current.trialEndsAt).getTime() > Date.now()))
+        throw new ConflictException('Subscription is not eligible for first-customer Checkout');
+      const prior = rows(await tx.execute(sql`
+        SELECT EXISTS (
+          SELECT 1 FROM billing_stripe_recurring_checkout_sessions
+          WHERE tenant_id = ${tenantId} AND subscription_id = ${current.id}
+        ) OR EXISTS (
+          SELECT 1 FROM billing_stripe_recurring_bindings
+          WHERE tenant_id = ${tenantId} AND subscription_id = ${current.id}
+        ) OR EXISTS (
+          SELECT 1 FROM billing_invoices
+          WHERE tenant_id = ${tenantId} AND subscription_id = ${current.id}
+        ) AS "alreadyStarted"`))[0];
+      if (prior?.alreadyStarted)
+        throw new ConflictException('Subscription already has a billing attempt; reconcile before retry');
+      const plan: RecurringPlan = {
+        id: current.planId, code: current.code, priceMinor: current.priceMinor,
+        currency: current.currency, billingInterval: current.billingInterval,
+        trialDays: current.trialDays, isActive: current.isActive,
+      };
+      const configuredPrice = Object.hasOwn(priceMap, plan.code) ? priceMap[plan.code] : null;
+      if (typeof configuredPrice !== 'string' || !/^price_[A-Za-z0-9]+$/.test(configuredPrice))
+        throw new ServiceUnavailableException('No authorized recurring Stripe Price for plan');
+      let priceResponse: Response;
+      try {
+        priceResponse = await stripeApiFetch(
+          `https://api.stripe.com/v1/prices/${configuredPrice}`, {
+            headers: { Authorization: `Bearer ${config.key}` },
+            signal: AbortSignal.timeout(12_000),
+          });
+      } catch { throw new BadGatewayException('Recurring Stripe Price lookup failed'); }
+      if (!priceResponse.ok)
+        throw new BadGatewayException('Recurring Stripe Price could not be verified');
+      let price: unknown;
+      try { price = await readStripeApiJson(priceResponse); }
+      catch { throw new BadGatewayException('Invalid recurring Stripe Price response'); }
+      let verifiedPrice: ReturnType<typeof assertRecurringStripePrice>;
+      try { verifiedPrice = assertRecurringStripePrice(price, plan, configuredPrice, false); }
+      catch { throw new ConflictException('Configured Stripe Price does not match the subscription plan'); }
+
+      const params = stripeRecurringCheckoutParams(plan, tenantId, verifiedPrice,
+        false, urls.success, urls.cancel);
+      let checkoutResponse: Response;
+      try {
+        checkoutResponse = await stripeApiFetch('https://api.stripe.com/v1/checkout/sessions', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${config.key}`,
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'Idempotency-Key': stripeRecurringIdempotencyKey(tenantId, plan.id, 0) },
+          body: params.toString(), signal: AbortSignal.timeout(12_000),
+        });
+      } catch { throw new BadGatewayException('Recurring Stripe Checkout request failed'); }
+      if (!checkoutResponse.ok)
+        throw new BadGatewayException('Recurring Stripe Checkout could not be created');
+      let session: any;
+      try { session = await readStripeApiJson(checkoutResponse); }
+      catch { throw new BadGatewayException('Invalid recurring Stripe Checkout response'); }
+      let reference: ReturnType<typeof assertCreatedRecurringCheckout>;
+      try { reference = assertCreatedRecurringCheckout(session, plan, tenantId, false); }
+      catch { throw new BadGatewayException('Recurring Stripe Checkout response failed validation'); }
+      const created = rows(await tx.execute(sql`
+        INSERT INTO billing_stripe_recurring_checkout_sessions
+          (tenant_id, subscription_id, plan_id, stripe_price_id,
+           stripe_session_id, checkout_url, live_mode, expires_at)
+        VALUES (${tenantId}, ${current.id}, ${plan.id}, ${verifiedPrice.priceId},
+                ${reference.sessionId}, ${reference.url}, false,
+                to_timestamp(${session.expires_at}))
+        ON CONFLICT (stripe_session_id) DO NOTHING RETURNING id`));
+      if (!created.length)
+        throw new ConflictException('Recurring Stripe Checkout session was already recorded');
+      await tx.execute(sql`INSERT INTO subscription_events
+        (tenant_id, subscription_id, actor_user_id, event_type, details)
+        VALUES (${tenantId}, ${current.id}, ${userId},
+                'billing.stripe_recurring_checkout_created',
+                ${JSON.stringify({ stripeSessionId: reference.sessionId,
+                  planId: plan.id, stripePriceId: verifiedPrice.priceId })}::jsonb)`);
+      return { subscriptionId: current.id, planId: plan.id,
+        sessionId: reference.sessionId, url: reference.url,
+        expiresAt: new Date(session.expires_at * 1000).toISOString(),
+        recurring: true, paymentVerified: false };
+    });
+  }
+
   /** Authenticated customer administrator creates hosted checkout for an existing renewal invoice. */
   async createCheckout(invoiceId: string) {
     requireCapability('pmoa_admin');
