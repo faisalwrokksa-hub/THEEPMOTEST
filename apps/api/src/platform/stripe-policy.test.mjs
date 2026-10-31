@@ -122,3 +122,14 @@ test('hosted Checkout URL rejects lookalikes, credentials, alternate ports and h
   null, 17, 'https://checkout.stripe.com/' + 'x'.repeat(8192),
  ]) assert.equal(stripeCheckoutUrlAllowed(url), false, String(url).slice(0,120));
 });
+
+test('Checkout session ID prefix must agree with signed event and object livemode', () => {
+ const makeEvent = (id, objectLive, eventLive) => Buffer.from(JSON.stringify({
+  id: 'evt_MODEPREFIX', type: 'checkout.session.completed', livemode: eventLive,
+  data: { object: { ...session, id, livemode: objectLive } },
+ }));
+ assert.throws(() => parsePaidStripeEvent(makeEvent('cs_live_ABC123', false, false), false));
+ assert.throws(() => parsePaidStripeEvent(makeEvent('cs_test_ABC123', true, true), true));
+ assert.equal(parsePaidStripeEvent(makeEvent('cs_test_ABC123', false, false), false)?.session.id, 'cs_test_ABC123');
+ assert.equal(parsePaidStripeEvent(makeEvent('cs_live_ABC123', true, true), true)?.session.id, 'cs_live_ABC123');
+});
