@@ -5,6 +5,8 @@ on:
   workflow_dispatch:
 permissions:
   contents: read
+env:
+  EPMO_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
 jobs:
   source-guards:
     name: Dependency-free source checks
@@ -12,6 +14,10 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact checked-out candidate SHA
+        run: node scripts/assert-ci-candidate-sha.mjs
       - uses: actions/setup-node@v4
         with: { node-version: 22 }
       - run: node scripts/verify-ci-safety.mjs
@@ -54,6 +60,10 @@ jobs:
       PHASE15_ACCEPT_DISPOSABLE_DB: 'YES_RESEED_DISPOSABLE_TEST_DATABASE'
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact checked-out candidate SHA
+        run: node scripts/assert-ci-candidate-sha.mjs
       - uses: pnpm/action-setup@v4
         with: { version: 10.17.0 }
       - uses: actions/setup-node@v4
@@ -209,6 +219,10 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact checked-out candidate SHA
+        run: node scripts/assert-ci-candidate-sha.mjs
       - uses: pnpm/action-setup@v4
         with: { version: 10.17.0 }
       - uses: actions/setup-node@v4
@@ -274,6 +288,10 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - name: Assert exact checked-out candidate SHA
+        run: node scripts/assert-ci-candidate-sha.mjs
       - uses: pnpm/action-setup@v4
         with: { version: 10.17.0 }
       - uses: actions/setup-node@v4

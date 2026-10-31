@@ -3,6 +3,9 @@ import { readFileSync } from 'node:fs';
 export function checkCiSafety(source) {
   const checks = [
     ['read-only token', /^permissions:\s*\n  contents: read/m.test(source) && !/^\s*(?:contents|actions|packages|id-token|pull-requests): write\s*$/m.test(source)],
+    ['four exact-head PR/push checkouts', source.split("ref: ${{ github.event.pull_request.head.sha || github.sha }}").length - 1 === 4],
+    ['four checkout SHA assertions', source.split("run: node scripts/assert-ci-candidate-sha.mjs").length - 1 === 4],
+    ['candidate SHA bound to release evidence', source.includes('EPMO_CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}')],
     ['pinned package manager', /version: 10\.17\.0/.test(source)],
     ['frozen dependency installation', /pnpm install --frozen-lockfile/.test(source)],
     ['disposable PostgreSQL', /image: postgres:16-alpine/.test(source)],
