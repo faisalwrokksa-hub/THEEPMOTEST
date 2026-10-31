@@ -2,6 +2,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException,
          ConflictException, ServiceUnavailableException, ForbiddenException } from '@nestjs/common';
 import { randomBytes } from 'node:crypto';
 import { safeMicrosoftReturnPath } from './return-path';
+import { microsoftUploadUrl } from './url-policy';
 import { sql } from 'drizzle-orm';
 import { withTenant, auditEvents } from '@pmo/db';
 import { currentContext } from '../tenancy/tenant-context';
@@ -545,12 +546,17 @@ export class MicrosoftService {
       { method: 'POST', body: JSON.stringify({
           item: { '@microsoft.graph.conflictBehavior': 'replace' } }) });
 
+    // A compromised or malformed uploadUrl must not receive customer file bytes.
+    // Validate before sending the first chunk, and forbid redirect replay.
+    const uploadUrl = microsoftUploadUrl(session?.uploadUrl);
+
     // Graph requires every chunk but the last to be a multiple of 320 KiB.
     const CHUNK = 320 * 1024 * 10;
     for (let start = 0; start < buf.length; start += CHUNK) {
       const end = Math.min(start + CHUNK, buf.length);
-      const res = await fetch(session.uploadUrl, {
+      const res = await fetch(uploadUrl, {
         method: 'PUT',
+        redirect: 'error',
         headers: {
           'content-length': String(end - start),
           'content-range': `bytes ${start}-${end - 1}/${buf.length}`,
@@ -563,7 +569,14 @@ export class MicrosoftService {
           `Upload stopped at ${Math.round((start / buf.length) * 100)}%: ${why || res.statusText}`);
       }
       // The final chunk answers with the finished item.
-      if (end === buf.length) return res.json() as Promise<any>;
+      if (end === buf.length) {
+        if (res.status === 202) throw new MsApiError(502, 'uploadIncomplete', 'Microsoft did not confirm the final upload chunk.');
+        const item = await res.json().catch(() => null);
+        if (!item || typeof item.id !== 'string' || typeof item.webUrl !== 'string') {
+          throw new MsApiError(502, 'uploadInvalid', 'Microsoft returned an invalid completed upload.');
+        }
+        return item;
+      }
     }
     throw new MsApiError(500, 'uploadFailed', 'The upload finished without returning a file.');
   }
