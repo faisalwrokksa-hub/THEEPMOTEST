@@ -3,6 +3,23 @@ import { createHmac, timingSafeEqual } from 'node:crypto';
 type BillingInvoice = { id: string; tenantId: string; subscriptionId: string; status: string; amountMinor: number; currency: string; periodStartsAt: string | Date; periodEndsAt: string | Date };
 type BillingSubscription = { id: string; tenantId: string; status: string; periodEndsAt: string | Date; cancelAtPeriodEnd: boolean };
 
+/** Stripe API credentials must never follow an HTTP redirect, including a
+ * redirect to another host. Restrict outbound payment API calls to the
+ * canonical HTTPS Stripe API; callers still validate the returned objects. */
+export async function stripeApiFetch(url: string, init: RequestInit,
+  transport: typeof fetch = fetch): Promise<Response> {
+  let target: URL;
+  try { target = new URL(url); }
+  catch { throw new Error('Invalid Stripe API URL'); }
+  if (target.origin !== 'https://api.stripe.com' || target.username || target.password ||
+      target.search || target.hash || !target.pathname.startsWith('/v1/'))
+    throw new Error('Untrusted Stripe API destination');
+  const response = await transport(url, { ...init, redirect: 'error' });
+  if (response.redirected || (response.status >= 300 && response.status < 400))
+    throw new Error('Stripe API redirects are forbidden');
+  return response;
+}
+
 export const STRIPE_PROVIDER = 'stripe';
 export const STRIPE_EVENTS = new Set(['checkout.session.completed', 'checkout.session.async_payment_succeeded']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
