@@ -40,6 +40,62 @@ export function assertTenantCatalog(rows) {
   return [...names].sort();
 }
 
+/**
+ * E40: row-visibility probes alone are inconclusive on tables with no foreign
+ * fixtures. Reject permissive policies that could bypass tenant isolation,
+ * even when the current two-tenant sample happens not to expose a leak.
+ * Keep this in sync with packages/db/src/tenant-rls-catalog-policy.ts.
+ */
+const legacyBillingNames = new Set([
+  'tenant_subscriptions_isolation', 'subscription_events_isolation',
+  'tenant_profiles_isolation', 'tenant_invitations_isolation',
+  'billing_tenant_isolation', 'billing_stripe_tenant_isolation',
+  'billing_payment_exception_tenant_isolation',
+]);
+const normalizePolicy = expression =>
+  typeof expression === 'string' ? expression.replace(/[\\s()]/g, '').toLowerCase() : '';
+function validTenantPredicate(expression) {
+  const value = normalizePolicy(expression);
+  return value === 'tenant_id=app_current_tenant' ||
+    value === 'tenant_id=public.app_current_tenant';
+}
+function validLegacyBillingPredicate(expression) {
+  const value = normalizePolicy(expression);
+  const prefix = "tenant_id=nullifcurrent_setting'app.tenant_id'";
+  for (const settingCast of ['', '::text']) {
+    for (const emptyCast of ['', '::text']) {
+      if (value === `${prefix}${settingCast},true,''${emptyCast}::uuid`) return true;
+    }
+  }
+  return false;
+}
+export function assertTenantPolicyRows(rows, tables) {
+  if (!Array.isArray(rows) || !Array.isArray(tables) || !tables.length)
+    fail('Missing tenant RLS policy evidence');
+  const known = new Set(tables);
+  const policies = new Map(tables.map(table => [table, []]));
+  for (const row of rows) {
+    if (!row || !known.has(row.tableName) || typeof row.policyName !== 'string' ||
+        !row.policyName || !['PERMISSIVE', 'RESTRICTIVE'].includes(row.permissive))
+      fail('Unsafe tenant RLS policy catalog');
+    policies.get(row.tableName).push(row);
+  }
+  for (const [table, entries] of policies) {
+    const permissive = entries.filter(row => row.permissive === 'PERMISSIVE');
+    if (permissive.filter(row => row.policyName === 'tenant_isolation').length !== 1)
+      fail('Missing or duplicate tenant isolation policy');
+    for (const row of permissive) {
+      const valid = row.policyName === 'tenant_isolation'
+        ? validTenantPredicate
+        : legacyBillingNames.has(row.policyName) ? validLegacyBillingPredicate : () => false;
+      if (row.command !== 'ALL' || !valid(row.usingExpression) ||
+          !valid(row.checkExpression))
+        fail('Unsafe permissive tenant RLS policy');
+    }
+  }
+  return tables.length;
+}
+
 export function quotePgIdentifier(name) {
   if (typeof name !== 'string' || !name || name.includes('\0')) fail('Invalid PostgreSQL identifier');
   return '"' + name.replaceAll('"', '""') + '"';
@@ -72,6 +128,16 @@ export async function auditAllTenantRls(db, tenantA, tenantB) {
     "WHERE n.nspname='public' AND c.relkind IN ('r','p') ORDER BY c.relname"
   );
   const tables = assertTenantCatalog(catalog);
+  const policyRows = await db.unsafe(
+    'SELECT c.relname AS "tableName", p.policyname AS "policyName", ' +
+    'p.permissive, p.cmd AS command, p.qual AS "usingExpression", ' +
+    'p.with_check AS "checkExpression" FROM pg_class c ' +
+    'JOIN pg_namespace n ON n.oid=c.relnamespace ' +
+    "JOIN pg_attribute a ON a.attrelid=c.oid AND a.attname='tenant_id' AND NOT a.attisdropped " +
+    'LEFT JOIN pg_policies p ON p.schemaname=n.nspname AND p.tablename=c.relname ' +
+    "WHERE n.nspname='public' AND c.relkind IN ('r','p') ORDER BY c.relname, p.policyname"
+  );
+  assertTenantPolicyRows(policyRows, tables);
   const counts = {};
   for (const [label, tenant] of [['unset', null], ['A', tenantA], ['B', tenantB]]) {
     counts[label] = await db.begin(async tx => {
