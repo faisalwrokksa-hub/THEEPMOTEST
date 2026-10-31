@@ -104,6 +104,7 @@ export class MicrosoftService {
     const configured = Boolean(msConfig()) && canSealTokens();
     if (this.perUserPreview()) {
       const { userId } = this.ctx();
+      if (!userId) throw new ForbiddenException('A signed-in Microsoft connection owner is required.');
       const owner = await readUserMicrosoftConnection(tenantId, userId);
       if (!owner) return { configured, connection: null };
       return { configured, connection: {
@@ -320,6 +321,7 @@ export class MicrosoftService {
     requireCapability('pmoa_admin');
     const { tenantId, userId } = this.ctx();
     if (this.perUserPreview()) {
+      if (!userId) throw new ForbiddenException('A signed-in Microsoft connection owner is required.');
       const [n] = await withTenant(tenantId, async (tx) => rows(await tx.execute(sql`
         SELECT count(*)::int AS n FROM documents WHERE storage_provider = ${PROVIDER}`)));
       if (!await deleteUserMicrosoftConnection(tenantId, userId))
@@ -356,7 +358,10 @@ export class MicrosoftService {
     const cfg = this.config();
     const { tenantId, userId } = this.ctx();
     const cacheKey = `${tenantId}:${userId}:${resource}`;
-    if (this.perUserPreview()) return this.accessUserToken(resource, cfg, tenantId, userId, cacheKey);
+    if (this.perUserPreview()) {
+      if (!userId) throw new ForbiddenException('A signed-in Microsoft connection owner is required.');
+      return this.accessUserToken(resource, cfg, tenantId, userId, cacheKey);
+    }
 
     // Check the database owner BEFORE any cached token can be returned.
     // The legacy schema stores one delegated connection per workspace; that
@@ -523,6 +528,7 @@ export class MicrosoftService {
     const root = await this.folder(token, b.driveId, 'root', folder);
 
     if (this.perUserPreview()) {
+      if (!userId) throw new ForbiddenException('A signed-in Microsoft connection owner is required.');
       if (!await setUserMicrosoftLocation(tenantId, userId, {
         siteId: b.siteId ?? null, driveId: b.driveId,
         rootItemId: root.id, rootPath: folder,
