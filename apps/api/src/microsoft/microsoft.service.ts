@@ -3,6 +3,7 @@ import { Injectable, Logger, BadRequestException, NotFoundException,
 import { randomBytes } from 'node:crypto';
 import { safeMicrosoftReturnPath } from './return-path';
 import { microsoftUploadUrl } from './url-policy';
+import { safeDocumentRedirectUrl } from './document-redirect-policy';
 import { readBoundedMicrosoftJson, MAX_MICROSOFT_API_RESPONSE_BYTES } from './response-policy';
 import { sql } from 'drizzle-orm';
 import { withTenant, auditEvents } from '@pmo/db';
@@ -621,13 +622,16 @@ export class MicrosoftService {
       FROM documents WHERE id = ${documentId}`)));
     if (!d) throw new NotFoundException('No such document in this workspace.');
     if (d.storage_provider !== PROVIDER || !d.external_item_id) {
-      if (!d.url) throw new NotFoundException('That document has no file behind it.');
-      return { url: d.url, name: d.name };
+      const safeUrl = safeDocumentRedirectUrl(d.url);
+      if (!safeUrl) throw new NotFoundException('That document has no safe external link.');
+      return { url: safeUrl, name: d.name };
     }
     const token = await this.accessToken('graph');
     const item = await call<any>(GRAPH, token,
       `/drives/${encodeURIComponent(d.external_drive_id)}/items/${encodeURIComponent(d.external_item_id)}`);
-    return { url: item['@microsoft.graph.downloadUrl'] ?? item.webUrl, name: d.name };
+    const safeUrl = safeDocumentRedirectUrl(item['@microsoft.graph.downloadUrl'] ?? item.webUrl);
+    if (!safeUrl) throw new NotFoundException('That document has no safe external link.');
+    return { url: safeUrl, name: d.name };
   }
 
   /** What is in the workspace folder right now, straight from their storage. */
