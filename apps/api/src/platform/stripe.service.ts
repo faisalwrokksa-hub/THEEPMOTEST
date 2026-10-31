@@ -5,7 +5,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
-import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutUrlAllowed, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
+import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutUrlAllowed, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -216,6 +216,49 @@ export class StripeBillingService {
     });
   }
 
+  /** Signed asynchronous failures and expired sessions are auditable, never a grant.
+   * Invoice stays open for a fresh Checkout attempt; a later paid invoice stays paid.
+   */
+  private async recordUnpaidCheckout(
+    event: NonNullable<ReturnType<typeof parseUnpaidStripeCheckoutEvent>>, digest: string) {
+    const { session, eventId, reason } = event;
+    const tenantId = session.metadata!.tenantId!;
+    const invoiceId = session.metadata!.invoiceId!;
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const matched = rows(await tx.execute(sql`
+        SELECT i.subscription_id AS "subscriptionId", i.amount_minor AS "amountMinor",
+               i.currency
+        FROM billing_stripe_checkout_sessions s
+        JOIN billing_invoices i ON i.tenant_id = s.tenant_id AND i.id = s.invoice_id
+        WHERE s.tenant_id = ${tenantId} AND s.invoice_id = ${invoiceId}
+          AND s.stripe_session_id = ${session.id}
+        FOR UPDATE OF i`))[0];
+      if (!matched || matched.amountMinor !== session.amount_total ||
+          matched.currency !== session.currency!.toUpperCase())
+        throw new ConflictException('Stripe Checkout failure does not match a recorded invoice');
+      const receipt = rows(await tx.execute(sql`
+        INSERT INTO billing_webhook_receipts
+          (tenant_id, invoice_id, provider, provider_event_id, payload_sha256)
+        VALUES (${tenantId}, ${invoiceId}, ${STRIPE_PROVIDER}, ${eventId}, ${digest})
+        ON CONFLICT (provider, provider_event_id) DO NOTHING RETURNING id`));
+      if (!receipt.length) {
+        const duplicate = rows(await tx.execute(sql`
+          SELECT invoice_id AS "invoiceId", payload_sha256 AS "digest"
+          FROM billing_webhook_receipts WHERE tenant_id = ${tenantId}
+            AND provider = ${STRIPE_PROVIDER} AND provider_event_id = ${eventId}`))[0];
+        if (!duplicate || duplicate.invoiceId !== invoiceId || duplicate.digest !== digest)
+          throw new ConflictException('Stripe Checkout failure event identity was reused');
+        return { received: true, applied: false, duplicate: true };
+      }
+      await tx.execute(sql`INSERT INTO subscription_events
+        (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${matched.subscriptionId}, 'billing.stripe_checkout_unpaid',
+                ${JSON.stringify({ invoiceId, eventId, stripeSessionId: session.id, reason })}::jsonb)`);
+      return { received: true, applied: false, recorded: true, paymentVerified: false };
+    });
+  }
+
   /** Captured funds after cancellation/voiding are quarantined for manual
    * reconciliation, not silently granted or retried without an audit trail. */
   private async recordUnfulfilledSettlement(tx: any, tenantId: string, invoiceId: string,
@@ -247,6 +290,10 @@ export class StripeBillingService {
     catch { throw new BadRequestException('Invalid Stripe refund/dispute event'); }
     const digest = sha256(rawBody);
     if (exceptionEvent) return this.handlePaymentException(exceptionEvent, digest, config);
+    let unpaidEvent: ReturnType<typeof parseUnpaidStripeCheckoutEvent>;
+    try { unpaidEvent = parseUnpaidStripeCheckoutEvent(rawBody, config.liveMode); }
+    catch { throw new BadRequestException('Invalid Stripe Checkout failure event'); }
+    if (unpaidEvent) return this.recordUnpaidCheckout(unpaidEvent, digest);
     let event: ReturnType<typeof parsePaidStripeEvent>;
     try { event = parsePaidStripeEvent(rawBody, config.liveMode); }
     catch { throw new BadRequestException('Invalid Stripe payment event'); }
