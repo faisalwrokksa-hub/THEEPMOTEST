@@ -5,6 +5,7 @@ import { fetchAuthenticatedApi } from './authenticated-api-fetch.mjs';
 import { safeApiFailure } from './safe-api-error.mjs';
 import { readBoundedUpstreamText, readBoundedUpstreamJson } from './bounded-upstream-body.mjs';
 import { validSessionEnvelope } from './session-envelope.mjs';
+import { readBoundedSuccessJson } from './bounded-success-json.mjs';
 import { sessionFailureKind } from './session-failure.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
@@ -42,7 +43,12 @@ async function get<T>(path: string, maxResponseBytes?: number): Promise<T> {
     if (body === null) throw new ApiError(503, 'Invalid API response');
     return body as T;
   }
-  return res.json() as Promise<T>;
+  try {
+    return await readBoundedSuccessJson(res, 16 * 1024 * 1024) as T;
+  } catch {
+    // Do not expose upstream payloads, parser errors or stream diagnostics.
+    throw new ApiError(502, 'Invalid API response');
+  }
 }
 
 export type Session =
