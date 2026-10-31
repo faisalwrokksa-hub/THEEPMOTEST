@@ -3,6 +3,8 @@ import { microsoftApiUrl } from './url-policy';
 import { assertMicrosoftPageVisit, microsoftPageItems } from './pagination-policy';
 import { parseMicrosoftTokenPayload } from './token-response-policy';
 import { microsoftAuthority } from './authority-policy';
+import { readBoundedMicrosoftJson, MAX_MICROSOFT_TOKEN_RESPONSE_BYTES,
+         MAX_MICROSOFT_API_RESPONSE_BYTES } from './response-policy';
 
 /**
  * Talking to Microsoft: one app registration, every customer's own tenant.
@@ -90,7 +92,7 @@ async function token(cfg: MsConfig, body: Record<string, string>): Promise<Token
       client_id: cfg.clientId, client_secret: cfg.clientSecret, ...body,
     }),
   });
-  const j: unknown = await res.json().catch(() => ({}));
+  const j: unknown = await readBoundedMicrosoftJson(res, MAX_MICROSOFT_TOKEN_RESPONSE_BYTES);
   if (!res.ok) {
     const error: Record<string, unknown> = j && typeof j === 'object' ? j as Record<string, unknown> : {};
     throw new MsAuthError(
@@ -193,8 +195,7 @@ export async function call<T>(base: string, accessToken: string, path: string, i
     body: init.body,
   });
   if (res.status === 204) return undefined as T;
-  const text = await res.text();
-  const json = text ? JSON.parse(text) : undefined;
+  const json: any = await readBoundedMicrosoftJson(res, MAX_MICROSOFT_API_RESPONSE_BYTES);
   if (!res.ok) {
     const e = json?.error ?? {};
     const message = e.message ?? e.detail ?? json?.message ?? `HTTP ${res.status}`;
