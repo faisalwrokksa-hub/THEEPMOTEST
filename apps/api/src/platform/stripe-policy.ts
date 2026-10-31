@@ -20,6 +20,36 @@ export async function stripeApiFetch(url: string, init: RequestInit,
   return response;
 }
 
+/** Bound successful Stripe API JSON before parsing; do not let an oversized
+ * provider response exhaust the billing worker while holding tenant locks.
+ * Stripe Checkout and PaymentIntent objects fit well below 256 KiB.
+ */
+export async function readStripeApiJson(response: Response): Promise<unknown> {
+  const limit = 262_144;
+  const declared = response.headers.get('content-length');
+  if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > limit))
+    throw new Error('Stripe API JSON exceeds the response limit');
+  if (!response.body) throw new Error('Stripe API JSON response has no body');
+  const reader = response.body.getReader();
+  const chunks: Buffer[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > limit) {
+        await reader.cancel().catch(() => {});
+        throw new Error('Stripe API JSON exceeds the response limit');
+      }
+      chunks.push(Buffer.from(value));
+    }
+  } finally { reader.releaseLock(); }
+  if (total === 0) throw new Error('Stripe API JSON response is empty');
+  try { return JSON.parse(Buffer.concat(chunks, total).toString('utf8')); }
+  catch { throw new Error('Invalid Stripe API JSON'); }
+}
+
 export const STRIPE_PROVIDER = 'stripe';
 export const STRIPE_EVENTS = new Set(['checkout.session.completed', 'checkout.session.async_payment_succeeded']);
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -159,6 +189,38 @@ export function stripeCreatedSessionIsPending(value: unknown): boolean {
   const session = value as { status?: unknown; payment_status?: unknown; payment_intent?: unknown };
   return session.status === 'open' && session.payment_status === 'unpaid' &&
     session.payment_intent === null;
+}
+
+/** Stripe is authoritative for a cached Checkout session's current state.
+ * Webhook delivery can lag or fail, so a locally unexpired URL is not proof
+ * that Checkout is still open. A completed session must NEVER be replaced
+ * automatically: its payment may be awaiting signed reconciliation.
+ */
+export function stripeCachedCheckoutDisposition(value: unknown, expected: {
+  sessionId: string; invoiceId: string; tenantId: string; amountMinor: number;
+  currency: string; liveMode: boolean;
+}, now: number = Date.now()): 'reusable' | 'expired' | 'pending_settlement' {
+  if (!value || typeof value !== 'object') throw new Error('Invalid cached Stripe session response');
+  const session = value as Record<string, any>;
+  if (session.object !== 'checkout.session' || session.id !== expected.sessionId ||
+      !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(expected.sessionId) ||
+      session.livemode !== expected.liveMode ||
+      session.id.startsWith('cs_live_') !== expected.liveMode ||
+      session.mode !== 'payment' || session.client_reference_id !== expected.invoiceId ||
+      session.metadata?.invoiceId !== expected.invoiceId ||
+      session.metadata?.tenantId !== expected.tenantId ||
+      !Number.isSafeInteger(session.amount_total) || session.amount_total !== expected.amountMinor ||
+      session.currency !== expected.currency.toLowerCase())
+    throw new Error('Cached Stripe session is not linked to this invoice');
+  if (session.status === 'expired' && session.payment_status === 'unpaid') return 'expired';
+  if (session.status === 'complete' &&
+      ['paid', 'unpaid', 'no_payment_required'].includes(session.payment_status))
+    return 'pending_settlement';
+  if (session.status === 'open' && session.payment_status === 'unpaid' &&
+      session.payment_intent === null && stripeCheckoutReferenceValid(session.url, session.id) &&
+      Number.isSafeInteger(session.expires_at) && session.expires_at * 1000 > now + 60_000)
+    return 'reusable';
+  throw new Error('Cached Stripe session has an inconsistent state');
 }
 
 /** Stable for a pending attempt; different after an expired session was recorded.

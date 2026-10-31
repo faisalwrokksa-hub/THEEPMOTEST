@@ -14,22 +14,39 @@ export type TenantPolicyRow = {
   check_expression: string | null;
 };
 
-const tenantPredicate = /\btenant_id\s*=\s*(?:public\.)?app_current_tenant\(\)/i;
-// These named policies are created by reviewed additive SQL migrations. They
-// use the same tenant setting as app_current_tenant(), and remain permissive
-// only when BOTH USING and WITH CHECK are tenant-bound.
+/**
+ * pg_policies emits normalized SQL (with optional whitespace, grouping
+ * parentheses and implicit ::text casts). A substring/OR blacklist is unsafe:
+ * COALESCE(tenant_id = app_current_tenant(), true), for example, admits rows
+ * when the tenant setting is absent without ever containing an OR token.
+ *
+ * Match only the reviewed, complete tenant predicates. A new policy syntax
+ * must be explicitly reviewed and tested rather than guessed safe.
+ */
+const canonicalPredicate = (expression: string | null): boolean => {
+  const normalized = (expression ?? '').replace(/[\s()]/g, '').toLowerCase();
+  return normalized === 'tenant_id=app_current_tenant' ||
+    normalized === 'tenant_id=public.app_current_tenant';
+};
+
 const legacyBillingNames = new Set([
   'tenant_subscriptions_isolation', 'subscription_events_isolation',
   'tenant_profiles_isolation', 'tenant_invitations_isolation',
   'billing_tenant_isolation', 'billing_stripe_tenant_isolation',
   'billing_payment_exception_tenant_isolation',
 ]);
-const legacyBillingPredicate = (expression: string | null) => {
-  const text = expression ?? '';
-  // PostgreSQL normalizes current_setting casts and parentheses in pg_policies.
-  return /\btenant_id\s*=/.test(text) && /\bNULLIF\s*\(/i.test(text) &&
-    /\bcurrent_setting\s*\(/i.test(text) && /'app\.tenant_id'/i.test(text) &&
-    !/\bOR\b/i.test(text);
+
+const legacyBillingPredicate = (expression: string | null): boolean => {
+  const normalized = (expression ?? '').replace(/[\s()]/g, '').toLowerCase();
+  // PostgreSQL pg_get_expr may add implicit text casts to either literal.
+  const prefix = "tenant_id=nullifcurrent_setting'app.tenant_id'";
+  for (const settingCast of ['', '::text']) {
+    for (const emptyCast of ['', '::text']) {
+      if (normalized === `${prefix}${settingCast},true,''${emptyCast}::uuid`)
+        return true;
+    }
+  }
+  return false;
 };
 
 export function assertTenantRlsCatalog(rows: ReadonlyArray<TenantPolicyRow>): number {
@@ -50,10 +67,10 @@ export function assertTenantRlsCatalog(rows: ReadonlyArray<TenantPolicyRow>): nu
     for (const policy of permissive) {
       const isBaseline = policy.policy_name === 'tenant_isolation';
       const validUsing = isBaseline
-        ? tenantPredicate.test(policy.using_expression ?? '') && !/\bOR\b/i.test(policy.using_expression ?? '')
+        ? canonicalPredicate(policy.using_expression)
         : legacyBillingNames.has(policy.policy_name ?? '') && legacyBillingPredicate(policy.using_expression);
       const validCheck = isBaseline
-        ? tenantPredicate.test(policy.check_expression ?? '') && !/\bOR\b/i.test(policy.check_expression ?? '')
+        ? canonicalPredicate(policy.check_expression)
         : legacyBillingNames.has(policy.policy_name ?? '') && legacyBillingPredicate(policy.check_expression);
       if (policy.command !== 'ALL' || !validUsing || !validCheck)
         throw new Error(`Tenant table ${table} has an unsafe or incomplete permissive RLS policy`);
