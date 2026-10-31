@@ -3,6 +3,7 @@ import { microsoftApiUrl } from './url-policy';
 import { assertMicrosoftPageVisit, microsoftPageItems } from './pagination-policy';
 import { parseMicrosoftTokenPayload } from './token-response-policy';
 import { microsoftAuthority } from './authority-policy';
+import { safeMicrosoftApiFailure } from './api-error-policy';
 import { readBoundedMicrosoftJson, MAX_MICROSOFT_TOKEN_RESPONSE_BYTES,
          MAX_MICROSOFT_API_RESPONSE_BYTES } from './response-policy';
 
@@ -197,11 +198,11 @@ export async function call<T>(base: string, accessToken: string, path: string, i
   if (res.status === 204) return undefined as T;
   const json: any = await readBoundedMicrosoftJson(res, MAX_MICROSOFT_API_RESPONSE_BYTES);
   if (!res.ok) {
-    const e = json?.error ?? {};
-    const message = e.message ?? e.detail ?? json?.message ?? `HTTP ${res.status}`;
-    // The upstream URL and error body may contain tenant data, auth codes or tokens.
+    // Do not forward provider-controlled messages or codes into Nest exceptions:
+    // unhandled exception logging may persist tokens, signed URLs or tenant data.
+    const failure = safeMicrosoftApiFailure(res.status);
     log.warn(`Microsoft API request failed (HTTP ${res.status})`);
-    throw new MsApiError(res.status, e.code ?? String(res.status), message);
+    throw new MsApiError(res.status, failure.code, failure.message);
   }
   return json as T;
 }
