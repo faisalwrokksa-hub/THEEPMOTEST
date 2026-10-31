@@ -88,8 +88,18 @@ test('invoice and subscription cannot hide extra prices, quantities or proration
     ...invoice, lines: { data: [{ ...line, ...change }] },
   }));
   assert.throws(() => verify(candidate, { ...invoice, lines: { data: [line, line] } }));
+  assert.throws(() => verify(candidate, { ...invoice, lines: { data: [line], has_more: true } }));
+  assert.throws(() => verify(candidate, { ...invoice, lines: { data: [
+    { ...line, pricing: { price_details: { price: 'price_OTHER' } } },
+  ] } }));
+  assert.equal(verify(candidate, { ...invoice, lines: { data: [
+    { ...line, price: undefined, pricing: { price_details: { price: 'price_TEST123' } } },
+  ] } }).paymentIntentId, 'pi_TEST123');
   assert.throws(() => verify(candidate, invoice, {
     ...subscription, items: { data: [...subscription.items.data, ...subscription.items.data] },
+  }));
+  assert.throws(() => verify(candidate, invoice, {
+    ...subscription, items: { data: subscription.items.data, has_more: true },
   }));
   assert.throws(() => verify(candidate, invoice, {
     ...subscription, items: { data: [{ ...subscription.items.data[0], quantity: 2 }] },
@@ -115,6 +125,9 @@ test('independent captured PaymentIntent and invoice payment references must agr
   assert.throws(() => verify(candidate, { ...invoice, payments: { data: [
     { payment: { payment_intent: 'pi_TEST123' } }, { payment: { payment_intent: 'pi_TEST123' } },
   ] } }));
+  assert.throws(() => verify(candidate, { ...invoice, payments: {
+    data: [{ payment: { payment_intent: 'pi_TEST123' } }], has_more: true,
+  } }));
   assert.equal(verify(candidate, {
     ...invoice, payment_intent: null,
     payments: { data: [{ payment: { payment_intent: 'pi_TEST123' } }] },
