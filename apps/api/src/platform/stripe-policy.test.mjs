@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { verifyStripeSignature, parsePaidStripeEvent, assertStripeSettlement, stripeCheckoutParams, stripeCheckoutIdempotencyKey, stripeDeploymentModeAllowed } from './stripe-policy.ts';
+import { verifyStripeSignature, parsePaidStripeEvent, assertStripeSettlement, stripeCheckoutParams, stripeCheckoutIdempotencyKey, stripeCheckoutUrlAllowed, stripeDeploymentModeAllowed } from './stripe-policy.ts';
 const tenantId = '2bb4c19e-ac7d-47a3-8fa1-f917640e127a';
 const invoiceId = 'ae6c076e-c4fe-4cb0-9eda-476ea8d59024';
 const subId = '72c72f05-c371-43c0-9f2a-9eb4b9945805';
@@ -101,4 +101,24 @@ test('unrecognized deployments and local live keys fail closed', () => {
   assert.equal(stripeDeploymentModeAllowed(false, 'development', target, undefined), false);
  assert.equal(stripeDeploymentModeAllowed(true, 'development', undefined, undefined), false);
  assert.equal(stripeDeploymentModeAllowed(false, 'development', undefined, undefined), true);
+});
+
+test('hosted Stripe Checkout URLs allow legitimate Stripe payment paths and fragments', () => {
+ for (const url of [
+  'https://checkout.stripe.com/c/pay/cs_test_ABC123#fidkdWxOYHwnPyd1blpxYHZxWjA0',
+  'https://checkout.stripe.com/pay/cs_test_ABC123?prefilled_email=test%40example.com',
+ ]) assert.equal(stripeCheckoutUrlAllowed(url), true, url);
+});
+test('hosted Checkout URL rejects lookalikes, credentials, alternate ports and homepage', () => {
+ for (const url of [
+  'http://checkout.stripe.com/c/pay/123',
+  'https://checkout.stripe.com.evil.example/c/pay/123',
+  'https://evil.example/c/pay/123',
+  'https://user:password@checkout.stripe.com/c/pay/123',
+  'https://checkout.stripe.com:8443/c/pay/123',
+  'https://checkout.stripe.com/',
+  'javascript:alert(1)',
+  'not a URL',
+  null, 17, 'https://checkout.stripe.com/' + 'x'.repeat(8192),
+ ]) assert.equal(stripeCheckoutUrlAllowed(url), false, String(url).slice(0,120));
 });

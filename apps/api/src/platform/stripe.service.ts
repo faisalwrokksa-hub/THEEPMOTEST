@@ -5,11 +5,10 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
-import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
+import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutUrlAllowed, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-const CHECKOUT_HOST = 'checkout.stripe.com';
 
 function stripeConfig() {
   const key = process.env.STRIPE_SECRET_KEY;
@@ -27,7 +26,9 @@ function stripeConfig() {
 function checkoutRedirects() {
   const origin = (process.env.WEB_ORIGIN || '').split(',')[0]?.trim();
   if (!origin) throw new ServiceUnavailableException('WEB_ORIGIN is missing');
-  const base = new URL(origin);
+  let base: URL;
+  try { base = new URL(origin); }
+  catch { throw new ServiceUnavailableException('Invalid configured web origin'); }
   if (!['http:', 'https:'].includes(base.protocol) || base.origin !== origin ||
       (requiresSecureTransport(process.env.NODE_ENV, process.env.DEPLOYMENT_ENV) && base.protocol !== 'https:'))
     throw new ServiceUnavailableException('Invalid configured web origin');
@@ -96,10 +97,7 @@ export class StripeBillingService {
       try { session = await response.json(); }
       catch { throw new BadGatewayException('Invalid Stripe Checkout response'); }
       const url = typeof session.url === 'string' ? session.url : '';
-      let parsedUrl: URL;
-      try { parsedUrl = new URL(url); }
-      catch { throw new BadGatewayException('Stripe Checkout returned an invalid URL'); }
-      if (parsedUrl.protocol !== 'https:' || parsedUrl.hostname !== CHECKOUT_HOST ||
+      if (!stripeCheckoutUrlAllowed(url) || session.object !== 'checkout.session' ||
           session.livemode !== config.liveMode ||
           typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id) ||
           (config.liveMode && !session.id.startsWith('cs_live_')) ||

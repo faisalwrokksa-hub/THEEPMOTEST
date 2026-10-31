@@ -333,5 +333,52 @@
     "commitSha": "4752200ab98ecba946eaf94c26de65256961ee8a",
     "path": "docs/P0-PAID-CUSTOMER-RELEASE-HANDOFF-20261030.md",
     "status": "DOCUMENTATION_CREATED_CI_NOT_YET_VERIFIED"
+  },
+  "latestIndependentQaReviewOnlyIntegration": {
+    "reviewDateUtc": "2026-10-31",
+    "prUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/pull/73",
+    "branch": "integration/q17-e17-f17-c14-q16-20261031",
+    "baseline": {
+      "sha": "4948bc9ff738fb7e920643099e1d48018a88b35e",
+      "workflowUrl": "https://github.com/faisalwrokksa-hub/THEEPMOTEST/actions/runs/41146665374",
+      "result": "PASS_4_OF_4_CI_ONLY"
+    },
+    "included": [
+      {
+        "stream": "Engineering E17",
+        "pr": 68,
+        "sha": "d9f06a44f2963ba635102aeb405514ee1be29c9b",
+        "workflowRun": 41148082548,
+        "result": "PASS_4_OF_4_CI_ONLY"
+      },
+      {
+        "stream": "Frontend F16/F17",
+        "pr": 70,
+        "sha": "846138020afa29ec736b52caa15bda2a58407871",
+        "workflowRun": 41149145222,
+        "result": "PASS_4_OF_4_CI_ONLY"
+      },
+      {
+        "stream": "Commercial C14",
+        "pr": 71,
+        "sha": "85789d823448e92ca396b9d9c969360ff4bece64",
+        "workflowRun": 41150319639,
+        "result": "PASS_4_OF_4_CI_ONLY"
+      }
+    ],
+    "excluded": [
+      {
+        "stream": "Hosting S15",
+        "pr": 72,
+        "sha": "ecb628d86271b6d1dc89288a7f800da86f8d3d16",
+        "workflowRun": 41151417958,
+        "result": "FAIL_OFFLINE_TESTS",
+        "reason": "Legacy disposable restore test mock lacks TABLE/TABLE DATA in pg_restore --list; remediation job also failed"
+      }
+    ],
+    "integrationCi": "PENDING_FINAL_SHA_CI",
+    "externalAcceptance": "NO_RECEIPTS",
+    "releaseDecision": "NO-GO",
+    "note": "Never promote candidateSha or any of nine gates to PASS from source CI or draft integration. Final immutable Q17 head and full workflow must be checked separately."
   }
 }

@@ -81,6 +81,19 @@ export function stripeDeploymentModeAllowed(liveMode: boolean, nodeEnv: string |
   return nodeEnv === 'production' ? liveMode && allowTestMode !== 'true' : !liveMode;
 }
 
+/** Hosted Checkout URLs are payment navigation targets, not arbitrary redirects.
+ * Preserve Stripe's fragment/query but reject userinfo, nonstandard ports,
+ * lookalike hosts, and a bare homepage masquerading as a Checkout session. */
+export function stripeCheckoutUrlAllowed(value: unknown): boolean {
+  if (typeof value !== 'string' || value.length > 8192) return false;
+  try {
+    const url = new URL(value);
+    return url.origin === 'https://checkout.stripe.com' &&
+      !url.username && !url.password && !url.port &&
+      url.pathname !== '/' && url.pathname.length > 1;
+  } catch { return false; }
+}
+
 /** Stable for a pending attempt; different after an expired session was recorded.
  * Prevents Stripe from returning an expired Checkout session for a later retry.
  */
