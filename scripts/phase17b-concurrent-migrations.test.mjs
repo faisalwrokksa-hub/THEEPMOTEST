@@ -26,6 +26,13 @@ if(args.includes('-c')){
  else if(query.includes('SELECT 1 FROM public.schema_migrations')){
   const file=/filename = '([^']+)'/.exec(query)?.[1];
   if(applied.includes(file)) console.log('1');
+ }else if(query.includes('SELECT COALESCE(source_sha256')){
+  const name=/filename = '([^']+)'/.exec(query)?.[1];
+  if(applied.includes(name)){
+   const {createHash}=require('node:crypto');
+   const {join}=require('node:path');
+   console.log(createHash('sha256').update(fs.readFileSync(join(process.cwd(),'packages/db/migrations',name))).digest('hex'));
+  }
  }else if(query.includes('SELECT filename FROM public.schema_migrations'))console.log([...applied].sort().join('\\n'));
  else process.exit(2);
 }else{
@@ -102,4 +109,12 @@ test('CI keeps the SQL runner before applying PostgreSQL RLS policies',()=>{
   const ci=readFileSync(resolve(root,'.github/workflows/ci.yml'),'utf8');
   assert.ok(ci.indexOf('bash scripts/apply-sql-migrations.sh')>=0);
   assert.ok(ci.indexOf('bash scripts/apply-sql-migrations.sh')<ci.indexOf('name: Apply RLS policies'));
+});
+
+test('both deployment entrypoints refuse unattested historical migration bytes',()=>{
+  for (const source of [ciRunner,deployRunner]) {
+    assert.match(source,/source_sha256 IS DISTINCT FROM/);
+    assert.match(source,/never auto-backfill/);
+    assert.match(source,/UPDATE public\.schema_migrations SET source_sha256/);
+  }
 });
