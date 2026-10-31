@@ -27,7 +27,7 @@ export async function stripeApiFetch(url: string, init: RequestInit,
 export async function readStripeApiJson(response: Response): Promise<unknown> {
   const limit = 262_144;
   const declared = response.headers.get('content-length');
-  if (declared !== null && (!/^\\d+$/.test(declared) || Number(declared) > limit))
+  if (declared !== null && (!/^\d+$/.test(declared) || Number(declared) > limit))
     throw new Error('Stripe API JSON exceeds the response limit');
   if (!response.body) throw new Error('Stripe API JSON response has no body');
   const reader = response.body.getReader();
