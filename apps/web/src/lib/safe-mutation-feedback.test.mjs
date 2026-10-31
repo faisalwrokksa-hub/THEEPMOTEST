@@ -40,11 +40,12 @@ test('malformed and oversized upstream issue lists are bounded', () => {
   assert.deepEqual(safeCreateIssues({ issues: [{ path: 'a'.repeat(65), message: 'bad' }] }), []);
 });
 
-test('both browser mutation routes never surface raw upstream error bodies', () => {
+test('browser mutation routes never surface raw upstream error bodies', () => {
   const create = readFileSync(new URL('../app/api/create/route.ts', import.meta.url), 'utf8');
   const onboarding = readFileSync(new URL('../app/api/onboarding/route.ts', import.meta.url), 'utf8');
+  assert.match(create, /safeMutationError\(/);
+  assert.match(onboarding, /onboardingFailurePath\(result\?\.status\)/);
   for (const source of [create, onboarding]) {
-    assert.match(source, /safeMutationError\(/);
     assert.doesNotMatch(source, /data\?\.message|j\?\.message/);
   }
   assert.match(create, /safeCreateIssues\(/);
