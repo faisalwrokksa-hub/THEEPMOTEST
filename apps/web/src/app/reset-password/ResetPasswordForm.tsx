@@ -1,9 +1,11 @@
 'use client';
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
+import { consumeSecretFragmentOnce } from '@/lib/secret-fragment.mjs';
 export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
   const ar = lang === 'ar';
   const [ready, setReady] = useState(false);
+  const fragmentConsumed = useRef(false);
   const [token, setToken] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');
@@ -11,10 +13,9 @@ export function ResetPasswordForm({ lang }: { lang: 'en' | 'ar' }) {
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
   useEffect(() => {
-    const value = new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '';
-    // Scrub the secret from the address bar and history immediately.
-    window.history.replaceState(null, '', '/reset-password');
-    setToken(value); setReady(true);
+    const value = consumeSecretFragmentOnce(fragmentConsumed, window.location.hash,
+      () => window.history.replaceState(null, '', '/reset-password'));
+    if (value !== undefined) { setToken(value); setReady(true); }
   }, []);
   async function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault(); setError('');
