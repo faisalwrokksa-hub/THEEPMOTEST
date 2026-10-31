@@ -4,7 +4,31 @@
  * No access grant or database write is possible from this module.
  */
 import type { StripePaymentException } from './stripe-policy';
-import { recurringInvoicePaymentIntentId } from './stripe-recurring-payment-reference';
+// Inline strict invoice-payment reference parsing for Node's dependency-free
+// source tests (production TS imports remain extensionless).
+function recurringInvoicePaymentIntentId(invoice: any): string {
+  const refId = (v: any): string | null =>
+    typeof v === 'string' ? v : typeof v?.id === 'string' ? v.id : null;
+  const legacy = invoice.payment_intent == null ? null : refId(invoice.payment_intent);
+  if (invoice.payment_intent != null && !/^pi_[A-Za-z0-9]+$/.test(legacy ?? ''))
+    throw new Error('Invalid recurring PaymentIntent');
+  let listed: string | null = null;
+  if (invoice.payments != null) {
+    const p = invoice.payments;
+    if (!Array.isArray(p.data) || p.data.length !== 1 ||
+        (p.has_more !== undefined && p.has_more !== false) ||
+        (p.total_count !== undefined && p.total_count !== 1))
+      throw new Error('Ambiguous recurring invoice payments');
+    listed = refId(p.data[0]?.payment?.payment_intent);
+    if (!/^pi_[A-Za-z0-9]+$/.test(listed ?? ''))
+      throw new Error('Invalid recurring invoice payment list');
+  }
+  if (legacy && listed && legacy !== listed)
+    throw new Error('Conflicting recurring invoice payment references');
+  const id = legacy ?? listed;
+  if (!id) throw new Error('Recurring invoice lacks a captured PaymentIntent');
+  return id;
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const ref = (v: any): string | null =>
