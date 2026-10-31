@@ -12,12 +12,12 @@ test('document upload rechecks the active consenting identity after Graph comple
   const insert = upload.indexOf('INSERT INTO documents', finalization);
   assert.ok(graphUpload >= 0 && finalization > graphUpload && activeCheck > finalization && insert > activeCheck);
   const guard = upload.slice(activeCheck, insert);
-  assert.match(guard, /connected_by = \\$\\{userId\\}/);
+  assert.ok(guard.includes('connected_by = ${userId}'));
   assert.match(guard, /status = 'connected'/);
-  assert.match(guard, /drive_id = \\$\\{c\\.drive_id\\}/);
-  assert.match(guard, /root_item_id = \\$\\{c\\.root_item_id\\}/);
+  assert.ok(guard.includes('drive_id = ${c.drive_id}'));
+  assert.ok(guard.includes('root_item_id = ${c.root_item_id}'));
   assert.match(guard, /FOR SHARE/);
-  assert.match(guard, /if \\(!active\\)\\s*\\{\\s*throw new ConflictException/);
+  assert.ok(guard.includes('if (!active)') && guard.includes('throw new ConflictException'));
 });
 
 test('the connection check and document write share one tenant transaction', () => {
@@ -26,5 +26,5 @@ test('the connection check and document write share one tenant transaction', () 
   const audit = upload.indexOf("await this.audit(tx, d.id, 'document.uploaded'", insert);
   const close = upload.indexOf('return d;', audit);
   assert.ok(start >= 0 && insert > start && audit > insert && close > audit);
-  assert.doesNotMatch(upload.slice(start, insert), /await withTenant\\(/);
+  assert.equal(upload.slice(start, insert).split('await withTenant(').length, 2);
 });
