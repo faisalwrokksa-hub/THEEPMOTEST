@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { inspectResolvedStagingCompose } from '../infra/staging/verify-resolved-compose.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 const source = readFileSync(new URL('../infra/staging/edge.compose.yml', import.meta.url), 'utf8');
 function declaredNetworks(name) {
@@ -53,4 +54,7 @@ test('S29: resolved Compose isolates private services without published data por
   for (const name of ['api', 'postgres', 'redis'])
     assert.equal(config.services[name].ports, undefined, name + ' must not publish ports');
   assert.equal(config.services['staging-edge'].ports[0].host_ip, '127.0.0.1');
+  // Check the actual resolved Compose model, not just hand-authored fixture JSON.
+  const safety = inspectResolvedStagingCompose(config, 'a'.repeat(40));
+  assert.deepEqual(safety.filter(check => !check.passed).map(check => check.name), []);
 });
