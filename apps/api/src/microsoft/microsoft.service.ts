@@ -568,6 +568,9 @@ export class MicrosoftService {
     for (let start = 0; start < buf.length; start += CHUNK) {
       const end = Math.min(start + CHUNK, buf.length);
       const res = await fetch(uploadUrl, {
+        // A stalled preauthenticated upload URL must not retain the entire
+        // customer file buffer in memory indefinitely.
+        signal: AbortSignal.timeout(60_000),
         method: 'PUT',
         redirect: 'error',
         headers: {
