@@ -68,8 +68,8 @@ test('only the owner can disconnect a delegated connection; legacy unowned clean
 });
 
 test('Graph folder selection and storage reads cannot cross the consenting user boundary', () => {
-  assert.match(location, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\} RETURNING id/);
-  assert.match(connection, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\}/);
+  assert.match(location, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\}\s+AND status = 'connected' RETURNING id/);
+  assert.match(connection, /WHERE provider = \$\{PROVIDER\} AND connected_by = \$\{userId\}\s+AND status = 'connected'/);
 });
 
 const e04aSql = readFileSync(new URL('../packages/db/migrations/0020_microsoft_user_connections.sql', import.meta.url), 'utf8');
@@ -84,4 +84,13 @@ test('E04a user-bound storage is additive and fail-closed', () => {
  assert.doesNotMatch(e04aSql, /(?:DROP|TRUNCATE|DELETE FROM)\s+(?:public\.)?integration_connections/i);
  assert.match(e04aSchema, /export const microsoftUserConnections = pgTable/);
  assert.equal(e04aJournal.entries.at(-1).tag,'0020_microsoft_user_connections');
+});
+
+
+test('location selection never resets a revoked Microsoft connection to connected', () => {
+  const update = location.slice(location.indexOf('UPDATE integration_connections SET'),
+    location.indexOf('WHERE provider = ${PROVIDER}', location.indexOf('UPDATE integration_connections SET')));
+  assert.ok(update.length > 0);
+  assert.doesNotMatch(update, /status\\s*=\\s*'connected'/);
+  assert.doesNotMatch(update, /last_error\\s*=\\s*NULL/);
 });
