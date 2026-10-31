@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
+import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 
 const BASE = process.env.API_URL ?? process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
 const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -35,11 +36,11 @@ export async function POST(req: NextRequest) {
     target.searchParams.set('error', 'Invalid workspace operation');
     return NextResponse.redirect(target, 303);
   }
-  const result = await fetch(`${BASE}${path}`, {
+  const result = await fetchTenantMutation(fetch, `${BASE}${path}`, {
     method, cache: 'no-store',
     headers: { 'content-type': 'application/json', cookie: `pmo_session=${session}` },
     body: JSON.stringify(body),
-  }).catch(() => null);
+  });
   if (!result?.ok) {
     const data = await result?.json().catch(() => null);
     target.searchParams.set('error', (typeof data?.message === 'string' ? data.message : 'Workspace request failed').slice(0, 180));
