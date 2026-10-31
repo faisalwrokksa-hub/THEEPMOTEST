@@ -38,6 +38,24 @@ BEGIN
   IF bad_filename IS NOT NULL THEN
     RAISE EXCEPTION 'BLOCKED: unknown, unattested or mismatched SQL ledger row: %', bad_filename;
   END IF;
+
+  -- Every applied migration must be an uninterrupted prefix of the pinned
+  -- release. Otherwise a missing older migration would be executed *after*
+  -- a newer one, possibly applying destructive or out-of-order DDL.
+  SELECT expected.filename INTO bad_filename
+  FROM (
+    SELECT filename, row_number() OVER (ORDER BY filename) AS ordinal
+    FROM (VALUES
+      ${values}
+    ) AS pinned(filename, digest)
+  ) AS expected
+  LEFT JOIN public.schema_migrations AS applied ON applied.filename = expected.filename
+  WHERE expected.ordinal <= (SELECT count(*) FROM public.schema_migrations)
+    AND applied.filename IS NULL
+  ORDER BY expected.ordinal LIMIT 1;
+  IF bad_filename IS NOT NULL THEN
+    RAISE EXCEPTION 'BLOCKED: SQL migration ledger has an out-of-order gap at: %', bad_filename;
+  END IF;
 END $epmo_ledger_preflight$;
 COMMIT;`;
 }
