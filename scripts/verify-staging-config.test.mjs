@@ -11,7 +11,10 @@ test('accepts structurally safe staging configuration',()=>assert.deepEqual(fail
 test('rejects production mode and public bind',()=>assert.equal(failed({...env,DEPLOYMENT_ENV:'production',WEB_BIND:'0.0.0.0'}).length,3));
 test('rejects http origin and duplicate origins',()=>assert.ok(failed({...env,WEB_ORIGIN:'http://staging.example.com',PUBLIC_API_URL:'http://staging.example.com'}).length>=2));
 test('rejects database and redis placeholders',()=>assert.ok(failed({...env,DATABASE_URL:'postgres://app:REPLACE_PASSWORD@db/pmo',REDIS_URL:'redis://:changeme@redis:6379'}).length>=2));
-test('rejects live stripe keys',()=>assert.ok(failed({...env,STRIPE_SECRET_KEY:'sk_live_fake'}).some(x=>x.includes('live key'))));
+test('rejects live stripe keys',()=>{
+ for (const key of ['sk_live_fake', 'rk_live_fake'])
+  assert.ok(failed({...env,STRIPE_SECRET_KEY:key}).some(x=>x.includes('live key')), key);
+});
 test('rejects reference billing webhook',()=>assert.ok(failed({...env,BILLING_REFERENCE_WEBHOOK_ENABLED:'true'}).length>0));
 test('rejects credential-bearing URL and local origin',()=>assert.ok(failed({...env,WEB_ORIGIN:'https://user:pass@localhost'}).length>0));
 
