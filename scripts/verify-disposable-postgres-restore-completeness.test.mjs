@@ -21,6 +21,9 @@ set -eu
 if [[ "\${1:-}" == "--list" ]]; then
   if [[ "\${FAKE_ARCHIVE_TABLES:-1}" == "1" ]]; then
     echo '215; 1259 16508 TABLE public demo postgres'
+    if [[ "\${FAKE_ARCHIVE_DATA:-1}" == "1" ]]; then
+      echo '216; 0 16508 TABLE DATA public demo postgres'
+    fi
   else
     echo '; Archive created at test time'
   fi
@@ -65,6 +68,11 @@ fi
     assert.equal(empty.status, 2, empty.stderr);
     assert.match(empty.stderr, /archive has no TABLE definitions/);
     assert.equal(empty.calls, '', 'empty archive must not open the database');
+
+    const schemaOnly = run({ FAKE_ARCHIVE_DATA: '0' });
+    assert.equal(schemaOnly.status, 2, schemaOnly.stderr);
+    assert.match(schemaOnly.stderr, /no TABLE DATA entries/);
+    assert.equal(schemaOnly.calls, '', 'schema-only archive must not open the database');
 
     const nonempty = run({ FAKE_PRE_COUNT: '1' });
     assert.equal(nonempty.status, 2, nonempty.stderr);
