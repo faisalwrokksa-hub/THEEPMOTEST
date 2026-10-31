@@ -22,7 +22,7 @@ test('S25: restore credentials never enter subprocess argv and PGPORT cannot ove
       const path = join(bin, name);
       const fake = '#!/usr/bin/env bash\nset -eu\n' +
         'printf "%s\\n" "' + name + ': $*" >> "$FAKE_LOG"\n' +
-        '[[ "$PGDATABASE" == "$EXPECTED_DATABASE" ]] || exit 91\n' +
+        '[[ "$PGDATABASE" == "$EXPECTED_DATABASE" && "$PGHOST" == localhost && "$PGPORT" == 5433 && "$PGUSER" == test && "$PGPASSWORD" == "$EXPECTED_PASSWORD" ]] || exit 91\n' +
         'if [[ "' + name + '" == pg_restore && "$1" == "--list" ]]; then\n' +
         "  echo '215; 1259 16508 TABLE public demo postgres'\n" +
         "  echo '216; 0 16508 TABLE DATA public demo postgres'\n" +
@@ -34,13 +34,13 @@ test('S25: restore credentials never enter subprocess argv and PGPORT cannot ove
     const base = { ...process.env };
     for (const key of ['PGHOST','PGHOSTADDR','PGPORT','PGSERVICE','PGSERVICEFILE','PGDATABASE','PGOPTIONS']) delete base[key];
     const env = { ...base, PATH: bin + ':' + process.env.PATH, BACKUP_FILE: archive,
-      RESTORE_DATABASE_URL: url, EXPECTED_DATABASE: url, FAKE_LOG: log,
+      RESTORE_DATABASE_URL: url, EXPECTED_DATABASE: 'epmo_restore_fixture', EXPECTED_PASSWORD: secret, FAKE_LOG: log,
       ALLOW_DISPOSABLE_RESTORE: 'YES' };
     const result = spawnSync('bash', [script], { env, encoding: 'utf8', timeout: 15000 });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /PASS: 3 user tables/);
     const calls = readFileSync(log, 'utf8');
-    assert.match(calls, /pg_restore: --exit-on-error/);
+    assert.match(calls, /pg_restore: --exit-on-error.*--dbname=epmo_restore_fixture/);
     assert.match(calls, /psql: -X/);
     assert.doesNotMatch(calls, /S25_argv_secret_8437|postgresql:\/\//);
     writeFileSync(log, '');
