@@ -85,6 +85,9 @@ export type TokenSet = {
 
 async function token(cfg: MsConfig, body: Record<string, string>): Promise<TokenSet> {
   const res = await fetch(`${AUTHORITY()}/oauth2/v2.0/token`, {
+    // A hung credential exchange must not hold a request and client secret
+    // indefinitely. Each attempt has its own deadline.
+    signal: AbortSignal.timeout(15_000),
     // 307/308 redirects replay POST bodies, including MS_CLIENT_SECRET.
     // Never forward the OAuth credential exchange to another destination.
     redirect: 'error',
@@ -183,6 +186,9 @@ export async function call<T>(base: string, accessToken: string, path: string, i
 } = {}): Promise<T> {
   const url = microsoftApiUrl(base, path);
   const res = await fetch(url, {
+    // A stalled Graph/Power BI request must not hold a delegated bearer token
+    // and API worker indefinitely.
+    signal: AbortSignal.timeout(30_000),
     // Never forward delegated bearer credentials through an upstream redirect.
     redirect: 'error',
     method: init.method ?? 'GET',
