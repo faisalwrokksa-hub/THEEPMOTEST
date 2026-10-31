@@ -1,5 +1,6 @@
 import { rejectUnsafeBrowserMutation } from '@/lib/check-browser-mutation';
 import { logoutFailureResponse } from '@/lib/logout-recovery';
+import { fetchTenantMutation } from '@/lib/tenant-mutation-fetch.mjs';
 import { NextRequest, NextResponse } from 'next/server';
 import { publicUrl } from '@/lib/public-url';
 
@@ -13,10 +14,10 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get(SESSION)?.value;
   if (!token) return NextResponse.redirect(publicUrl(req, '/login'), 303);
   try {
-    const response = await fetch(`${BASE}/auth/logout-all`, {
+    const response = await fetchTenantMutation(fetch, `${BASE}/auth/logout-all`, {
       method: 'POST', headers: { cookie: `${SESSION}=${token}` }, cache: 'no-store',
     });
-    if (!response.ok) throw new Error('Session revocation not confirmed');
+    if (!response?.ok) throw new Error('Session revocation not confirmed');
   } catch {
     // Do not claim all devices were signed out if the API is unavailable.
     return logoutFailureResponse(req, true);
