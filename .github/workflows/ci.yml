@@ -170,8 +170,12 @@ jobs:
         run: bash scripts/verify-ci-docker-images.sh
       - name: Record production artifact evidence
         run: node scripts/phase15e-release-evidence.mjs record production_build
+      - name: Install Chromium for disposable local browser evidence
+        run: pnpm exec playwright install --with-deps chromium
       - name: Live Next.js bilingual and authentication smoke
         run: bash scripts/phase15d-run-web-smoke.sh
+        env:
+          EPMO_BROWSER_UAT: '1'
       - name: Record compiled-web runtime evidence
         run: node scripts/phase15e-release-evidence.mjs record web_runtime
       - name: Enforce current-run CI acceptance evidence
@@ -188,6 +192,14 @@ jobs:
           path: ${{ runner.temp }}/epmo-evidence/*.json
           if-no-files-found: warn
           retention-days: 14
+      - name: Publish local browser screenshots and traces (not staging acceptance)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: epmo-local-browser-${{ github.run_id }}
+          path: /tmp/epmo-browser-uat/
+          if-no-files-found: warn
+          retention-days: 7
   dependency-remediation-candidate:
     name: Generate dependency remediation candidate (non-deploying)
     if: github.event_name == 'pull_request'
