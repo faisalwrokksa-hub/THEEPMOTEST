@@ -8,6 +8,8 @@ import { sha256 } from './billing-policy';
 import { assertRecurringStripePrice, assertCreatedRecurringCheckout, stripeRecurringCheckoutParams, stripeRecurringIdempotencyKey, type RecurringPlan } from './stripe-recurring-policy';
 import { parsePaidRecurringInvoice } from './stripe-recurring-invoice';
 import { recurringInvoicePaymentIntentId } from './stripe-recurring-payment-reference';
+import { assertRecurringProviderSettlement, type TrustedRecurringBinding } from './stripe-recurring-reconciliation';
+import { assertRecurringLocalSettlement } from './stripe-recurring-local-settlement';
 import { parseSignedRecurringCheckout, assertRecurringCheckoutBinding, type RecurringCheckoutCandidate } from './stripe-recurring-checkout-binding';
 import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutReferenceValid, stripeCreatedSessionIsPending, stripeCachedCheckoutDisposition, stripeApiFetch, readStripeApiJson, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
@@ -545,6 +547,249 @@ export class StripeBillingService {
     });
   }
 
+
+  /**
+   * C32: TEST-only, signed recurring invoice settlement. The provider's
+   * subscription metadata is a routing hint only. The immutable Checkout
+   * binding and tenant-scoped database rows establish ownership. Every
+   * financial/entitlement mutation is inside one tenant-locked transaction.
+   */
+  private async settleRecurringInvoice(
+    candidate: NonNullable<ReturnType<typeof parsePaidRecurringInvoice>>,
+    digest: string, config: ReturnType<typeof stripeConfig>) {
+    if (config.liveMode || process.env.DEPLOYMENT_ENV === 'production' ||
+        process.env.STRIPE_RECURRING_CHECKOUT_ENABLED !== 'true')
+      throw new ServiceUnavailableException('Recurring Stripe settlement is TEST-only and disabled');
+    const getStripe = async (path: string): Promise<any> => {
+      let response: Response;
+      try {
+        response = await stripeApiFetch(`https://api.stripe.com/v1/${path}`, {
+          headers: { Authorization: `Bearer ${config.key}` },
+          signal: AbortSignal.timeout(12_000),
+        });
+      } catch { throw new BadGatewayException('Recurring Stripe provider verification unavailable'); }
+      if (!response.ok)
+        throw new BadGatewayException('Recurring Stripe provider verification rejected');
+      try { return await readStripeApiJson(response); }
+      catch { throw new BadGatewayException('Invalid recurring Stripe provider response'); }
+    };
+    // Never select a tenant from invoice metadata or an unverified webhook
+    // body. Retrieve all three provider objects independently before locking.
+    const invoice = await getStripe(`invoices/${candidate.invoiceId}`);
+    const subscription = await getStripe(`subscriptions/${candidate.subscriptionId}`);
+    let paymentIntentId: string;
+    try { paymentIntentId = recurringInvoicePaymentIntentId(invoice); }
+    catch { throw new ConflictException('Recurring Stripe invoice payment reference is ambiguous'); }
+    const intent = await getStripe(`payment_intents/${paymentIntentId}`);
+    const tenantId = subscription?.metadata?.tenantId;
+    if (typeof tenantId !== 'string' || !UUID.test(tenantId) ||
+        subscription?.id !== candidate.subscriptionId ||
+        typeof subscription?.metadata?.planId !== 'string' ||
+        !UUID.test(subscription.metadata.planId))
+      throw new ConflictException('Recurring Stripe subscription has no valid tenant routing identity');
+
+    return withTenant(tenantId, async tx => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(1212, hashtext(${tenantId}))`);
+      const record = rows(await tx.execute(sql`
+        SELECT b.tenant_id AS "tenantId", b.subscription_id AS "subscriptionId",
+               b.plan_id AS "planId", b.stripe_subscription_id AS "stripeSubscriptionId",
+               b.stripe_customer_id AS "stripeCustomerId",
+               b.stripe_price_id AS "stripePriceId", b.status,
+               b.last_period_ends_at AS "lastPeriodEndsAt",
+               b.cancel_at_period_end AS "cancelAtPeriodEnd",
+               s.id AS "localId", s.plan_id AS "localPlanId",
+               s.status AS "localStatus",
+               s.period_starts_at AS "localPeriodStartsAt",
+               s.period_ends_at AS "localPeriodEndsAt",
+               s.cancel_at_period_end AS "localCancelAtPeriodEnd",
+               p.code, p.price_minor AS "priceMinor", p.currency,
+               p.billing_interval AS "billingInterval",
+               p.trial_days AS "trialDays", p.is_active AS "isActive"
+        FROM billing_stripe_recurring_bindings b
+        JOIN tenant_subscriptions s ON s.tenant_id = b.tenant_id
+          AND s.id = b.subscription_id AND s.plan_id = b.plan_id
+        JOIN subscription_plans p ON p.id = b.plan_id
+        WHERE b.tenant_id = ${tenantId}
+          AND b.stripe_subscription_id = ${candidate.subscriptionId}
+          AND b.stripe_customer_id = ${candidate.customerId}
+        FOR UPDATE OF b, s`))[0];
+      if (!record || record.isActive !== true)
+        throw new ConflictException('Recurring Stripe subscription is not in the tenant ledger');
+      const latest = rows(await tx.execute(sql`
+        SELECT id FROM tenant_subscriptions WHERE tenant_id = ${tenantId}
+        ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
+      if (!latest || latest.id !== record.subscriptionId)
+        throw new ConflictException('Recurring Stripe invoice targets a superseded subscription');
+      const binding: TrustedRecurringBinding = {
+        tenantId: record.tenantId, subscriptionId: record.subscriptionId,
+        planId: record.planId, stripeSubscriptionId: record.stripeSubscriptionId,
+        stripeCustomerId: record.stripeCustomerId, stripePriceId: record.stripePriceId,
+        status: record.status,
+        lastPeriodEndsAt: record.lastPeriodEndsAt == null ? null :
+          new Date(record.lastPeriodEndsAt).toISOString(),
+        cancelAtPeriodEnd: record.cancelAtPeriodEnd,
+      };
+      const plan = {
+        id: record.planId, code: record.code, priceMinor: record.priceMinor,
+        currency: record.currency, billingInterval: record.billingInterval,
+        trialDays: record.trialDays, isActive: record.isActive,
+      } as RecurringPlan;
+      // Independently GET the configured provider Price, not just the price
+      // ID embedded in Invoice/Subscription objects. Amount/interval/mode
+      // must still agree with the tenant's immutable Checkout binding.
+      const remotePrice = await getStripe(`prices/${binding.stripePriceId}`);
+      try { assertRecurringStripePrice(remotePrice, plan, binding.stripePriceId, false); }
+      catch { throw new ConflictException('Recurring Stripe Price no longer matches tenant plan'); }
+      const receipt = rows(await tx.execute(sql`
+        SELECT invoice_id AS "invoiceId", payload_sha256 AS digest
+        FROM billing_webhook_receipts
+        WHERE tenant_id = ${tenantId} AND provider = ${STRIPE_PROVIDER}
+          AND provider_event_id = ${candidate.eventId}`))[0];
+      if (receipt && receipt.digest !== digest)
+        throw new ConflictException('Recurring Stripe event ID was reused with different content');
+
+      // A second signed event can describe the same paid provider invoice.
+      // Locate the immutable prior settlement; NEVER grant a second period.
+      const prior = rows(await tx.execute(sql`
+        SELECT i.id AS "invoiceId", i.status,
+               i.period_ends_at AS "periodEndsAt",
+               p.provider_payment_id AS "paymentIntent"
+        FROM subscription_events e
+        JOIN billing_invoices i ON i.tenant_id = e.tenant_id
+          AND i.id::text = e.details ->> 'invoiceId'
+        JOIN billing_payments p ON p.tenant_id = i.tenant_id AND p.invoice_id = i.id
+        WHERE e.tenant_id = ${tenantId}
+          AND e.subscription_id = ${binding.subscriptionId}
+          AND e.event_type = 'billing.stripe_recurring_invoice_settled'
+          AND e.details ->> 'stripeInvoiceId' = ${candidate.invoiceId}
+          AND e.details ->> 'paymentIntent' = ${paymentIntentId}
+          AND p.provider = ${STRIPE_PROVIDER}
+        ORDER BY e.created_at DESC LIMIT 1`))[0];
+      if (prior) {
+        // Re-verify provider funds/period using the historical lifecycle
+        // state. Never reactivate a canceled subscription on replay.
+        const previousStart = invoice?.lines?.data?.[0]?.period?.start;
+        const replayBinding: TrustedRecurringBinding = {
+          ...binding,
+          status: candidate.billingReason === 'subscription_create' ? 'pending' : 'active',
+          lastPeriodEndsAt: candidate.billingReason === 'subscription_create' ? null :
+            Number.isSafeInteger(previousStart) ? new Date(previousStart * 1000).toISOString() : null,
+        };
+        let replay;
+        try {
+          replay = assertRecurringProviderSettlement(
+            candidate, invoice, subscription, intent, replayBinding, plan, false);
+        } catch { throw new ConflictException('Recurring Stripe replay provider verification failed'); }
+        if (prior.status !== 'paid' || prior.paymentIntent !== replay.paymentIntentId ||
+            new Date(prior.periodEndsAt).getTime() !== Date.parse(replay.periodEndsAt) ||
+            !binding.lastPeriodEndsAt ||
+            Date.parse(binding.lastPeriodEndsAt) < Date.parse(replay.periodEndsAt) ||
+            (receipt && receipt.invoiceId !== prior.invoiceId))
+          throw new ConflictException('Recurring Stripe replay ledger mismatch');
+        if (!receipt) {
+          const added = rows(await tx.execute(sql`
+            INSERT INTO billing_webhook_receipts
+              (tenant_id, invoice_id, provider, provider_event_id, payload_sha256)
+            VALUES (${tenantId}, ${prior.invoiceId}, ${STRIPE_PROVIDER},
+                    ${candidate.eventId}, ${digest})
+            ON CONFLICT (provider, provider_event_id) DO NOTHING RETURNING id`));
+          if (!added.length) throw new ConflictException('Recurring Stripe replay event identity conflict');
+        }
+        return { received: true, applied: false, duplicate: true,
+          invoiceId: prior.invoiceId, subscriptionId: binding.subscriptionId };
+      }
+      if (receipt) throw new ConflictException('Recurring Stripe event receipt has no matching settlement');
+
+      let verified: ReturnType<typeof assertRecurringProviderSettlement>;
+      try {
+        verified = assertRecurringProviderSettlement(
+          candidate, invoice, subscription, intent, binding, plan, false);
+        assertRecurringLocalSettlement(binding, {
+          id: record.localId, planId: record.localPlanId,
+          status: record.localStatus, cancelAtPeriodEnd: record.localCancelAtPeriodEnd,
+          periodStartsAt: record.localPeriodStartsAt,
+          periodEndsAt: record.localPeriodEndsAt,
+        }, verified, latest.id);
+      } catch { throw new ConflictException('Recurring Stripe invoice or entitlement failed verification'); }
+
+      // Existing open/manual invoices cannot be silently repurposed into
+      // recurring Stripe invoices. A conflict rolls back all writes.
+      const inserted = rows(await tx.execute(sql`
+        INSERT INTO billing_invoices
+          (tenant_id, subscription_id, period_starts_at, period_ends_at,
+           amount_minor, currency)
+        VALUES (${tenantId}, ${binding.subscriptionId},
+                ${verified.periodStartsAt}::timestamptz,
+                ${verified.periodEndsAt}::timestamptz,
+                ${verified.amountMinor}, ${verified.currency})
+        ON CONFLICT (tenant_id, subscription_id, period_starts_at)
+          DO NOTHING RETURNING id`));
+      if (inserted.length !== 1)
+        throw new ConflictException('Recurring invoice period is already recorded');
+      const invoiceId = inserted[0].id;
+      const received = rows(await tx.execute(sql`
+        INSERT INTO billing_webhook_receipts
+          (tenant_id, invoice_id, provider, provider_event_id, payload_sha256)
+        VALUES (${tenantId}, ${invoiceId}, ${STRIPE_PROVIDER},
+                ${candidate.eventId}, ${digest})
+        ON CONFLICT (provider, provider_event_id) DO NOTHING RETURNING id`));
+      if (received.length !== 1)
+        throw new ConflictException('Recurring Stripe event identity is already recorded');
+      const payment = rows(await tx.execute(sql`
+        INSERT INTO billing_payments
+          (tenant_id, invoice_id, provider, provider_payment_id,
+           provider_event_id, amount_minor, currency)
+        VALUES (${tenantId}, ${invoiceId}, ${STRIPE_PROVIDER},
+                ${verified.paymentIntentId}, ${candidate.eventId},
+                ${verified.amountMinor}, ${verified.currency})
+        ON CONFLICT (provider, provider_payment_id) DO NOTHING RETURNING id`));
+      if (payment.length !== 1)
+        throw new ConflictException('Recurring Stripe PaymentIntent already settled');
+      const activated = rows(await tx.execute(sql`
+        UPDATE tenant_subscriptions
+        SET status = 'active',
+            period_starts_at = ${verified.periodStartsAt}::timestamptz,
+            period_ends_at = ${verified.periodEndsAt}::timestamptz,
+            trial_ends_at = NULL, updated_at = now()
+        WHERE tenant_id = ${tenantId} AND id = ${binding.subscriptionId}
+          AND status = ${record.localStatus}
+          AND cancel_at_period_end = false
+          AND period_ends_at = ${record.localPeriodEndsAt}::timestamptz
+        RETURNING id`));
+      if (activated.length !== 1)
+        throw new ConflictException('Recurring entitlement state changed during settlement');
+      const advanced = rows(await tx.execute(sql`
+        UPDATE billing_stripe_recurring_bindings
+        SET status = 'active',
+            last_period_ends_at = ${verified.periodEndsAt}::timestamptz,
+            updated_at = now()
+        WHERE tenant_id = ${tenantId}
+          AND subscription_id = ${binding.subscriptionId}
+          AND stripe_subscription_id = ${binding.stripeSubscriptionId}
+          AND status = ${binding.status}
+          AND cancel_at_period_end = false
+          AND last_period_ends_at IS NOT DISTINCT FROM
+              ${binding.lastPeriodEndsAt}::timestamptz
+        RETURNING id`));
+      if (advanced.length !== 1)
+        throw new ConflictException('Recurring Stripe binding changed during settlement');
+      const settledInvoice = rows(await tx.execute(sql`
+        UPDATE billing_invoices SET status = 'paid', paid_at = now()
+        WHERE tenant_id = ${tenantId} AND id = ${invoiceId} AND status = 'open'
+        RETURNING id`));
+      if (settledInvoice.length !== 1)
+        throw new ConflictException('Recurring invoice paid-state update failed');
+      await tx.execute(sql`
+        INSERT INTO subscription_events
+          (tenant_id, subscription_id, event_type, details)
+        VALUES (${tenantId}, ${binding.subscriptionId},
+          'billing.stripe_recurring_invoice_settled',
+          ${JSON.stringify({ invoiceId, stripeInvoiceId: candidate.invoiceId, paymentIntent: verified.paymentIntentId, eventId: candidate.eventId, periodEndsAt: verified.periodEndsAt })}::jsonb)`);
+      return { received: true, applied: true, invoiceId,
+        subscriptionId: binding.subscriptionId, periodEndsAt: verified.periodEndsAt };
+    });
+  }
+
   /** Stripe signs the raw request. A successful customer redirect never activates a subscription. */
   async webhook(rawBody: Buffer | undefined, header: unknown) {
     const config = stripeConfig();
@@ -583,7 +828,7 @@ export class StripeBillingService {
           try { recurringInvoicePaymentIntentId(invoice); }
           catch { throw new BadRequestException('Ambiguous recurring invoice payment reference'); }
         }
-        throw new ServiceUnavailableException('Recurring Stripe invoice settlement not yet enabled');
+        return this.settleRecurringInvoice(candidate, sha256(rawBody), config);
       }
     }
 
