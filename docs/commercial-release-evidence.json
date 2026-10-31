@@ -383,5 +383,51 @@
     "externalAcceptance": "NO_PROVIDER_STAGING_OR_BROWSER_RECEIPTS",
     "releaseDecision": "NO-GO",
     "note": "Q19 baseline and source CI pass only their own SHAs. All nine commercial gates remain unaccepted; candidateSha null. No real Stripe TEST, Entra two-user, independent two-tenant staging RLS, public HTTPS, browser 375px/RTL, encrypted recovery/rollback or support/legal acceptance."
+  },
+  "lastIndependentIntegrationQ21": {
+    "observedAtUtc": "2026-10-31T04:52:23Z",
+    "releaseDecision": "NO-GO",
+    "branch": "integration/q21-e21-f23-c19-s20-20261031",
+    "sourceBaseline": {
+      "pr": 92,
+      "sha": "1b92d897ffb7e08cb49360c34015805762c7fd3e",
+      "workflowRun": 41165926778,
+      "ci": "SUCCESS 4/4; CI-local only"
+    },
+    "sourceCandidates": [
+      {
+        "owner": "Engineering",
+        "pr": 93,
+        "sha": "dfe2b5d1304def85610a7413220edd863e391d9a",
+        "workflowRun": 41166711646,
+        "ci": "SUCCESS 4/4"
+      },
+      {
+        "owner": "Frontend",
+        "pr": 94,
+        "sha": "3752f1c33cc4061a251ee224d15e9c755b9826f3",
+        "workflowRun": 41167918564,
+        "ci": "SUCCESS 4/4"
+      },
+      {
+        "owner": "Commercial",
+        "pr": 95,
+        "sha": "a440882cc8ae734b0306231d9278ac049f4d7ce4",
+        "workflowRun": 41168774500,
+        "ci": "SUCCESS 4/4"
+      },
+      {
+        "owner": "Hosting",
+        "pr": 96,
+        "sha": "6641a2504b989993ba89056a1377de5a93332654",
+        "workflowRun": 41169842787,
+        "ci": "SUCCESS 4/4"
+      }
+    ],
+    "integrationCi": "NOT YET VERIFIED — must run on final integrated SHA",
+    "stripeTestProviderScenariosAccepted": 0,
+    "commercialGatesAccepted": 0,
+    "p0IndependentAcceptance": "BLOCKED: staging RLS, Stripe TEST, Entra two-user, HTTPS staging, encrypted recovery, browser UAT and legal/support receipts",
+    "qualification": "Source CI passes do not prove combined compatibility or external launch readiness. candidateSha remains null. No production operations authorized."
   }
 }

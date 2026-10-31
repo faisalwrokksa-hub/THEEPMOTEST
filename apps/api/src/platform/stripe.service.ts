@@ -5,7 +5,7 @@ import { currentContext } from '../tenancy/tenant-context';
 import { requiresSecureTransport } from '../common/deployment-policy';
 import { requireCapability } from '../common/require-capability';
 import { sha256 } from './billing-policy';
-import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutUrlAllowed, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
+import { assertStripeSettlement, assertStripePaymentInvoiceMatch, assertStripeExceptionIntent, parsePaidStripeEvent, parseUnpaidStripeCheckoutEvent, parseStripePaymentException, shouldPauseOnPaymentException, refundCoversPaidInvoice, stripeCheckoutIdempotencyKey, stripeCheckoutParams, stripeCheckoutUrlAllowed, stripeApiFetch, stripeDeploymentModeAllowed, STRIPE_PROVIDER, verifyStripeSignature } from './stripe-policy';
 
 const rows = (value: unknown) => value as any[];
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -95,7 +95,7 @@ export class StripeBillingService {
       const params = stripeCheckoutParams(invoice, urls.success, urls.cancel);
       let response: Response;
       try {
-        response = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+        response = await stripeApiFetch('https://api.stripe.com/v1/checkout/sessions', {
           method: 'POST',
           headers: { Authorization: `Bearer ${config.key}`, 'Content-Type': 'application/x-www-form-urlencoded',
             'Idempotency-Key': idempotencyKey },
@@ -147,7 +147,7 @@ export class StripeBillingService {
                                        digest: string, config: ReturnType<typeof stripeConfig>) {
     let response: Response;
     try {
-      response = await fetch(`https://api.stripe.com/v1/payment_intents/${event.paymentIntent}`, {
+      response = await stripeApiFetch(`https://api.stripe.com/v1/payment_intents/${event.paymentIntent}`, {
         headers: { Authorization: `Bearer ${config.key}` }, signal: AbortSignal.timeout(12_000),
       });
     } catch { throw new BadGatewayException('Unable to verify Stripe payment exception'); }

@@ -1,6 +1,7 @@
 import { Logger } from '@nestjs/common';
 import { microsoftApiUrl } from './url-policy';
 import { assertMicrosoftPageVisit, microsoftPageItems } from './pagination-policy';
+import { parseMicrosoftTokenPayload } from './token-response-policy';
 
 /**
  * Talking to Microsoft: one app registration, every customer's own tenant.
@@ -80,21 +81,30 @@ export type TokenSet = {
 
 async function token(cfg: MsConfig, body: Record<string, string>): Promise<TokenSet> {
   const res = await fetch(`${AUTHORITY()}/oauth2/v2.0/token`, {
+    // 307/308 redirects replay POST bodies, including MS_CLIENT_SECRET.
+    // Never forward the OAuth credential exchange to another destination.
+    redirect: 'error',
     method: 'POST',
     headers: { 'content-type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       client_id: cfg.clientId, client_secret: cfg.clientSecret, ...body,
     }),
   });
-  const j: any = await res.json().catch(() => ({}));
-  if (!res.ok) throw new MsAuthError(j?.error ?? 'invalid_request', j?.error_description ?? `HTTP ${res.status}`);
-  return {
-    accessToken: j.access_token,
-    refreshToken: j.refresh_token ?? null,
-    expiresAt: Date.now() + Number(j.expires_in ?? 3600) * 1000,
-    scope: j.scope ?? '',
-    idToken: j.id_token ?? null,
-  };
+  const j: unknown = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const error: Record<string, unknown> = j && typeof j === 'object' ? j as Record<string, unknown> : {};
+    throw new MsAuthError(
+      typeof error.error === 'string' ? error.error : 'invalid_request',
+      typeof error.error_description === 'string' ? error.error_description : `HTTP ${res.status}`,
+    );
+  }
+  // Fail closed rather than caching an undefined access token or a malformed
+  // expiration returned by a broken/misconfigured token endpoint.
+  try {
+    return parseMicrosoftTokenPayload(j);
+  } catch {
+    throw new MsAuthError('invalid_token_response', 'Microsoft returned an invalid token response.');
+  }
 }
 
 export const exchangeCode = (cfg: MsConfig, code: string, resource: Resource) =>
