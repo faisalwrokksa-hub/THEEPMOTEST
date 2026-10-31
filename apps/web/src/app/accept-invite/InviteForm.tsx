@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import Link from 'next/link';
 import { validInvitationToken, invitationErrorText } from '@/lib/invitation-feedback.mjs';
+import { consumeSecretFragmentOnce } from '@/lib/secret-fragment.mjs';
 
 export function InviteForm({ lang }: { lang: 'en' | 'ar' }) {
   const ar = lang === 'ar';
@@ -11,14 +12,16 @@ export function InviteForm({ lang }: { lang: 'en' | 'ar' }) {
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const busyGuard = useRef(false);
+  const fragmentConsumed = useRef(false);
   const [error, setError] = useState('');
   const [done, setDone] = useState(false);
   useEffect(() => {
-    const value = new URLSearchParams(window.location.hash.slice(1)).get('token') ?? '';
-    // Remove the bearer secret from the address bar immediately after reading it.
-    window.history.replaceState(null, '', '/accept-invite');
-    setToken(value);
-    setReady(true);
+    const value = consumeSecretFragmentOnce(fragmentConsumed, window.location.hash,
+      () => window.history.replaceState(null, '', '/accept-invite'));
+    if (value !== undefined) {
+      setToken(value);
+      setReady(true);
+    }
   }, []);
   async function accept(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
