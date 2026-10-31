@@ -92,7 +92,7 @@ async function token(cfg: MsConfig, body: Record<string, string>): Promise<Token
   });
   const j: unknown = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const error = j && typeof j === 'object' ? j as Record<string, unknown> : {};
+    const error: Record<string, unknown> = j && typeof j === 'object' ? j as Record<string, unknown> : {};
     throw new MsAuthError(
       typeof error.error === 'string' ? error.error : 'invalid_request',
       typeof error.error_description === 'string' ? error.error_description : `HTTP ${res.status}`,
