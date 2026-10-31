@@ -513,5 +513,24 @@
     "stripeTestScenariosAccepted": 0,
     "decision": "NO-GO",
     "note": "Q31 integrates isolated staging network and read-only nine-gate evidence verifier; final-SHA CI and all independent provider/staging/UAT/recovery/legal receipts require separate verification. CI alone is not launch approval."
+  },
+  "lastIndependentIntegrationQ32": {
+    "reviewOnly": true,
+    "baseSha": "26568383ad4d3528d77d415e2d4c777ef3adf752",
+    "sourcePullRequests": [
+      147,
+      148,
+      149,
+      150
+    ],
+    "sourceFiles": 14,
+    "sourceCi": "ALL_FOUR_SOURCE_HEADS_SUCCESS_4_OF_4",
+    "integrationSha": null,
+    "integrationCi": "PENDING_FINAL_SHA",
+    "acceptedCommercialGates": 0,
+    "stripeTestScenariosAccepted": 0,
+    "decision": "NO-GO",
+    "excludedFailedPr": 151,
+    "qualification": "Source blob parity verified against parents; combined exact-SHA CI and external provider/staging receipts are not accepted at commit."
   }
 }
