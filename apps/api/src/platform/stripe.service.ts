@@ -71,8 +71,18 @@ export class StripeBillingService {
                expires_at AS "expiresAt" FROM billing_stripe_checkout_sessions
         WHERE tenant_id = ${tenantId} AND invoice_id = ${invoiceId} AND expires_at > now() + interval '60 seconds'
         ORDER BY created_at DESC, id DESC LIMIT 1`))[0];
-      if (existing) return { invoiceId, sessionId: existing.sessionId, url: existing.url,
-        expiresAt: existing.expiresAt, reused: true, paymentVerified: false };
+      if (existing) {
+        // Reused database references cross the same outbound payment-navigation
+        // boundary as a fresh Stripe response. Never return a corrupted URL or
+        // a session ID from the wrong Stripe TEST/LIVE mode.
+        if (!stripeCheckoutUrlAllowed(existing.url) ||
+            typeof existing.sessionId !== 'string' ||
+            !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(existing.sessionId) ||
+            existing.sessionId.startsWith('cs_live_') !== config.liveMode)
+          throw new ConflictException('Stored Stripe Checkout reference failed validation');
+        return { invoiceId, sessionId: existing.sessionId, url: existing.url,
+          expiresAt: existing.expiresAt, reused: true, paymentVerified: false };
+      }
 
       // Stripe caches requests by idempotency key. A fixed invoice-only key
       // would return the *expired* session after a customer retries checkout.
@@ -96,8 +106,8 @@ export class StripeBillingService {
       let session: any;
       try { session = await response.json(); }
       catch { throw new BadGatewayException('Invalid Stripe Checkout response'); }
-      const url = typeof session.url === 'string' ? session.url : '';
-      if (!stripeCheckoutUrlAllowed(url) || session.object !== 'checkout.session' ||
+      const url = session && typeof session.url === 'string' ? session.url : '';
+      if (!session || !stripeCheckoutUrlAllowed(url) || session.object !== 'checkout.session' ||
           session.livemode !== config.liveMode ||
           typeof session.id !== 'string' || !/^cs_(test_|live_)[A-Za-z0-9]+$/.test(session.id) ||
           (config.liveMode && !session.id.startsWith('cs_live_')) ||
